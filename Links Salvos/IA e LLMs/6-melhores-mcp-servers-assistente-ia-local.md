@@ -1,6 +1,6 @@
 ---
 date: 2025-07-30
-tags: [MCP, servers, LLM, local, assistente IA, @avichawla, composable, tools]
+tags: [MCP, servers, LLM, local, assistente IA, avichawla, composable, tools]
 source: https://x.com/_avichawla/status/1950443752608412090
 autor: "Avi Chawla"
 tipo: zettelkasten

@@ -1,4 +1,4 @@
-﻿Projects/second-brain-pipeline/config.json
+Projects/second-brain-pipeline/config.json
 Projects/MasterClaude/second-brain-pipeline/config.json
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json
@@ -12,3 +12,19 @@ Projects/second-brain-pipeline/quartz/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Game project (Fungineer) - keep local, exclude from repo
+src/
+design/
+assets/
+production/
+docs/engine-reference/
+docs/adr/
+docs/examples/
+docs/superpowers/
+docs/COLLABORATIVE-DESIGN-PRINCIPLE.md
+docs/WORKFLOW-GUIDE.md
+docs/technical-architecture.md
+Scheduled/fungineer-autonomous-driver/
+Scheduled/fungineer-visual-verify/
+CLAUDE.md

@@ -1,0 +1,14 @@
+﻿Projects/second-brain-pipeline/config.json
+Projects/MasterClaude/second-brain-pipeline/config.json
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/cache/
+.obsidian/plugins/smart-connections/.smart-connections/
+.smart-env/
+Projects/second-brain-pipeline/state.json
+Projects/second-brain-pipeline/logs/
+Projects/second-brain-pipeline/__pycache__/
+Projects/second-brain-pipeline/quartz/
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,141 @@
+================================================================================
+ORPHANED NOTES - ACTION ITEMS
+================================================================================
+
+This file lists the 46 "real" orphaned notes from your working vault 
+(excluding build artifacts) that you may want to review and potentially 
+link to your MOCs or other central pages.
+
+Status: These notes have ZERO outgoing wikilinks AND ZERO incoming wikilinks.
+They appear as isolated dots in your Obsidian graph view.
+
+Total to Review: 46 notes (out of 145 total orphans; 99 others are in Quartz)
+
+================================================================================
+CONCEITOS (2 notes) - Review these first!
+================================================================================
+
+These are your concept notes that somehow got disconnected:
+
+1. Conceitos/ffmpeg-montagem-video.md
+   → Suggest linking to: [[MOC - Design e Producao Visual.md]]
+
+2. Conceitos/text-to-speech-apis.md
+   → Suggest linking to: [[MOC - Ferramentas Dev e Open Source.md]]
+
+
+================================================================================
+GAMES E 3D (2 notes) - Medium priority
+================================================================================
+
+3. Links Salvos/Games e 3D/geracao-de-personagens-3d-jogaveis-por-imagem.md
+4. Links Salvos/Games e 3D/landing-page-3d-scroll-based.md
+
+   → Suggest linking to: [[MOC - Design e Producao Visual.md]]
+
+
+================================================================================
+IA E LLMS (42 notes) - High volume, but thematic
+================================================================================
+
+These are your most recent "saved links" and would benefit from integration
+with your AI/LLM MOCs. Suggested connections:
+
+5. agent-router-model.md
+6. agente-ai-autonomo-com-auto-modificacao.md
+7. arquitetura-de-agentes-de-codigo-open-source.md
+8. base-de-dados-de-acoes-agenticas.md
+9. arquitetura-interna-do-claude-code.md
+10. separacao-de-responsabilidades-em-workflow-de-ia.md
+11. visualizacao-de-orquestracao-de-agentes-ia.md
+    → Suggest linking to: [[MOC - Agentes Autonomos.md]]
+
+12. skills-uxui-para-agentes-de-codigo.md
+13. office-suite-para-agentes-de-ia.md
+14. browser-cli-para-agentes-de-ia.md
+15. browser-como-container-de-agente-de-ia.md
+    → Suggest linking to: [[MOC - Claude Code e Produtividade.md]]
+
+16. bibliotecas-de-workflows-com-llms.md
+17. mcp-em-jogos-compilados-unity.md
+18. unity-mcp-integracao-llm-com-game-engine.md
+19. plugins-openai-open-source.md
+20. repositorios-open-source-de-ia.md
+21. repositorios-github-para-claude-code.md
+22. repositorios-github-para-aiml.md
+    → Suggest linking to: [[MOC - Ferramentas Dev e Open Source.md]]
+
+23. bitnet-b158-inferencia-em-cpu.md
+24. stack-de-ia-local-self-hosted.md
+    → Suggest linking to: [[MOC - Modelos Locais e IA Privada.md]]
+
+25. quantizacao-de-llms.md
+26. quantizacao-dinamica-de-llms.md
+27. kv-cache-quantization.md
+28. modelos-de-codificacao-multimodal.md
+29. arquiteturas-especializadas-de-modelos-de-ia.md
+30. timesfm-foundation-model-para-series-temporais.md
+    → Suggest linking to: [[MOC - Modelos Locais e IA Privada.md]]
+
+31. ancoragem-de-janela-de-uso-em-apis.md
+32. otimizacao-de-tokens-via-claudemd.md
+33. redacao-silenciosa-de-thinking-em-llms.md
+34. orquestracao-hibrida-de-llms.md
+    → Suggest linking to: [[MOC - Claude Code e Produtividade.md]]
+
+35. memory-persistente-em-agentes-de-codigo.md
+36. spec-driven-development.md
+37. vibe-coding-para-desenvolvimento-de-jogos.md
+38. pipeline-autonomo-de-geracao-de-jogos-com-ia.md
+39. producao-de-video-programatica-com-ia.md
+40. motion-graphics-gerados-por-ia-com-design-system.md
+    → Suggest linking to: [[MOC - Design e Producao Visual.md]]
+
+41. anotacoes-visuais-como-input-para-ia.md
+    → Suggest linking to: [[MOC - Claude Code e Produtividade.md]]
+
+42. plataformas-de-ia-customizada-sob-demanda.md
+43. vazamento-de-codigo-proprietario-de-ia.md
+44. traducao-de-tela-em-tempo-real.md
+45. tts-open-weight-com-clonagem-de-voz.md
+    → Suggest linking to: [[MOC - Ferramentas Dev e Open Source.md]]
+
+46. workflow-3d-completo-via-mcp.md
+    → Suggest linking to: [[MOC - Design e Producao Visual.md]]
+
+
+================================================================================
+QUICK WINS
+================================================================================
+
+To quickly reduce your orphan count, consider:
+
+1. Open each of the 2 Conceitos orphans and add a single backlink to the 
+   most relevant MOC page. This will immediately integrate them.
+
+2. Review the 4 Games e 3D and other "Links Salvos" notes. For each:
+   - Check if it's still relevant/interesting
+   - If yes, add a link to relevant MOC: [[MOC - ...]]
+   - If no, consider archiving or deleting it
+
+3. Focus on the 42 IA e LLMs notes - these form a coherent group and 
+   connecting them to 1-2 MOCs each would significantly improve your graph.
+
+Quick formula: If each orphan adds even 1 outgoing link, your orphan rate 
+drops from 22% to <5% of your working vault.
+
+
+================================================================================
+STRATEGY GOING FORWARD
+================================================================================
+
+For the second-brain-pipeline automation:
+
+When a new saved link is processed:
+1. Classify it into a thematic bucket (IA/Agentes, Games, Marketing, etc.)
+2. Auto-add a reference to relevant MOC: [[MOC - Thematic Category]]
+3. Track any new orphans monthly and integrate them before they pile up
+
+This way, no saved link will ever be truly orphaned—it will at minimum have
+a backlink from a MOC, making it discoverable in graph view and search.
+

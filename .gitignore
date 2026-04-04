@@ -6,6 +6,7 @@ Projects/MasterClaude/second-brain-pipeline/config.json
 .obsidian/plugins/smart-connections/.smart-connections/
 .smart-env/
 Projects/second-brain-pipeline/state.json
+Projects/second-brain-pipeline/failed_links.json
 Projects/second-brain-pipeline/logs/
 Projects/second-brain-pipeline/__pycache__/
 Projects/second-brain-pipeline/quartz/

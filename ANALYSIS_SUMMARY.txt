@@ -1,0 +1,111 @@
+================================================================================
+QUICK REFERENCE: VAULT ORPHAN ANALYSIS
+================================================================================
+
+GENERATED: 2026-04-02
+VAULT: /sessions/serene-sleepy-allen/mnt/Claude/
+
+KEY NUMBERS AT A GLANCE:
+================================================================================
+
+Total Notes:                              1,217
+  ├─ Working vault notes:                  660 (excluding node_modules)
+  ├─ Build artifact notes (quartz):        557 (should be excluded)
+  └─ Orphaned notes (total):               702 (57.7%)
+      └─ Real orphans (working vault):     145 (22.0% of working notes)
+
+Connected Notes:
+  - Fully connected (hub pages):           362 (51.4% of working vault)
+  - Hub pages (cite but not cited):         63 (9.5% of working vault)
+  - Leaf pages (cited but don't cite):      90 (13.6% of working vault)
+
+ACTIONABLE ORPHANS:
+================================================================================
+
+Your working vault has 46 notes that genuinely need attention:
+
+Priority 1 (Review immediately):
+  - 2 Conceitos notes (should be linked)
+  
+Priority 2 (Medium importance):
+  - 2 Games e 3D notes
+  
+Priority 3 (Bulk integration):
+  - 42 IA e LLMs saved links (batch linking recommended)
+
+VAULT HEALTH ASSESSMENT:
+================================================================================
+
+Core Structure:        HEALTHY
+  - 51.4% of working notes are fully integrated
+  - MOCs are well-established hub pages
+  - Conceitos folder has only 4.4% orphan rate
+
+Areas of Concern:      INTEGRATION LAG
+  - 42 recent "IA e LLMs" saved links are unlinked
+  - Suggests pipeline needs auto-linking feature
+  - Pattern: nodes enter as orphans, need manual integration
+
+Build Artifacts:       ACTION NEEDED
+  - 542 quartz/node_modules files are inflating metrics
+  - Should be removed from vault or .gitignore'd
+  - Not part of your actual knowledge base
+
+FILES CREATED:
+================================================================================
+
+Three analysis files have been saved to your vault root:
+
+1. ORPHAN_ANALYSIS_REPORT.md (detailed technical report)
+   - Full breakdown with statistics
+   - Explanation of each category
+   - Technical methodology
+
+2. ORPHAN_NOTES_TO_REVIEW.txt (action items list)
+   - All 46 orphans listed by category
+   - Suggested MOC connections
+   - Quick wins and strategy
+
+3. ANALYSIS_SUMMARY.txt (this file)
+   - Quick reference for future use
+
+RECOMMENDED NEXT STEPS:
+================================================================================
+
+Immediate (< 1 hour):
+  [ ] Review 2 Conceitos orphans - add MOC backlinks
+  [ ] Review 4 Games e 3D orphans - add MOC backlinks
+
+Short term (1-2 hours):
+  [ ] Remove Projects/second-brain-pipeline/quartz/node_modules/
+      This will drop apparent orphan count from 57.7% to 22%
+
+Medium term (ongoing):
+  [ ] Connect remaining 42 IA e LLMs notes to MOCs
+      Batch linking: 1 link per note = 0.5 min per note = 21 minutes
+
+Long term (for second-brain-pipeline):
+  [ ] Add auto-linking to pipeline
+  [ ] New saved links should auto-get [[MOC - Category]] reference
+  [ ] Monthly orphan review to catch stragglers
+
+EXPECTED OUTCOME IF ALL ACTIONS TAKEN:
+================================================================================
+
+Before:                           After:
+- Total orphans: 702 (57.7%)     - Total orphans: 0-5 (< 1%)
+- Real orphans: 145 (22%)        - Real orphans: 0-1 (< 0.5%)
+- Graph view: fragmented         - Graph view: connected
+- Recent links: isolated          - Recent links: integrated
+
+Your vault would become a tightly integrated knowledge graph where every
+saved link automatically connects to your existing MOC structure.
+
+CONTACT / QUESTIONS:
+================================================================================
+
+This analysis examined all .md files in the vault and tracked wikilinks
+[[like this]]. It ignored YAML frontmatter and only counted body content.
+
+For detailed methodology, see ORPHAN_ANALYSIS_REPORT.md
+

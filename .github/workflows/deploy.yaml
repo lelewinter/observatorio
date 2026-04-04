@@ -56,7 +56,7 @@ jobs:
           find "$CONTENT_DIR" -name "*.md" | wc -l
 
       - name: Install Dependencies
-        run: npm ci
+        run: npm install
         working-directory: Projects/second-brain-pipeline/quartz
 
       - name: Build Quartz

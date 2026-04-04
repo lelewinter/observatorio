@@ -31,23 +31,26 @@ jobs:
           QUARTZ_DIR="Projects/second-brain-pipeline/quartz"
           CONTENT_DIR="$QUARTZ_DIR/content"
 
-          # Limpar content antigo (exceto index.md)
-          find "$CONTENT_DIR" -mindepth 1 -not -name "index.md" -delete 2>/dev/null || true
+          # Criar content/ se nao existir
+          mkdir -p "$CONTENT_DIR"
+
+          # Limpar content antigo
+          rm -rf "$CONTENT_DIR/Links Salvos" "$CONTENT_DIR/Conceitos" "$CONTENT_DIR/MOCs" 2>/dev/null || true
 
           # Copiar notas do vault para content/
           cp -r "Links Salvos" "$CONTENT_DIR/" 2>/dev/null || true
           cp -r "Conceitos" "$CONTENT_DIR/" 2>/dev/null || true
           cp -r "MOCs" "$CONTENT_DIR/" 2>/dev/null || true
 
-          # Criar index.md se nao existir
-          if [ ! -f "$CONTENT_DIR/index.md" ]; then
-            echo "---" > "$CONTENT_DIR/index.md"
-            echo "title: Observatorio" >> "$CONTENT_DIR/index.md"
-            echo "---" >> "$CONTENT_DIR/index.md"
-            echo "# Observatorio" >> "$CONTENT_DIR/index.md"
-            echo "" >> "$CONTENT_DIR/index.md"
-            echo "Base de conhecimento pessoal." >> "$CONTENT_DIR/index.md"
-          fi
+          # Criar index.md
+          cat > "$CONTENT_DIR/index.md" << 'EOF'
+          ---
+          title: Observatorio
+          ---
+          # Observatorio
+
+          Base de conhecimento pessoal.
+          EOF
 
           echo "Content synced. Files:"
           find "$CONTENT_DIR" -name "*.md" | wc -l

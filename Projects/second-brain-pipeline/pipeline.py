@@ -1724,7 +1724,7 @@ def notify_telegram(cfg: dict, client: Anthropic, title: str, content: str,
     # Link web via Quartz/GitHub Pages
     quartz_base = cfg.get("quartz_base_url", "")
     if quartz_base:
-        slug = file_path.replace(".md", "").replace(" ", "-").lower()
+        slug = file_path.replace(".md", "").replace(" ", "-")
         web_url = f"{quartz_base.rstrip('/')}/{slug}"
         message = f"{summary}\n\n{status}\n🔗 {web_url}"
     else:
@@ -2218,7 +2218,7 @@ Digest:
         quartz_base = cfg.get("quartz_base_url", "")
         if quartz_base:
             file_path = f"Links Salvos/{filename}"
-            slug = file_path.replace(".md", "").replace(" ", "-").lower()
+            slug = file_path.replace(".md", "").replace(" ", "-")
             tg_message += f"\n\n🔗 {quartz_base.rstrip('/')}/{slug}"
 
         send_telegram_message(cfg, tg_message)

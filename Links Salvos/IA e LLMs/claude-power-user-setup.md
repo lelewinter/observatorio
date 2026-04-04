@@ -2,32 +2,204 @@
 tags: [claude, anthropic, llm, produtividade, ai-tools, workflows]
 source: https://x.com/kloss_xyz/status/2036365727771320543?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Claude Power User Setup
 
-## Resumo
-O ecossistema Claude em 2026 evoluiu para um conjunto robusto de mais de 24 funcionalidades novas, incluindo sistemas de contexto persistente, automação agendada, extensões de código e workflows multi-dispositivo.
+# Configurar Claude como Power User: Contexto Persistente + Automação
 
-## Explicação
-O Claude passou de um simples assistente de chat para uma plataforma extensível com camadas de personalização e automação. O conceito central aqui é o de **uso avançado estruturado**: a diferença entre usuários casuais e power users não está no acesso às ferramentas, mas no conhecimento e configuração deliberada de cada camada do sistema.
+## O que é
 
-O **sistema de arquivos de contexto** é um dos pilares mais relevantes: ao invés de reintroduzir informações a cada sessão, o usuário mantém arquivos de contexto persistentes que o modelo carrega automaticamente, eliminando a perda de memória entre conversas. Isso representa uma forma prática de contornar as limitações de contexto de janela de modelos de linguagem.
+Ecossistema Claude 2026: contexto persistente, tarefas agendadas, plugins especializados, computer use, workflows multi-dispositivo. Diferença entre casual user e power user = configuração deliberada de camadas.
 
-O **Cowork setup** e o **plugin system** indicam uma arquitetura modular: o modelo não opera de forma genérica, mas é configurado com camadas de instruções, ferramentas externas e extensões específicas por domínio (ex: Claude Code extensions para desenvolvedores). A automação via **tarefas agendadas** e o workflow **phone-to-desktop via Dispatch** expandem o Claude para além do uso síncrono, tornando-o um agente assíncrono que opera em segundo plano.
+## Como implementar
 
-O **Claude computer use** — capacidade de interagir com interfaces gráficas de computador — representa a fronteira atual de agentes LLM com ação no mundo real, integrando percepção visual e execução de tarefas em sistemas operacionais.
+**1. Arquivo de contexto persistente**
 
-## Exemplos
-1. **Arquivo de contexto profissional**: criar um `context.md` com cargo, projetos ativos e preferências de output; o Claude carrega isso automaticamente e elimina respostas genéricas.
-2. **Tarefa agendada de resumo diário**: configurar o Claude para processar emails ou feeds RSS enquanto o usuário dorme e entregar um briefing matinal.
-3. **Extensão Claude Code**: instalar extensões específicas de stack (ex: Next.js, Rust) que adicionam conhecimento contextual especializado ao modelo durante sessões de desenvolvimento.
+Criar `context.md` na raiz do projeto ou workspace:
 
-## Relacionado
-*(Nenhuma nota relacionada disponível no vault no momento.)*
+```markdown
+# Claude Context — Professional Profile
 
-## Perguntas de Revisão
-1. Qual é a diferença funcional entre um arquivo de contexto persistente e simplesmente usar o system prompt de um projeto no Claude?
-2. Como o conceito de "tarefas agendadas em LLMs" se relaciona com a distinção entre modelos reativos e agentes autônomos?
+## Cargo & Responsabilidades
+- Role: Senior Product Manager, AI/Data
+- Focus areas: LLM ops, data infrastructure
+- Decision authority: features, roadmap
 
-## Histórico de Atualizações
-- 2026-04-02: Nota criada a partir de Telegram
+## Projetos Ativos
+- [[MasterClaude]]: vault pessoal, 2000+ notas
+- [[DataPipeline]]: Python + BigQuery, 50K records/day
+- [[Marketing]]: content calendar, 3 campaigns Q2
+
+## Preferências de Output
+- Formato: sempre estruturado (bullet points)
+- Técnico: assume knowledge Python + SQL + Anthropic API
+- Tom: pragmático, zero hype
+- Lenght: conciso (max 2 páginas)
+
+## Constraints
+- Não: financial advice, medical claims, legal guidance
+- Sim: technical deep-dives, architecture decisions, data analysis
+
+## Ferramentas Disponíveis
+- BigQuery: read-only access
+- GitHub: repo push access
+- Slack: post to #ai-updates
+```
+
+Claude carrega automaticamente. Cada response respeita contexto.
+
+**2. Tarefas agendadas (Scheduled tasks)**
+
+Setup: criar tarefas que rodam sem intervenção:
+
+```python
+# Task: Daily briefing email
+schedule.create_task(
+    taskId="daily-briefing",
+    prompt="Summarize my emails, calendar, and pending PRs",
+    schedule="0 8 * * *",  # 8 AM daily
+    output="email to leticia@company.com",
+    context="context.md"
+)
+
+# Task: Weekly metrics report
+schedule.create_task(
+    taskId="weekly-metrics",
+    prompt="Pull DataPipeline metrics. Generate 1-page report: throughput, latency, errors",
+    schedule="0 9 * * 1",  # Monday 9 AM
+    output="slack #analytics + save metrics/week-XX.md",
+    context="context.md"
+)
+
+# Task: Check tech news (async)
+schedule.create_task(
+    taskId="tech-news-scan",
+    prompt="Scan HN, Reddit /r/MachineLearning, ArXiv. Flag papers related to [[LLM optimization]]",
+    schedule="0 */4 * * *",  # Every 4 hours
+    output="save links to Telegram channel",
+    context="context.md"
+)
+```
+
+**3. Plugins especializados por stack**
+
+Instalar extensões que adicionam conhecimento contextual:
+
+```bash
+# Exemplo: Next.js plugin para desenvolvimento web
+claude plugin install @anthropic/next-js-expert
+# Agora Claude sabe Next.js patterns, common pitfalls, best practices
+
+# Data + Analytics plugin
+claude plugin install @anthropic/bigquery-expert
+# Claude entende BigQuery idiomatically
+
+# Security audit plugin
+claude plugin install @anthropic/security-reviewer
+# Prompts especializados para code review de segurança
+```
+
+Cada plugin injeta prompts especializados automaticamente.
+
+**4. Computer use (visual interaction)**
+
+Ativar Claude para interagir com GUI:
+
+```python
+from anthropic_computer_use import ComputerUseAgent
+
+agent = ComputerUseAgent(
+    model="claude-opus-4-1",
+    tools=["mouse", "keyboard", "screenshot"],
+    context="context.md"
+)
+
+# Task: Schedule calendar meeting
+agent.execute("""
+Open Google Calendar.
+Block 2 hours on Tuesday 2-4 PM.
+Title: "LLM architecture review"
+Add: john@company.com, priya@company.com
+Send invite
+""")
+
+# Task: Screenshot + interpret
+screenshot = agent.take_screenshot()
+# Claude vê GUI, entende estado, oferece ações
+```
+
+**5. Dispatch: Phone to Desktop workflow**
+
+Usar Claude Mobile para disparar tarefas desktop:
+
+```
+[No phone]
+"Hey Dispatch, mark all emails as read and summarize unread"
+
+[Dispatch service]
+- Recebe command
+- Autentica com context.md
+- Executa no PC via Claude Code
+- Resultado enviado de volta ao phone
+```
+
+**6. Cowork: Multi-dispositivo sincronizado**
+
+Setup em múltiplas máquinas:
+
+```json
+{
+  "coworkEnabled": true,
+  "coworkDevices": [
+    "claude-code-desktop",
+    "claude-mobile",
+    "claude-browser-extension"
+  ],
+  "syncStorage": "Obsidian Sync",
+  "context.md": "shared across all devices",
+  "recentNotes": "sync in real-time"
+}
+```
+
+Edita nota no celular → desktop vê mudanças imediatamente
+
+**7. Stack power-user típico**
+
+| Camada | Ferramenta |
+|--------|-----------|
+| Base | Claude Opus 4.1 |
+| Contexto | context.md (persistente) |
+| Automação | Scheduled tasks |
+| Extensões | Plugins by domain |
+| Computador | Computer use + browser |
+| Mobile | Claude app + Dispatch |
+| Sync | Cowork (cross-device) |
+| Storage | Obsidian Sync + git |
+
+## Stack e requisitos
+
+- Claude API (Opus 4.1+)
+- Anthropic Cowork account
+- Plugins marketplace access
+- Scheduled tasks service
+- Context file (~< 50KB)
+
+## Armadilhas e limitações
+
+- **Contexto grande lentifica**: Cada request carrega context.md. Mantenha <20KB ideal
+- **Automação overkill**: Muitas scheduled tasks = alto custo de API. Batch quando possível
+- **Plugins em conflito**: 2+ plugins mesma specialty = comportamento imprevisível
+- **Computer use lento**: Screenshots + reasoning = 2-3 min por task
+- **Privacy**: Contexto enviado a servidores Anthropic. Não coloque dados super sensíveis
+- **Quebra de compatibilidade**: Plugins quebram com updates. Fallback necessário
+
+## Conexões
+
+[[CLAUDE-md-template-plan-mode-self-improvement]]
+[[contexto-persistente-em-llms]]
+[[consolidacao-de-memoria-em-agentes]]
+
+## Histórico
+
+- 2026-04-02: Nota criada
+- 2026-04-02: Reescrita como guia de configuração

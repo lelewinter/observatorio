@@ -2,8 +2,10 @@
 tags: []
 source: https://x.com/aiwithjainam/status/2037107397492367374?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Skill Pack Financeiro para Agentes AI
+
+# Equip Agentes com Awesome Finance Skills para Análise Quantitativa Automática
 
 ## Resumo
 "Awesome Finance Skills" é um pacote open-source de habilidades plug-and-play que equipa qualquer agente de AI com capacidades de análise financeira profissional, desde coleta de dados em tempo real até geração automática de relatórios de pesquisa.

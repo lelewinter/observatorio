@@ -3,23 +3,214 @@ date: 2026-03-24
 tags: [claude-code, skill, prompts, reddit, x, community, open-source]
 source: https://x.com/MillieMarconnni/status/2036363493478375797?s=20
 autor: "@MillieMarconnni"
+tipo: aplicacao
 ---
 
-# Last30Days: Claude Code Skill para Prompts Baseados em Comunidade
+# Criar Skill Claude Code: Last30Days para Prompts Atualizados
 
-## Resumo
+## O que é
 
-Skill para Claude Code que escaneia Reddit e X dos últimos 30 dias sobre qualquer tópico fornecido e escreve prompts prontos para copy-paste baseados no que a comunidade realmente descobriu, em vez de técnicas desatualizadas. É como ter um amigo no Discord que estuda tudo que funciona e te avisa o que está "popping" agora — em vez de você procurar no Google descobrir que o artigo que achou tem 3 meses.
+Skill customizável para [[Claude Code]] que monitora Reddit e X em tempo real (últimos 30 dias) para sintetizar prompts vencedores que a comunidade descobriu e testou, eliminando dependência de documentação estática ou guias desatualizados. Gera prompts pronto-para-use baseados em padrões empíricos atuais.
 
-## Explicação
+## Como implementar
 
-O problema tradicional é ter que procurar em Google por técnicas, cavar através de threads de discussão e usar prompts que funcionavam há meses mas foram "patched", resultando em informação desatualizada. Last30Days resolve isto permitindo que você digite `/last30days prompting techniques for ChatGPT for legal questions` e receba imediatamente os top patterns que advogados reais e power users estão usando agora, um prompt completamente escrito, pronto para copy-paste, baseado em dados atualizados.
+### Pré-requisito: Credenciais de API
 
-**Analogia:** Pesquisa manual é como ligar para 50 amigos pedindo "ei, qual é a melhor forma de fazer X agora?" — você consegue respostas boas, mas leva horas. Last30Days é como ter um amigo que tem grupo no Discord monitorando tudo, resumido em 30 segundos. Ele sabe exatamente o que funciona porque está vendo em tempo real o que a comunidade descobre, testa e compartilha.
+Configure acesso às APIs (veja [Reddit App Registration](https://www.reddit.com/prefs/apps) e [X API](https://developer.twitter.com/)):
 
-O comando `/last30days <topic>` executa o seguinte workflow: escaneia Reddit dos últimos 30 dias, escaneia X/Twitter dos últimos 30 dias, identifica padrões top, sintetiza em prompts prontos, retorna copy-paste ready. Vantagens principais incluem real-time intelligence (dados de 30 dias, não arquivos estáticos, padrões atuais versus conhecimento estático), sem busca manual necessária, qualidade comunitária (baseado no que realmente funciona, poder users compartilham wins, padrões testados em produção), copy-paste ready (não precisa refinar ou ajustar, usa imediatamente).
+```bash
+# .env no seu projeto
+REDDIT_CLIENT_ID=your_id
+REDDIT_CLIENT_SECRET=your_secret
+X_API_KEY=your_key
+X_API_SECRET=your_secret
+```
 
-**Profundidade:** Por que inteligência comunitária em tempo real muda tudo? Porque conhecimento em IA envelhece em semanas. Um prompt que funciona hoje pode não funcionar em um mês (modelo foi atualizado). Last30Days garante que você sempre tem o mais novo. Isso transforma de "conhecimento estável" para "dados fluindo constantemente".
+### Fase 1: Estrutura Básica da Skill
+
+Crie arquivo `skills/last30days.py`:
+
+```python
+import anthropic
+from datetime import datetime, timedelta
+import praw  # Reddit API
+import requests  # X API
+
+client = anthropic.Anthropic()
+
+def fetch_reddit_posts(query: str, days: int = 30) -> list:
+    """Busca posts do Reddit dos últimos N dias"""
+    reddit = praw.Reddit(
+        client_id=os.getenv("REDDIT_CLIENT_ID"),
+        client_secret=os.getenv("REDDIT_CLIENT_SECRET"),
+        user_agent="last30days_skill"
+    )
+
+    cutoff = datetime.now() - timedelta(days=days)
+    posts = []
+
+    # Buscar em subreddits relevantes
+    for subreddit in ["PromptEngineering", "ChatGPT", "LocalLLaMA"]:
+        sub = reddit.subreddit(subreddit)
+        for post in sub.search(query, time_filter="month"):
+            if post.created_utc > cutoff.timestamp():
+                posts.append({
+                    "title": post.title,
+                    "content": post.selftext,
+                    "score": post.score,
+                    "source": f"r/{post.subreddit}"
+                })
+    return posts
+
+def fetch_x_posts(query: str, days: int = 30) -> list:
+    """Busca tweets dos últimos N dias"""
+    headers = {
+        "Authorization": f"Bearer {os.getenv('X_API_KEY')}",
+        "User-Agent": "last30days_skill"
+    }
+
+    cutoff = (datetime.now() - timedelta(days=days)).isoformat()
+
+    response = requests.get(
+        "https://api.twitter.com/2/tweets/search/recent",
+        headers=headers,
+        params={
+            "query": query + " -is:retweet",
+            "max_results": 100,
+            "start_time": cutoff
+        }
+    )
+
+    return response.json().get("data", [])
+
+def synthesize_prompts(reddit_posts: list, x_posts: list, topic: str) -> str:
+    """Usa Claude para sintetizar padrões em prompts prontos"""
+
+    evidence = f"""
+    Reddit posts (últimos 30 dias):
+    {chr(10).join([f"- {p['title']} (score: {p['score']})" for p in reddit_posts[:5]])}
+
+    X/Twitter posts:
+    {chr(10).join([f"- {p['text'][:100]}..." for p in x_posts[:5]])}
+    """
+
+    message = client.messages.create(
+        model="claude-opus-4-1",
+        max_tokens=2000,
+        messages=[{
+            "role": "user",
+            "content": f"""Você é especialista em prompt engineering.
+
+Baseado em evidências reais de comunidades (Reddit, X) dos últimos 30 dias sobre "{topic}":
+
+{evidence}
+
+Gere 3 prompts PRONTOS PARA COPY-PASTE que funcionam AGORA em modelos recentes.
+Cada prompt deve:
+1. Estar testado pela comunidade (cite a fonte)
+2. Ser específico e acionável
+3. Incluir variáveis que o usuário pode customizar
+4. Explicar brevemente por que funciona
+
+Formato:
+## Prompt [N]: [Título]
+\`\`\`
+[prompt completo aqui]
+\`\`\`
+**Por que funciona:** [explicação baseada em comunidade]
+**Fonte:** [subreddit ou usuario X]
+"""
+        }]
+    )
+
+    return message.content[0].text
+```
+
+### Fase 2: Integração com Claude Code
+
+Registre a skill no arquivo de configuração Claude (`~/.claude/skills.yaml`):
+
+```yaml
+skills:
+  - name: last30days
+    path: ./skills/last30days.py
+    trigger: /last30days
+    description: "Gera prompts vencedores baseados em comunidade (últimos 30 dias)"
+    examples:
+      - "/last30days prompting techniques for coding"
+      - "/last30days Midjourney style keywords"
+      - "/last30days Claude prompt patterns"
+```
+
+### Fase 3: Agendamento Periódico (Opcional)
+
+Para manter cache quente, execute updates periódicos:
+
+```python
+# scheduled_update.py - rodar a cada 6 horas
+from apscheduler.schedulers.background import BackgroundScheduler
+import pickle
+
+def cache_trending_topics():
+    """Pré-calcula trends e armazena em cache"""
+    trending_queries = [
+        "prompting techniques",
+        "model comparisons",
+        "optimization tricks"
+    ]
+
+    cache = {}
+    for query in trending_queries:
+        posts_reddit = fetch_reddit_posts(query)
+        posts_x = fetch_x_posts(query)
+        cache[query] = {
+            "reddit": posts_reddit,
+            "x": posts_x,
+            "timestamp": datetime.now()
+        }
+
+    with open("prompt_cache.pkl", "wb") as f:
+        pickle.dump(cache, f)
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(cache_trending_topics, 'interval', hours=6)
+scheduler.start()
+```
+
+## Stack e requisitos
+
+- **Python 3.10+**
+- **praw**: `pip install praw` (Reddit API client)
+- **requests**: `pip install requests` (HTTP library para X API)
+- **anthropic**: `pip install anthropic` (Claude API)
+- **apscheduler**: `pip install apscheduler` (scheduling, opcional)
+- **API keys**: Reddit (free), X API (Basic ou higher), Anthropic (Pro ou Max para latência)
+- **Custo**: ~$0.01-0.05 por query de síntese (Claude Haiku), gratuito se usar até 1M tokens/mês
+- **Frequência de update**: em tempo real, ~5-10s de latência
+
+## Armadilhas e limitações
+
+1. **Rate limits**: Reddit permite ~60 requests/minuto; X API tem limites por tier. Implemente cache agressivo.
+
+2. **Viés comunitário**: Padrões mais upvotados podem refletir preferência da comunidade, não necessariamente os *melhores* prompts. Diversifique fontes (subreddits, X followers).
+
+3. **Prompts desatualizados rapidamente**: Um prompt que é trend agora pode ser "patched" pelo modelo em semanas. Adicione timestamp a cada prompt: "Validado em: 2026-04-02".
+
+4. **Cobertura de idioma**: Reddit/X em inglês dominam. Para PT-BR, configure busca em comunidades locais ou discords brasileiros manualmente.
+
+5. **Qualidade de síntese**: Claude pode "aluci nar" fontes. Sempre inclua links reais para verificação.
+
+## Conexões
+
+- [[Claude Code - Melhores Práticas]] — integração com setup ótimo
+- [[Last30Days Skill Prompts Comunidade]] — skill relacionada
+- [[otimizacao-de-tokens-em-llms]] — otimize síntese para menos tokens
+- [[450_skills_workflows_claude]] — galeria de outras skills
+
+## Histórico
+
+- 2026-03-24: Conceito original do skill
+- 2026-04-02: Guia de implementação prática com código
 
 Casos de uso abrangem técnicas de prompting para qualquer modelo, Midjourney techniques, Suno Music prompts, Cursor rules, trending anything. Características técnicas: 100% Open Source com MIT License, implementado como Claude Code skill com integração de Reddit API e X API, processamento sintetiza dados brutos, identifica padrões, estrutura como prompts, otimiza para uso imediato.
 

@@ -1,33 +1,151 @@
 ---
-tags: []
+tags: [mcp, protocolo, padronizacao, agentes, ferramentas]
 source: https://x.com/techwith_ram/status/2038288464647774638?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Model Context Protocol (MCP)
 
-## Resumo
-MCP (Model Context Protocol) é um protocolo padronizado que define como modelos de linguagem se comunicam com ferramentas e fontes de dados externas. Ele resolve o problema de integração fragmentada entre LLMs e sistemas externos.
+# Implementar Servidor MCP para Expor Ferramentas e Recursos
 
-## Explicação
-O MCP surge da necessidade de padronizar a forma como agentes de IA e LLMs acessam contexto externo — bancos de dados, APIs, arquivos, serviços — sem que cada integração precise ser construída do zero de forma ad hoc. Antes do MCP, cada ferramenta ou plataforma criava sua própria camada de integração, gerando inconsistência e retrabalho. O protocolo define contratos claros entre o modelo (cliente) e o servidor MCP, que expõe recursos, ferramentas e prompts de forma estruturada.
+## O que e
 
-Arquiteturalmente, o MCP funciona com três camadas principais: o **Host** (a aplicação que usa o LLM, como um IDE ou chatbot), o **Client** (componente que faz a ponte entre host e servidor) e o **Server** (processo leve que expõe capacidades específicas — leitura de arquivos, execução de queries, chamadas de API). A comunicação segue um protocolo baseado em JSON-RPC, permitindo descoberta dinâmica de capacidades.
+Model Context Protocol é padrão aberto (JSON-RPC) que padroniza comunicação entre LLMs e servidores que expõem tools (ações invocáveis) e resources (dados legíveis). Abstrai complexidade de integração, permitindo agentes acessarem contexto externo de forma modular e segura.
 
-O conceito é especialmente relevante no contexto de sistemas multi-agente e pipelines RAG, pois o MCP pode servir como camada de acesso padronizado a fontes de conhecimento externas. Em vez de hardcodar integrações, o agente consulta o servidor MCP, que abstrai a complexidade do sistema subjacente. Isso torna arquiteturas agênticas mais modulares, reutilizáveis e seguras.
+## Como implementar
 
-Construir um servidor MCP próprio envolve definir quais "tools" e "resources" ele expõe, implementar os handlers correspondentes e registrá-lo no host compatível (ex: Claude Desktop, Cursor). O ecossistema ainda é jovem, mas cresce rapidamente como infraestrutura padrão para agentes com acesso a ferramentas.
+**Arquitetura MCP** (3 camadas):
+- **Host**: Aplicação usando LLM (IDE, chatbot, CLI)
+- **Client**: Componente dentro do host que conecta ao servidor MCP via JSON-RPC
+- **Server**: Processo que expõe capabilities (tools + resources) como contrato padronizado
 
-## Exemplos
-1. **Servidor MCP para banco de dados**: expõe uma tool `query_db` que o LLM pode invocar para buscar registros — sem que o modelo precise conhecer o schema diretamente.
-2. **Servidor MCP para sistema de arquivos**: permite que um agente leia, escreva e liste arquivos locais de forma controlada e auditável.
-3. **Servidor MCP para APIs externas**: encapsula chamadas a serviços como GitHub, Notion ou Jira, expondo ações como tools que o modelo pode chamar durante raciocínio.
+**Diferença entre Tool e Resource**:
+- **Tool** (`callTool`): Ação invocável que modifica estado ou retorna resposta computada (ex: "execute_query", "send_email")
+- **Resource** (`readResource`): Dados legíveis que fornecem contexto para decisões do LLM (ex: "list_database_schemas", "file_contents")
 
-## Relacionado
-*(Nenhuma nota existente no vault para conectar no momento.)*
+**Construir servidor MCP simples** (Node.js):
+```typescript
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
-## Perguntas de Revisão
-1. Qual é a diferença entre um "resource" e uma "tool" na arquitetura MCP, e quando usar cada um?
-2. Como o MCP se diferencia de simplesmente fazer function calling direto via API do modelo (ex: OpenAI tools)?
+const server = new Server({
+  name: "example-server",
+  version: "1.0.0",
+});
 
-## Histórico de Atualizações
-- 2026-04-02: Nota criada a partir de Telegram
+// Definir uma Tool
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  if (request.params.name === "greet") {
+    return {
+      content: [{ type: "text", text: `Hello, ${request.params.arguments.name}!` }],
+    };
+  }
+  throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${request.params.name}`);
+});
+
+// Definir um Resource
+server.setRequestHandler(ListResourcesRequestSchema, async () => {
+  return {
+    resources: [
+      {
+        uri: "file:///data/users.json",
+        name: "User Database",
+        description: "List of active users",
+        mimeType: "application/json",
+      },
+    ],
+  };
+});
+
+const transport = new StdioServerTransport();
+await server.connect(transport);
+```
+
+**Registrar servidor em host** (Claude Desktop, Cursor, etc):
+```json
+// ~/.claude/settings.json ou .cursor/config.json
+{
+  "mcpServers": {
+    "my-server": {
+      "command": "node",
+      "args": ["/path/to/mcp-server.js"]
+    }
+  }
+}
+```
+
+**Exposição de database via MCP**:
+```typescript
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  if (request.params.name === "query_users") {
+    const query = request.params.arguments.sql;
+    const result = await db.query(query);
+    return {
+      content: [{ type: "text", text: JSON.stringify(result) }],
+    };
+  }
+});
+
+server.setRequestHandler(ListResourcesRequestSchema, async () => {
+  return {
+    resources: [
+      {
+        uri: "database://schema",
+        name: "Database Schema",
+        mimeType: "text/plain",
+      },
+    ],
+  };
+});
+```
+
+**Validação de argumentos** (type safety):
+```typescript
+const toolInputSchema = {
+  type: "object" as const,
+  properties: {
+    sql: {
+      type: "string",
+      description: "SQL query to execute",
+    },
+    limit: {
+      type: "number",
+      description: "Max results (default 100)",
+    },
+  },
+  required: ["sql"],
+};
+
+server.tool("query_db", "Execute SQL query", toolInputSchema, handler);
+```
+
+**Testar servidor** (MCP Inspector):
+```bash
+npx @modelcontextprotocol/inspector node /path/to/server.js
+# Abre UI em localhost:3000 para testar tools
+```
+
+## Stack e requisitos
+
+- **Node.js**: 18.0+
+- **Linguagens suportadas**: Python, Node.js, Go, Rust (SDKs disponíveis)
+- **Transporte**: stdio, HTTP, WebSocket
+- **Schema validation**: JSON Schema (obrigatório para tools)
+- **Latência**: <500ms esperado por tool call (depende da implementação)
+
+## Armadilhas e limitacoes
+
+- **Segurança**: Tools expostas são acessíveis ao LLM; NUNCA expor queries SQL raw sem validação/sanitização.
+- **Timeouts**: Tool calls com latência >30s podem causar timeout no cliente; implementar async com callbacks.
+- **Discovery**: Agente precisa conhecer tools disponíveis; usar descrições detalhadas e exemplos.
+- **Error handling**: Se tool falha, server deve retornar erro estruturado; LLM pode ficar confused se resposta é ambígua.
+- **Rate limiting**: Servidores MCP sem rate limiting podem ser explorados; adicionar circuit breakers.
+- **Versionamento**: Mudar assinatura de tool quebra compatibilidade; documentar versões claramente.
+
+## Conexoes
+
+[[MCP Unity Editor Automacao Cenas]] [[MCP em Jogos Compilados Unity]] [[Orquestracao Hibrida de LLMs]]
+
+## Historico
+
+- 2026-04-02: Nota criada
+- 2026-04-02: Reescrita para template aplicacao

@@ -1,45 +1,195 @@
 ---
-date: 2026-03-16
-tags: [openclaw, tutorial, ia, agentes, assistente]
+tags: [openclaw, tutorial, ia, agentes, assistente, local-first]
 source: https://x.com/ghumare64/status/2033472891724140920?s=20
-autor: "@ghumare64"
+date: 2026-03-16
+tipo: aplicacao
 ---
 
-# Tutorial Completo OpenClaw em 317 Minutos
+# Tutorial OpenClaw: Assistente de IA Pessoal 24/7 Local
 
-## Resumo
+## O que e
 
-Tutorial abrangente que ensina como usar OpenClaw (assistente de IA pessoal open-source que funciona 24/7) em 317 minutos (5 horas e 17 minutos) de conteúdo estruturado. É como ter personal trainer que nunca dorme — está pronto ajudar quando você acordar, enquanto você dorme trabalha em background.
+OpenClaw: agente IA open-source que roda localmente 24/7, independente de cloud. Monitora contexto pessoal (emails, calendário, tarefas), executa workflows autonomamente, mantém privacidade total. Tutorial 317 minutos cobre instalação até automação avançada.
 
-## Explicação
+## Como implementar
 
-OpenClaw é assistente de IA pessoal de código aberto que roda continuamente em qualquer sistema operacional. Tutorial oferece cobertura completa de apenas 317 minutos apresentado por especialista em conteúdo.
+**Instalação**:
+```bash
+# Clone repository
+git clone https://github.com/codenamebunny/openclaw.git
+cd openclaw
 
-**Analogia:** ChatGPT é como "ligar para especialista" — você faz pergunta, ele responde, depois desliga. OpenClaw é "especialista que mora na sua casa" — está sempre lá, antecipa o que você precisa, trabalha enquanto você dorme, não cobra por chamada.
+# Instalar dependencies
+pip install -r requirements.txt
 
-Funcionalidades principais incluem: execução 24/7 (roda continuamente em background), multiplataforma (funciona em qualquer OS — Windows, Mac, Linux), pessoal (customizável para necessidades individuais), autônomo (pode executar tarefas sem intervenção).
+# Configurar modelo local (Ollama/Qwen recomendado)
+ollama pull qwen2.5-7b-instruct
 
-**Profundidade:** Por que "open source" aqui é importante? Porque assistente 24/7 que sabe tudo sobre você precisa estar no seu controle. Cloud proprietary = você não controla dados pessoais. Open source local = você é o único que vê seus dados. Em 2026 isso virou diferença fundamental entre "tool" e "spy".
+# Iniciar daemon
+python main.py --port 8000 --model qwen2.5-7b-instruct
+```
 
-OpenClaw representa categoria emergente de ferramentas: agentes autônomos pessoais, IA que funciona em seu próprio hardware, automação sem depender de cloud, assistência contínua e proativa.
+**Configuração básica** (.openclaw/config.yaml):
+```yaml
+model:
+  provider: local  # Ollama ou similar
+  model_name: qwen2.5-7b-instruct
+  temperature: 0.3
 
-## Exemplos
+integrations:
+  email:
+    enabled: true
+    provider: imap
+    inbox_scan_interval: 300  # 5 minutos
 
-Casos de uso incluem: automação de tarefas diárias, assistente pessoal sempre disponível, monitoramento contínuo, execução de workflows complexos, agendamento de tarefas.
+  calendar:
+    enabled: true
+    provider: caldav
+    url: https://caldav.example.com
 
-Conteúdo do tutorial espera-se cobrir: instalação e setup (como começar), configuração (personalizando para suas necessidades), funcionalidades (o que OpenClaw pode fazer), automação (criando workflows), best practices (otimização e manutenção), troubleshooting (resolução de problemas).
+  filesystem:
+    enabled: true
+    watch_paths:
+      - ~/Documents
+      - ~/Downloads
 
-Público-alvo inclui: pessoas buscando automação pessoal, desenvolvedores interessados em agentes IA, qualquer um que quer assistente sempre disponível, profissionais buscando aumentar produtividade.
+automations:
+  email_triaging:
+    enabled: true
+    rules:
+      - trigger: "work email received"
+        action: "forward to #work-inbox"
 
-## Relacionado
+  daily_summary:
+    enabled: true
+    schedule: "09:00 AM"
+    content: ["emails", "calendar", "tasks"]
 
-- [[claude_architect_curso_completo]]
-- [[masterclass_construindo_apps_claude_code_gpt5]]
-- [[crucix_agente_inteligencia_pessoal]]
-- [[projetos_github_crescimento_mes]]
+privacy:
+  local_only: true
+  encryption: true
+  no_telemetry: true
+```
 
-## Perguntas de Revisão
+**Workflows customizados** (automation rules):
+```yaml
+workflows:
+  morning_routine:
+    trigger: "daily at 7:00 AM"
+    steps:
+      - action: "read_emails"
+        filters: ["from:boss OR priority:high"]
+      - action: "summarize"
+        output: "morning_briefing.md"
+      - action: "read_calendar"
+        timeframe: "today"
+      - action: "send_telegram"
+        message: "morning_briefing.md"
 
-1. Como assistente pessoal 24/7 é diferente de ferramentas convencionais?
-2. Por que "multiplataforma + open source + autônomo" é combinação poderosa?
-3. Qual é o futuro de agentes pessoais que rodam localmente sem cloud?
+  context_gathering:
+    trigger: "when you open IDE"
+    steps:
+      - action: "read_task_list"
+      - action: "read_recent_code_changes"
+      - action: "scan_slack_for_blockers"
+      - action: "summarize_context"
+      - action: "inject_to_claude_code"
+```
+
+**Executar OpenClaw**:
+```bash
+# Iniciar em background
+nohup python main.py &
+
+# Ou com tmux (recomendado)
+tmux new-session -d -s openclaw "python main.py"
+
+# Verificar status
+curl http://localhost:8000/health
+```
+
+**Interagir com OpenClaw**:
+```python
+# SDK Python
+from openclaw import Agent
+
+agent = Agent(config_path=".openclaw/config.yaml")
+
+# Query
+response = agent.query("What meetings do I have today?")
+print(response)
+# Output: "You have 3 meetings: ..."
+
+# Trigger workflow
+agent.trigger_workflow("morning_routine")
+
+# Monitor running tasks
+tasks = agent.get_active_tasks()
+```
+
+**CLI interface**:
+```bash
+# Query agent
+openclaw query "Summarize my week"
+
+# List workflows
+openclaw workflows list
+
+# Execute workflow
+openclaw workflow run "morning_routine"
+
+# View logs
+openclaw logs --follow
+```
+
+**Integração com Claude Code**:
+```yaml
+# Em ~/.claude/settings.json
+{
+  "integrations": {
+    "openclaw": {
+      "enabled": true,
+      "endpoint": "http://localhost:8000",
+      "auto_context_injection": true,
+      "sync_interval": 300
+    }
+  }
+}
+```
+
+Agora Claude Code terá contexto contínuo:
+```
+@claude "What should I work on next?"
+# Claude lê contexto injetado por OpenClaw:
+# - Emails não respondidos
+# - Tarefas de hoje
+# - Reuniões próximas
+# - Código recentemente modificado
+```
+
+## Stack e requisitos
+
+- **Python**: 3.9+
+- **Modelo local**: Ollama + Qwen 2.5 7B (recomendado) ou similar
+- **RAM**: 8GB+ (7B modelo usa ~4GB com Q4 quantização)
+- **Persistência**: SQLite (default), PostgreSQL para produção
+- **Integrations**: IMAP (email), CalDAV (calendar), filesystem watcher
+- **OS**: Linux, macOS, Windows (WSL2)
+
+## Armadilhas e limitacoes
+
+- **Modelo local latência**: Respostas levam 1-5 segundos (vs cloud cloud instant). Aceitável para automação, não para chat interativo real-time.
+- **Hallucinations**: Modelo local (7B) pode inventar contexto; validar outputs críticos.
+- **Integração email**: IMAP pode ser lento com muitos emails; implementar paging/filtering.
+- **Escalabilidade**: 24/7 execution consome bateria em laptop; usar desktop/server.
+- **Atualizações**: Modelo local fica desatualizado (sem acesso web). Usar web search integration (Searxng) para contornar.
+- **Memory management**: Agente pode acumular contexto indefinidamente; implementar cleanup périódico.
+
+## Conexoes
+
+[[Memoria Persistente em Agentes de Codigo]] [[Orquestracao Hibrida de LLMs]] [[Masterclass Construindo Apps Claude Code]]
+
+## Historico
+
+- 2026-03-16: Nota criada
+- 2026-04-02: Reescrita para template aplicacao

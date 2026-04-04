@@ -2,8 +2,10 @@
 tags: []
 source: https://x.com/0xCVYH/status/2038140278196916387?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Quantização Dinâmica de LLMs
+
+# Usar EOQ Dynamic BitPacking para Comprimir LLMs de 9B→5GB (3.6x)
 
 ## Resumo
 Quantização dinâmica é uma técnica de compressão de modelos de linguagem que aloca diferentes quantidades de bits para diferentes partes da rede neural, priorizando precisão onde ela é mais crítica e comprimindo mais onde há redundância.
@@ -23,7 +25,10 @@ A relevância prática é direta: democratização do acesso a LLMs capazes. Um 
 3. **Pesquisa e fine-tuning acessível**: Reduzir o custo de memória para experimentos com modelos médios e grandes em hardware acadêmico ou pessoal.
 
 ## Relacionado
-*(Nenhuma nota existente no vault para conectar no momento.)*
+- [[quantizacao-de-llms|Quantização de LLMs]]
+- [[stack-de-ia-local-self-hosted|Stack de IA Local Self-Hosted]]
+- [[kv-cache-quantization|KV Cache Quantization (Conceito)]]
+- Técnicas: EOQ Dynamic BitPacking, GPTQ, Quantização Uniforme
 
 ## Perguntas de Revisão
 1. Qual é a diferença fundamental entre quantização uniforme e quantização dinâmica por bitpacking, e por que isso importa para a qualidade do modelo?

@@ -1,33 +1,103 @@
 ---
-tags: []
+tags: [pdf, markdown, conversao, ocr, documentos, nlp]
 source: https://x.com/oliviscusAI/status/2033860465760030923?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Conversão de PDF para Markdown via CPU
 
-## Resumo
-Uma ferramenta open-source permite converter PDFs em Markdown a 100 páginas por segundo, rodando inteiramente em CPU, sem necessidade de GPU.
+# Converter PDFs para Markdown a 100 Páginas/Segundo em CPU
 
-## Explicação
-A conversão de PDFs para Markdown é um passo crítico em pipelines de processamento de documentos, especialmente em fluxos de ingestão de dados para LLMs, RAG (Retrieval-Augmented Generation) e sistemas de busca semântica. PDFs são formatos estruturalmente opacos — textos, tabelas e layouts ficam codificados de forma que dificulta a extração limpa de conteúdo. Markdown, por outro lado, é um formato leve, legível por máquinas e por humanos, ideal para chunking e embedding.
+## O que é
 
-O diferencial desta ferramenta está na performance e no custo zero de infraestrutura. Processar 100 páginas por segundo em CPU elimina a dependência de GPUs, que representam o principal gargalo de custo em pipelines de processamento de documentos em escala. Isso democratiza o acesso a fluxos de ingestão de documentos para desenvolvedores e organizações sem recursos de cloud computing de alto custo.
+Ferramenta open-source (provavelmente Nougat ou similar) que converte PDFs em Markdown estruturado em CPU puro, 100 páginas/segundo. Sem GPU, ideal para pipelines RAG e ingestão de documentos.
 
-O fato de ser open-source e rodar localmente também tem implicações relevantes de privacidade e soberania de dados — documentos sensíveis não precisam ser enviados a APIs externas para serem convertidos, o que é um requisito frequente em ambientes corporativos e jurídicos.
+## Como implementar
 
-Como não há notas relacionadas no vault, este conceito serve como ponto de entrada para uma categoria de ferramentas de pré-processamento de documentos, que são infraestrutura fundamental para qualquer sistema baseado em recuperação de informação ou fine-tuning com dados proprietários.
+```bash
+pip install nougat-ocr
+# ou
+pip install pymupdf fitz
 
-## Exemplos
-1. **Pipeline RAG local**: Converter um acervo de PDFs técnicos ou jurídicos em Markdown para indexação em um vector store (ex: ChromaDB, FAISS) sem custos de API.
-2. **Ingestão de documentos corporativos**: Processar centenas de relatórios internos em segundos para alimentar um chatbot interno baseado em LLM.
-3. **Construção de datasets de fine-tuning**: Extrair texto limpo de artigos científicos em PDF para criar datasets de treinamento estruturados.
+# Basic usage
+nougat pdf_input.pdf -o output_markdown/
+```
 
-## Relacionado
-*(Nenhuma nota existente no vault para linkar no momento.)*
+**Python pipeline:**
+```python
+import pymupdf
+import os
 
-## Perguntas de Revisão
-1. Por que a conversão de PDF para Markdown é preferível à extração de texto puro (`.txt`) em pipelines de LLM?
-2. Quais são os riscos e limitações de ferramentas de conversão que rodam apenas em CPU quando comparadas a abordagens baseadas em modelos de visão (GPU)?
+def pdf_to_markdown(pdf_path, output_dir="./output"):
+    doc = pymupdf.open(pdf_path)
+    os.makedirs(output_dir, exist_ok=True)
 
-## Histórico de Atualizações
-- 2026-04-02: Nota criada a partir de Telegram
+    markdown_content = []
+
+    for page_num in range(len(doc)):
+        page = doc[page_num]
+        text = page.get_text("markdown")
+        markdown_content.append(f"## Page {page_num + 1}\n\n{text}")
+
+    with open(f"{output_dir}/output.md", "w", encoding="utf-8") as f:
+        f.write("\n\n".join(markdown_content))
+
+    return f"{output_dir}/output.md"
+
+pdf_to_markdown("documento.pdf")
+```
+
+**Com tabelas:**
+```python
+import pymupdf
+import pandas as pd
+
+doc = pymupdf.open("documento.pdf")
+for page_num, page in enumerate(doc):
+    # Extrair tabelas
+    tables = page.find_tables()
+    for table in tables:
+        df = pd.DataFrame(table.extract())
+        print(df.to_markdown())
+```
+
+**Para RAG pipeline:**
+```python
+from langchain.document_loaders import PDFLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+loader = PDFLoader("doc.pdf")
+pages = loader.load()
+
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000,
+    chunk_overlap=200
+)
+docs = splitter.split_documents(pages)
+
+# Embeddings + vector DB
+# ...
+```
+
+## Stack e requisitos
+
+- **Nougat**: OCR/layout (opcionalmente)
+- **PyMuPDF**: extração de PDF
+- **Pandas**: para tabelas
+- **Python**: 3.8+
+- **CPU**: 2+ cores
+
+## Armadilhas
+
+1. **Tabelas complexas**: Podem ser extraídas como texto. Validar manualmente.
+2. **Imagens**: PDFs com imagens precisam OCR (Tesseract). Nougat faz isso mas é lento.
+3. **Encoding**: PDFs antigos podem ter charset issues. Forçar UTF-8.
+
+## Conexões
+
+- [[web-scraping-sem-api-para-agentes-ia]] - Processamento de dados web
+- [[leitor-de-ebooks-com-busca-semantica]] - Indexação de documentos
+
+## Histórico
+
+- 2026-04-02: Nota original
+- 2026-04-02: Reescrita com implementação

@@ -2,8 +2,10 @@
 tags: [IA-local, LLM, self-hosted, RAG, ferramentas]
 source: https://x.com/0xCVYH/status/2034752820159635746?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Stack de IA Local Self-Hosted
+
+# Montar Stack Completo de IA Local (Ollama + WebUI + Whisper + EdgeTTS + AnythingLLM RAG)
 
 ## Resumo
 É possível montar um ambiente completo de IA local — com gerenciamento de modelos, interface, transcrição, voz e RAG — com custo zero de software, usando apenas hardware acessível.
@@ -23,7 +25,11 @@ A camada de RAG (AnythingLLM) é especialmente relevante para casos de uso profi
 3. **Pipeline de voz bidirecional**: Combinar whisper.cpp (entrada de voz) + Ollama (processamento) + edge-tts (resposta em áudio) para criar um assistente de voz totalmente local.
 
 ## Relacionado
-*(Nenhuma nota existente no vault para conectar no momento.)*
+- [[quantizacao-de-llms|Quantização de LLMs]]
+- [[quantizacao-dinamica-de-llms|Quantização Dinâmica de LLMs]]
+- [[retrieval-augmented-generation|Retrieval-Augmented Generation (Conceito)]]
+- [[rag-audio-indexing|RAG Audio Indexing (Conceito)]]
+- [[text-to-speech-apis|Text-to-Speech APIs (Conceito)]]
 
 ## Perguntas de Revisão
 1. Qual é o componente da stack responsável por permitir que o modelo responda com base em documentos próprios, e como ele funciona tecnicamente?

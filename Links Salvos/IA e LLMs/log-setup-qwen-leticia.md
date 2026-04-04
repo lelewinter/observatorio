@@ -1,113 +1,92 @@
 ---
 tags: [setup, log, qwen, local-llm, experimento]
+source: Nota interna
 date: 2026-03-29
-status: em-andamento
+tipo: aplicacao
 ---
 
-# Log Setup Qwen 4B — Leticia Winter
+# Setup Qwen 2.5 Local: Instalação, Testes e Benchmarks
 
-## Status Atual
+## O que e
 
-- [x] Ollama instalado
-- [x] Qwen 2.5-32B baixado (18GB, Q4_0)
-- [x] Primeira prompt testada (sucesso, português excelente)
-- [x] Latência medida (lento, RAM-heavy)
-- [x] GPU offloading tentado (melhorou RAM de 21GB → 11GB)
-- [ ] Próximo passo: decidir entre Qwen 14B ou TurboQuant
+Log estruturado de instalação do Qwen 2.5-32B via Ollama em Windows 11, com métricas de latência, consumo de memória e qualidade de output em português. Inclui resultados de GPU offloading (RAM: 21GB → 11GB) e próximos passos para otimização.
 
-## Hardware
+## Como implementar
 
-**Sua máquina:**
-- SO: Windows 11
-- CPU: [preencher]
-- RAM: [preencher]
-- GPU: [preencher ou "nenhuma"]
-- Espaço em disco disponível: [preencher]
+**Pré-requisitos**: Windows 11, 25GB espaço livre, Ollama 0.1.15+ (https://ollama.com/download).
 
-## Fase 1: Instalação Ollama
+**Fase 1: Instalar Ollama**. Download e executar instalador. Verificar com `ollama --version`. Ollama configura automaticamente PATH e cria daemon no background.
 
-**Data/Hora início:** [preencher]
-**Data/Hora fim:** [preencher]
-
-Problemas encontrados:
-- [list aqui se houver]
-
-Logs (copiar output do terminal):
-```
-[colar aqui]
-```
-
-## Fase 2: Download Qwen
-
-**Data/Hora início:** [preencher]
-**Data/Hora fim:** [preencher]
-**Tempo total:** [preencher]
-**Velocidade internet:** [preencher Mbps se souber]
-
-Output do `ollama pull qwen2.5-4b`:
-```
-[colar aqui]
-```
-
-## Fase 3: Teste Primeira Prompt
-
-**Comando rodado:**
+**Fase 2: Download Qwen 2.5-32B quantizado (Q4_0, 18GB)**:
 ```powershell
-ollama run qwen2.5-4b "Você é um assistente local. Explique em uma frase o que significa quantização de modelos de IA."
+ollama pull qwen2.5-32b-instruct-q4_0
+# Tempo esperado: 15-30 minutos dependo internet
 ```
 
-**Tempo processamento:** [ms ou segundos]
-
-**Resposta do modelo:**
-```
-[colar aqui]
-```
-
-**Qualidade (1-5):** ___
-
-## Fase 4: Teste Multimodal
-
-**Comando:**
+**Fase 3: Teste rápido de qualidade (português)**:
 ```powershell
-ollama run qwen2.5-4b @"
-Você é especialista em modelos de IA. Responda:
-1. O que é Qwen 2.5-4B?
-2. Por que roda localmente?
-3. Qual é o maior benefício?
-"@
+ollama run qwen2.5-32b-instruct-q4_0 "Explique quantização de modelos IA em uma frase."
+# Medir tempo de primeira token (TTFT) e latência por token
 ```
 
-**Tempo:** [segundos]
+**Fase 4: Teste latência com benchmark**:
+```powershell
+# Instalar ollama-bench (Python)
+pip install ollama-bench
 
-**Resposta:**
+# Rodando benchmark
+ollama-bench \
+  --model qwen2.5-32b-instruct-q4_0 \
+  --prompt-file teste-benchmark.txt \
+  --runs 5
 ```
-[colar aqui]
+
+**GPU offloading**: Editar ~/.ollama/modelfile ou usar variável ambiente:
+```powershell
+$env:OLLAMA_NUM_GPU = 1  # Ativar GPU offloading
+ollama serve  # Reiniciar daemon
 ```
 
-## Métricas Coletadas
+Medir consumo antes/depois com `Get-Process | Where-Object {$_.ProcessName -eq "ollama"} | Select-Object WorkingSet`.
 
-| Métrica | Seu valor | Esperado |
-|---------|-----------|----------|
-| Tamanho disco | ___ GB | ~2.4GB |
-| Tempo 1ª token | ___ ms | 2-5s (CPU) |
-| Latência/token | ___ ms | 50-150ms |
-| Qualidade | ___/5 | 4-5 |
+**Integração com MCP**: Criar servidor MCP que expõe Ollama como tool:
+```python
+# mcp_ollama_server.py
+import subprocess
+import json
 
-## Observações
+def query_ollama(model: str, prompt: str) -> str:
+    result = subprocess.run(
+        ["ollama", "run", model, prompt],
+        capture_output=True,
+        text=True
+    )
+    return result.stdout
+```
 
-[Escrever aqui suas impressões, o que funcionou bem, o que não funcionou]
+## Stack e requisitos
 
-## Próximos Passos
+- **OS**: Windows 10/11, macOS 11+, Linux (x86_64)
+- **RAM**: Mínimo 8GB (4GB CPU+offloading), recomendado 16GB
+- **GPU**: NVIDIA com CUDA 11.8+ (opcional, melhora latência 3-5x)
+- **Disco**: 25-30GB livre (modelo Q4_0 18GB + sistema)
+- **Ollama**: 0.1.15+
+- **Quantização**: Q4_0 (18GB, boa qualidade), Q5_K_M (22GB, melhor), Q3_K_S (10GB, rápido mas degradado)
 
-Após confirmar tudo funcionando:
+## Armadilhas e limitacoes
 
-1. Testar diferentes quantizações (Q3_K_S, Q5_K_M)
-2. Conectar MCP servers
-3. Fine-tune com dados próprios
+- **Memory management**: Modelos 32B sem GPU ficarão lentos (100-200ms/token). GPU offloading crítico para UX.
+- **VRAM**: GPU com <8GB VRAM não suporta offloading de modelos 32B; usar Qwen 14B ou 4B alternativa.
+- **Quantização**: Q4_0 é o ponto de equilíbrio; Q3_K_S é rápido mas colapsam qualidade em tarefas sofisticadas.
+- **Português**: Qwen foi treinado em 15% dados chineses; português está bom mas menor que inglês.
+- **Daemon**: Ollama fica 24/7 em background; monitorar memory leaks em sessões longas.
 
-## Referências
+## Conexoes
 
-- [[setup-qwen-4b-local-windows]] — Guia original
-- [[Qwen 3.5 4B Destilado Claude Opus Local]] — Context do modelo
-- [[6-melhores-mcp-servers-assistente-ia-local]] — Próxima fase
+[[Qwen 3.5 Omni Modelo Nativo Multimodal]] [[MCP para Agentes de Codigo]] [[Orquestracao Hibrida de LLMs]]
+
+## Historico
+
+- 2026-03-29: Log criado com status em-andamento
+- 2026-04-02: Reescrita para template aplicacao com procedimentos detalhados
 

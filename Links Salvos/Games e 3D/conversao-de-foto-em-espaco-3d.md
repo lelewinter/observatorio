@@ -1,31 +1,91 @@
 ---
-tags: []
+tags: [geracao-3d, ia-generativa, depth-estimation, photo-to-3d, prototipagem-rapida]
 source: https://x.com/heyrobinai/status/2036771898802180428?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Conversão de Foto em Espaço 3D
 
-## Resumo
-Ferramentas como OpenArt Worlds permitem transformar uma única imagem ou prompt textual em um ambiente 3D navegável, democratizando a criação de espaços tridimensionais interativos.
+# Converter Foto Única em Espaço 3D Explorável
 
-## Explicação
-A conversão de imagens 2D em espaços 3D exploráveis representa um salto significativo na geração de conteúdo assistida por IA. Tradicionalmente, a criação de ambientes 3D navegáveis exigia modelagem manual em softwares como Blender, Maya ou Unity, demandando horas de trabalho especializado. Com pipelines baseados em modelos de difusão e reconstrução de profundidade (depth estimation), uma única fotografia ou prompt de texto passa a ser suficiente para gerar uma cena tridimensional completa.
+## O que é
+Pipeline de IA que transforma uma imagem 2D estática (fotografia, concept art, screenshot) em ambiente 3D navegável em poucos minutos. Combina depth estimation + neural rendering (NeRF ou 3DGS) para inferir geometria e textura.
 
-O processo tecnológico subjacente combina técnicas como NeRF (Neural Radiance Fields) ou Gaussian Splatting com modelos generativos de imagem, permitindo inferir geometria, oclusão e perspectiva a partir de dados 2D escassos. O resultado é um espaço que pode ser "caminhado", ou seja, o usuário pode navegar pela cena como em um ambiente de game engine, mesmo que a fonte original fosse estática.
+## Como implementar
+**Ferramentas recomendadas**:
+- **OpenArt Worlds**: interface web, zero setup, input → 3D em 2 min, export GLB (~50MB)
+- **Local open-source**: Stable Diffusion + DepthMaps + nerf-studio (setup 30 min)
 
-O impacto prático é imediato para profissionais de arquitetura, design de interiores e desenvolvimento de jogos. Fluxos de trabalho que antes exigiam equipes e semanas de produção podem ser prototipados em minutos. Isso posiciona essa tecnologia como uma camada de aceleração criativa, não necessariamente substituindo o refinamento profissional, mas eliminando a barreira de entrada para visualização espacial.
+**Pipeline manual com nerf-studio**:
 
-## Exemplos
-1. **Arquitetura**: Upload de foto de um terreno ou cômodo existente para gerar uma visualização 3D navegável do projeto reformado, sem modelagem manual.
-2. **Game Development**: Criação rápida de protótipos de cenários de jogo a partir de concept art ou fotografias de referência, acelerando o processo de pre-production.
-3. **E-commerce e imóveis**: Transformação de fotos de produtos ou imóveis em tours 3D interativos sem necessidade de scanners LiDAR ou equipes de produção especializadas.
+1. **Instalar e capturar** (Linux/Windows com GPU):
+```bash
+pip install nerfstudio
+ns-download-data
+# Ou fazer captura mono com imagem estática:
+ns-process-data images --data ./fotos/ --output-dir ./dataset
+```
 
-## Relacionado
-*(Nenhuma nota relacionada disponível no vault no momento.)*
+2. **Gerar depth map** (profundidade implícita):
+```python
+# Usar DPT (Dense Prediction Transformer) ou MiDaS para depth estimation
+from transformers import DPTImageProcessorForDepth, DPTForDepthEstimation
+import torch
 
-## Perguntas de Revisão
-1. Quais são as diferenças técnicas entre abordagens como NeRF, Gaussian Splatting e depth-map extrusion para reconstrução de cenas 3D a partir de imagens?
-2. Em que ponto essa tecnologia de geração automática de espaços 3D complementa ou torna redundante fluxos de trabalho tradicionais de modelagem em game engines?
+model_id = "Intel/dpt-large"
+image = load_image("foto.jpg")
+depth = model(image).prediction  # saída: array (H, W) com profundidade
 
-## Histórico de Atualizações
-- 2026-04-02: Nota criada a partir de Telegram
+# Reconstruir ponto-nuvem da depth map
+points_3d = unproject_depth_to_3d(depth, camera_intrinsics)
+```
+
+3. **Treinar NeRF ou 3DGS**:
+```bash
+# Via nerf-studio CLI
+ns-train nerfacto --data ./dataset --output-dir ./models/
+# Ou 3DGS (mais rápido)
+ns-train gsplat --data ./dataset --output-dir ./models/
+
+# Resultado: modelo treinado em 5-10 min em RTX 3080
+```
+
+4. **Exportar e visualizar**:
+```bash
+# Exportar como GLB (compatível com Unity/Unreal/web)
+ns-export poser-to-gltf --load-config ./models/gsplat/config.yaml \
+    --output-dir ./exports/
+# Ou renderizar em tempo real via nerf-studio viewer (http://localhost:7007)
+```
+
+**Para arquitetura/design de interiores**:
+- Foto do cômodo existente → depth-to-3d → gera malha navegável
+- Recorte de concept art de videogame → expande em 3D espaço navegável
+- Use MagicEdit ou similar para colocar objetos novos ("adicione uma planta naquele canto")
+
+## Stack e requisitos
+- **Entrada**: imagem JPG/PNG (ideal: 1024x1024 a 4K, sem distorção extrema)
+- **Hardware mínimo**: RTX 3060 (12GB VRAM). Sem GPU: inviável (horas de training)
+- **Setup**: Python 3.10+, PyTorch 2.0+, CUDA 12.1
+- **Ferramentas online**: OpenArt (free tier: 5 gerações/mês), Leonardo AI ($10-15/mês para uso heavy)
+- **Custo local**: $0 (código open source)
+- **Tempo**: entrada → renderizável em 5-15 minutos (nerf-studio) ou 2-5 minutos (OpenArt web)
+- **Arquivo final**: GLB 20-100MB (compatível com web via compressão)
+
+## Armadilhas e limitações
+- **Uma imagem = visão limitada**: profundidade é inferida, não medida. Óclusões são adivinhos (fundo desfocado vira superfícies estranhas)
+- **Geometria moles**: bordas não são nítidas. Use para navegação/prototipagem, não para impressão 3D
+- **Texto e detalhes finos**: depth estimation erra em text, linhas finas, padrões repetitivos
+- **Reflexos e transparência**: vidro/água fazem profundidade falhar completamente
+- **Escala desconhecida**: modelo não sabe se sala tem 2m ou 20m. Navegação é relativa
+- **Dinâmica nenhuma**: estático. Para animar, precisa 4D-GS ou usar difusão video
+- **Editing pós-renderização**: modificar geometria é difícil (não é malha tradional, é representação neural)
+
+## Conexões
+- [[neural-rendering-nerf-vs-3dgs]]
+- [[depth-estimation-visao-computacional]]
+- [[geracao-3d-por-ia-via-web]]
+- [[prototipagem-rapida-3d]]
+
+## Histórico
+- 2026-04-02: Nota criada
+- 2026-04-02: Reescrita para guia de implementação local + web

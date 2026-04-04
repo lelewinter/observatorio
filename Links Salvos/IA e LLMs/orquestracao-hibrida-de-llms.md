@@ -1,33 +1,179 @@
 ---
-tags: []
+tags: [orquestracao, llms, hibrido, rate-limits, arquitetura]
 source: https://x.com/kmeanskaran/status/2036341914262482982?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Orquestração Híbrida de LLMs
 
-## Resumo
-Estratégia de uso combinado de modelos premium (Claude Opus, GPT-5) e modelos locais via Ollama para distribuir tarefas de acordo com complexidade, contornando limites de uso sem interromper o fluxo de trabalho.
+# Orquestração Híbrida: Distribuir Tarefas entre Claude Opus e Qwen Local
 
-## Explicação
-Modelos de linguagem como Claude Opus e GPT-5 possuem limites de uso por período (rate limits e cotas), o que interrompe fluxos de trabalho intensivos de engenharia de software. A orquestração híbrida resolve isso classificando as tarefas por nível de exigência cognitiva e alocando o modelo adequado para cada categoria.
+## O que e
 
-A lógica central é reservar os modelos premium para tarefas de alto impacto e baixa frequência: planejamento arquitetural, escrita da primeira iteração de código, decisões de design de sistema. Essas são as tarefas onde a diferença qualitativa entre um modelo frontier e um modelo local é mais perceptível. Para tudo o mais — correção de bugs, escrita de documentação, testes, logs, prompts de instrução e orquestração de alto nível — modelos locais como Qwen ou GPT-OSS rodando via Ollama são suficientes e gratuitos.
+Estratégia que aloca tarefas de desenvolvimento: Claude Opus/GPT-5 (premium, raro) para decisões arquiteturais/design. Qwen local (infinito, grátis) para bugs, testes, documentação. Contorna rate limits sem perder produtividade.
 
-O mecanismo técnico envolve instalar o Ollama localmente, baixar modelos open-source e integrá-los ao CLI do Claude Code (ou Cursor/Antigravity no free tier), permitindo troca dinâmica de backend sem mudar o ambiente de desenvolvimento. O operador alterna manualmente entre backends conforme o tipo de subtarefa ou conforme o limite de uso é atingido.
+## Como implementar
 
-Este conceito é essencialmente uma aplicação do princípio de "use o modelo certo para o trabalho certo" à restrição econômica de cotas, transformando um problema de limite de uso em uma decisão de arquitetura de fluxo de trabalho.
+**Classificação de tarefas por complexidade cognitiva**:
 
-## Exemplos
-1. **Planejamento + implementação inicial**: usar Claude Opus para definir a arquitetura e gerar o esqueleto do código; ao atingir o limite, continuar o desenvolvimento com Qwen via Ollama para as iterações subsequentes.
-2. **Documentação e testes**: delegar inteiramente ao Ollama + Claude CLI a geração de docstrings, READMEs e scripts de teste, preservando a cota premium para decisões críticas.
-3. **Debugging**: usar modelo local para ciclos rápidos de correção de erros (tarefa repetitiva e de baixo custo cognitivo), evitando consumir cota em tarefas onde a diferença de qualidade é marginal.
+| Tarefa | Modelo | Racional |
+|--------|--------|----------|
+| Arquitetura de sistema | Claude Opus | High-stakes, raro, 1-2x/projeto |
+| Primeira iteração código | Claude Opus | Scaffold define tudo, qualidade crítica |
+| Code review | Claude Opus | Decisões de pattern, mentoring |
+| Bug fixing (rotina) | Qwen local | Repetitivo, low-stake, feedback rápido |
+| Documentação | Qwen local | Template-based, não precisa criatividade |
+| Testes unitários | Qwen local | Mecânico, validar é fácil |
+| Refactoring | Qwen local | Dado contexto existente, qualidade OK |
 
-## Relacionado
-*(Nenhuma nota existente no vault para linkar no momento.)*
+**Setup híbrido** (Claude Code + Ollama):
+```bash
+# Terminal 1: Rodar Ollama localmente
+ollama serve
 
-## Perguntas de Revisao
-1. Quais critérios definem se uma tarefa de desenvolvimento merece uso de modelo premium versus modelo local?
-2. Quais são os riscos de qualidade ao delegar correção de bugs a modelos locais em projetos de alta complexidade?
+# Terminal 2: Rodar Claude Code normalmente
+claude code
+```
 
-## Historico de Atualizacoes
-- 2026-04-02: Nota criada a partir de Telegram
+**Integração**: Script que route requests baseado em task type:
+```python
+# router.py
+from anthropic import Anthropic
+import subprocess
+import json
+
+class HybridRouter:
+    def __init__(self):
+        self.claude_client = Anthropic()
+        self.local_model = "qwen2.5-7b-instruct"
+
+    def classify_task(self, prompt: str) -> str:
+        """Classifica se tarefa é HIGH ou LOW complexity"""
+        classification_prompt = f"""
+        Classify this development task as either HIGH or LOW complexity:
+
+        Task: {prompt}
+
+        HIGH = architectural, design decisions, initial coding, code review
+        LOW = bug fixes, documentation, tests, refactoring
+
+        Respond with single word: HIGH or LOW
+        """
+
+        response = self.claude_client.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=10,
+            messages=[{"role": "user", "content": classification_prompt}]
+        )
+        classification = response.content[0].text.strip()
+        return "HIGH" if "HIGH" in classification else "LOW"
+
+    def route(self, prompt: str, context: str = ""):
+        """Route to Claude Opus (HIGH) or Qwen (LOW)"""
+        task_type = self.classify_task(prompt)
+
+        if task_type == "HIGH":
+            print("[USING] Claude Opus (premium)")
+            response = self.claude_client.messages.create(
+                model="claude-3-opus-20250805",
+                max_tokens=2000,
+                messages=[
+                    {"role": "user", "content": context + "\n\n" + prompt}
+                ]
+            )
+            return response.content[0].text
+
+        else:
+            print("[USING] Qwen Local (free)")
+            # Call Ollama locally
+            result = subprocess.run(
+                ["ollama", "run", self.local_model, context + "\n\n" + prompt],
+                capture_output=True, text=True
+            )
+            return result.stdout
+
+# Uso
+router = HybridRouter()
+
+# Arquitetura (HIGH) → Claude Opus
+architecture_response = router.route(
+    "Design the data model for a real-time collaboration app",
+    "We're building a Figma competitor"
+)
+
+# Bug fix (LOW) → Qwen local
+bugfix_response = router.route(
+    "Fix this timeout error in auth.ts",
+    "Error: [code snippet]"
+)
+```
+
+**Workflow manual híbrido** (sem auto-routing):
+```bash
+# Fase 1: Arquitetura com Claude Code (Opus)
+claude code
+# @claude "Design architecture for payment system"
+# [Recebe design detalhado]
+
+# Fase 2: Implementação com Qwen local
+# Editar código scaffolded por Opus
+# Para refactoring menor, usar:
+ollama run qwen2.5-7b "Refactor this function to be more readable"
+
+# Fase 3: Testes com Qwen
+ollama run qwen2.5-7b "Write pytest tests for this function"
+
+# Volta a Opus apenas se feedback de testes indicar problema arquitetural
+```
+
+**Economia de tokens** (Claude Opus com 200K context):
+```
+Projeto típico:
+- Arquitetura: 10K tokens (Claude Opus)
+- Implementação: 50K tokens (Qwen, 50 iterações x 1K)
+- Testes: 10K tokens (Qwen)
+- Documentação: 5K tokens (Qwen)
+- Reviews: 5K tokens (Claude Opus)
+
+Total: 30K tokens Opus (economiza 50K que iriam para Qwen)
+Custo: $3 Opus vs $500+ se toda feito com Opus @ $0.015/1K
+```
+
+**Decision tree para escolher modelo**:
+```
+Tarefa: [novo request]
+  ├─ É planejamento/arquitetura?
+  │  └─ SIM → Claude Opus
+  ├─ É correção de bug existente?
+  │  └─ SIM → Qwen local
+  ├─ É refactoring de código existente?
+  │  └─ SIM → Qwen local
+  ├─ É teste/documentação?
+  │  └─ SIM → Qwen local
+  └─ Caso de uso único/crítico?
+     └─ SIM → Claude Opus
+```
+
+## Stack e requisitos
+
+- **Claude Opus**: API key (pagamento por uso)
+- **Ollama**: 0.1.15+ com Qwen 2.5 7B (8GB VRAM)
+- **Router logic**: Python com Anthropic SDK
+- **Latência**: Opus ~5s, Qwen ~2-3s
+- **Custo mensal**: ~$50 Opus + $0 Ollama (energy only)
+
+## Armadilhas e limitacoes
+
+- **Context mismatch**: Qwen local não tem acesso a contexto de Opus (arquitetura antiga). Passar contexto explicitamente.
+- **Qualidade inconsistência**: Transição de Opus→Qwen pode ter drops de qualidade. Revisar output Qwen em code review.
+- **Auto-routing impreciso**: Classifier pode confundir "refactor importante" com "bug fix rotina". Validar antes de usar.
+- **State persistence**: Qwen não "lembra" de decisões Opus. Documentar decisões em CLAUDE.md para Qwen consultar.
+- **API costs**: Se muito Opus due to misclassification, custos sobem rapidamente. Monitor usage.
+
+## Conexoes
+
+[[Otimizacao de Tokens em LLMs]] [[Setup Qwen 2.5 Local]] [[Claude Code Melhores Praticas]]
+
+## Historico
+
+- 2026-04-02: Nota criada
+- 2026-04-02: Reescrita para template aplicacao

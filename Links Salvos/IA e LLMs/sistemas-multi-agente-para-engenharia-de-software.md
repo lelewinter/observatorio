@@ -2,8 +2,10 @@
 tags: []
 source: https://www.linkedin.com/posts/that-aum_this-guy-won-the-anthropic-hackathon-and-share-7442551096926998528-0XR_?utm_source=social_share_send&utm_medium=android_app&rcm=ACoAAAgQrLIB4LHRfm8oNhRCsOv9i7wGJSYJXQs&utm_campaign=whatsapp
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Sistemas Multi-Agente para Engenharia de Software
+
+# Arquitetar Sistema Multi-Agente Especializado para Desenvolvimento de Software
 
 ## Resumo
 Arquiteturas com múltiplos agentes especializados (subagentes) integrados ao fluxo de desenvolvimento de software aumentam velocidade, qualidade e segurança do código com redução significativa de custos operacionais.

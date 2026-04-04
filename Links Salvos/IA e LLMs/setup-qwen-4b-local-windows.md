@@ -2,9 +2,10 @@
 tags: [setup, qwen, local-llm, windows, tutorial, hands-on]
 date: 2026-03-29
 source: session-leticia-winter
+tipo: aplicacao
 ---
 
-# Setup Qwen 2.5-4B Local no Windows — Guia Prático
+# Setup Qwen 2.5-4B Local no Windows com Ollama em 30 Minutos
 
 ## Resumo
 

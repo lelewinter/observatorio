@@ -3,27 +3,203 @@ date: 2026-03-24
 tags: [ia, automacao, orquestrador, agentes, claude-code, produtividade]
 source: https://x.com/glaucia_lemos86/status/2036246906347655325?s=20
 autor: "@glaucia_lemos86"
+tipo: aplicacao
 ---
 
-# Maestri: Orquestrador de Agentes de IA com Canvas 2D
+# Configurar Maestri para Orquestração Visual de Múltiplos Agentes IA
 
-## Resumo
+## O que é
 
-Aplicação de Evert Junior (desenvolvedor brasileiro) que permite orquestrar múltiplos agentes de IA trabalhando em harmonia. Utiliza Canvas 2D inovador para visualizar e controlar colaboração entre usuário e agentes, funcionando com Claude Code e Codex CLI. 100% gratuito e open source. É como ter maestro regendo orquestra de agentes — cada um sabe o que fazer, você vê tudo acontecendo em tempo real, e quando alguém sai do ritmo, você ajusta na hora.
+Interface visual (Canvas 2D) que coordena múltiplos agentes de IA (Claude Code, Codex, GPT) trabalhando simultaneamente em um projeto, com visibilidade total de estado, dependências e fluxo de dados. Elimina context-switching e ineficiência de coordenação manual entre agentes.
 
-## Explicação
+## Como implementar
 
-Maestri transforma a forma como você trabalha com múltiplos agentes de IA, permitindo que todos trabalhem de forma coordenada em um espaço visual colaborativo. Permite conectar múltiplos agentes de IA, coordenar trabalho entre diferentes ferramentas, visualizar todas as operações simultaneamente. Compatível com Claude Code e Codex CLI, com provável suporte a outras ferramentas baseadas em IA.
+### Fase 1: Download e Setup Inicial
 
-**Analogia:** Sem Maestri: múltiplos agentes é caos — você com 3 Claudes rodando é tipo ter 3 chefes na cozinha brigando por espaço, sem comunicação, sem visibilidade. Com Maestri: você é maestro em púlpito vendo orquestra inteira — violinos aqui, trompetes acolá, cada um sabe seu papel, você vê onde harmoniza e onde desafina.
+Maestri roda em macOS/Linux (Windows: use WSL2).
 
-A interface utiliza Canvas 2D para visualização inovadora e intuitiva, com arraste e solte de operações, visualização em tempo real de colaboração, interface interativa. Em vez de agentes competindo ou se sobrepondo, você e seus agentes trabalham juntos, canvas visual mostra o estado de cada agente, comunicação clara entre componentes.
+```bash
+# Clone repositório
+git clone https://github.com/EvertJr/maestri.git
+cd maestri
 
-**Profundidade:** Por que visibilidade importa? Porque você não consegue otimizar o que não consegue ver. Sem canvas, você troca entre janelas ("qual agente fez o quê?"). Com canvas, você vê tudo: agente A está esperando output de B, agente C terminou cedo. Agora você consegue rebalancear em tempo real. Isso é diferença entre times que funcionam e times que se atrapalham.
+# Instale dependências
+npm install
+# ou
+pip install -r requirements.txt
 
-Está disponível como 100% gratuito (sem pagamentos ou assinaturas), presume-se open source para download. Compatibilidade de plataforma: totalmente suportado em macOS/Linux, não disponível em Windows (limitação atual). O desenvolvedor descreve o objetivo como "o melhor aplicativo para orquestrar agentes de IA" com promessa de se tornar "um dev 100x" (desenvolvedor 100 vezes mais produtivo).
+# Inicie a aplicação
+npm start  # Abre interface web em http://localhost:3000
+```
 
-A visão de "dev 100x" faz sentido considerando: coordenação automática de múltiplos agentes, redução de contexto switching (trocar entre diferentes agentes), aproveitamento máximo de capacidades de cada agente, fluxo de trabalho visual e intuitivo.
+### Fase 2: Configurar Agentes
+
+Na interface Maestri, adicione seus agentes disponíveis:
+
+```
+Painel "Agentes":
+  + Novo Agente
+    Nome: Claude-CodeGeneration
+    Tipo: Claude Code
+    API Key: [sua chave Anthropic]
+    Modelo: claude-opus-4-1
+    Papel: "Escreve código novo e refactora"
+
+  + Novo Agente
+    Nome: Claude-Testing
+    Tipo: Claude Code
+    Modelo: claude-opus-4-1
+    Papel: "Escreve testes e valida"
+
+  + Novo Agente
+    Nome: Qwen-Local
+    Tipo: Ollama (local)
+    Endpoint: http://localhost:11434
+    Modelo: qwen2.5-32b
+    Papel: "Testes rápidos, documentação"
+```
+
+### Fase 3: Definir Workflow no Canvas
+
+Arraste agentes no canvas e conecte com fluxos de dados:
+
+```
+[Canvas 2D]
+
+┌─────────────────────────────────────────────┐
+│  Entrada: "Implementar função X"             │
+└────────────┬────────────────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────────────────┐
+│  Claude-CodeGeneration                       │
+│  Prompt: "Implemente a função X segundo...   │
+│  Output: code_generated.py                   │
+└────────────┬────────────────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────────────────┐
+│  Claude-Testing                              │
+│  Prompt: "Escreva testes para..."            │
+│  Wait-for: code_generated.py                 │
+│  Output: test_generated.py                   │
+└────────────┬────────────────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────────────────┐
+│  Qwen-Local                                  │
+│  Prompt: "Gere documentação para..."         │
+│  Input: code_generated.py, test_generated.py│
+│  Output: README_generated.md                 │
+└────────────┬────────────────────────────────┘
+             │
+             ▼
+    [Aprovação Humana]
+```
+
+No Maestri, clique e arraste para criar essas conexões visualmente.
+
+### Fase 4: Configurar Transições e Regras
+
+Defina quando um agente começa com base no output de outro:
+
+```json
+{
+  "workflow": "code-to-test-to-docs",
+  "agents": [
+    {
+      "id": "codegen",
+      "name": "Claude-CodeGeneration",
+      "trigger": "manual",
+      "on_complete": "notify:testing"
+    },
+    {
+      "id": "testing",
+      "name": "Claude-Testing",
+      "trigger": "on_file_generated",
+      "watch_file": "code_generated.py",
+      "on_complete": "notify:docs"
+    },
+    {
+      "id": "docs",
+      "name": "Qwen-Local",
+      "trigger": "on_files_ready",
+      "require_files": ["code_generated.py", "test_generated.py"],
+      "on_complete": "wait_approval"
+    }
+  ]
+}
+```
+
+### Fase 5: Monitoramento e Feedback
+
+Visualize em tempo real no Canvas:
+
+- Verde: Agente completou tarefa
+- Amarelo: Agente trabalhando
+- Vermelho: Agente falhou ou esperando input
+- Azul: Agente aguardando output de outro
+
+Clique em qualquer agente para ver:
+- Prompt enviado
+- Output gerado
+- Tempo decorrido
+- Tokens usados (se disponível)
+
+### Fase 6: Integração com seu Fluxo de Trabalho
+
+Execute workflows via CLI:
+
+```bash
+maestri run --workflow code-to-test-to-docs \
+  --input "Implemente algoritmo de busca binária em Python" \
+  --output-dir ./generated
+```
+
+Ou via API REST:
+
+```bash
+curl -X POST http://localhost:3000/api/workflows/run \
+  -H "Content-Type: application/json" \
+  -d '{
+    "workflow_id": "code-to-test-to-docs",
+    "initial_prompt": "Implemente X"
+  }'
+```
+
+## Stack e requisitos
+
+- **Plataforma**: macOS 11+, Linux (Ubuntu 20+); Windows via WSL2
+- **Node.js**: 16+
+- **Python**: 3.9+ (para agentes que exigem Python)
+- **RAM**: 4GB mínimo (8GB+ recomendado se rodar agentes locais)
+- **APIs**: Anthropic key (Claude), OpenAI key (GPT, opcional), Ollama local (opcional)
+- **Custo**: Maestri é free/open-source; custos vêm de tokens dos agentes premium
+- **Escalabilidade**: Até ~5-10 agentes paralelos sem degradação visível
+
+## Armadilhas e limitações
+
+1. **Windows não suportado nativamente**: Use WSL2 ou aguarde port oficial.
+
+2. **Overhead de coordenação**: Se agentes são muito interdependentes, o overhead de passing outputs entre eles pode superar ganho de parallelização. Melhor para workflows com etapas independentes.
+
+3. **Visualização pode ficar confusa**: Em workflows com >8 agentes, canvas fica denso. Use agrupamento e subgrafos.
+
+4. **Falha em cascata**: Se um agente falha, downstream pode ficar esperando. Defina timeouts e fallback claros.
+
+5. **Custo não-óbvio**: Fácil deixar agentes premium rodando em paralelo desnecessariamente. Monitore uso.
+
+## Conexões
+
+- [[Claude Code - Melhores Práticas]] — integração com Claude Code
+- [[Indexacao de Codebase para Agentes IA]] — cada agente deve ter acesso ao índice
+- [[Otimizar Uso Rate Limit Claude Pro Max]] — coordenar rate limits entre agentes
+- [[mcp-unity-integracao-ia-editor-nativo]] — padrão similar para Unity
+
+## Histórico
+
+- 2026-03-24: Nota original sobre Maestri
+- 2026-04-02: Guia de setup e configuração
 
 ## Exemplos
 

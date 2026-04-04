@@ -1,0 +1,140 @@
+---
+tags: [ia, llms, agentes, mcp, rag, embeddings, fine-tuning, inferencia-local, claude-code, prompt-engineering, multi-agente, workflows]
+date: 2026-04-02
+tipo: moc
+---
+# IA e LLMs
+
+## Panorama Geral
+
+O ecossistema de IA em 2026 está em transição clara: de máquinas de predição genéricas para sistemas compostos, especializados e autonômos. A tendência dominante é deslocar-se de chamadas simples a APIs cloud para arquiteturas multi-agente com persistência, RAG estruturado e raciocínio decomposto. Claude 3.5 Sonnet e seus sucessores consolidaram-se como o padrão de facto para agentes de código, especialmente com o surgimento de [[Claude Code]] e sua capacidade de auto-evolução via CLAUDE.md. Em paralelo, quantização agressiva (BitNet b1.58 a 1.58 bits, técnicas TurboQuant) viabilizou inferência em CPU e dispositivos edge com qualidade surpreendente — modelos de 2-4B parâmetros destilados do Claude Opus (como [[Qwen 3.5 4B]]) rodam localmente com 1-3GB de VRAM. O Model Context Protocol (MCP) emergiu como padrão unificador para tool calling, permitindo que agentes descubram e usem ferramentas de forma composável, desde [[MCP Unity]] para desenvolvimento de jogos até servidores especializados para RAG multimodal. A onda atual privilegia sistemas que aprendem, evoluem e corrigem-se iterativamente — pipeline loop-driven em vez de one-shot.
+
+Leticia e públicos similares — curiosos deep-dive, com tolerância experimental — encontram-se em posição ideal para explorar essa fronteira: ferramentas locais como Ollama + Qwen 4B, frameworks multi-agente como [[AgentScope]], e padrões de auto-melhoria embarcados em CLAUDE.md permitem construir pipelines sofisticados sem custo de API significativo. A segmentação crucial é entre "entender de verdade" (exigindo investigação, instalação, testes hands-on) e "ficar atualizado" (consumo passivo). Este MOC mapeia a primeira categoria: tecnologias e padrões que exigem profundidade.
+
+## Sub-temas
+
+### Agentes Autônomos e Multi-Agente
+
+Agentes — sistemas capazes de decomposição autônoma de tarefas, execução iterativa com feedback e adaptação — transformaram-se de conceito em prática operacional. A arquitetura padrão observada em [[Claude Code]] e replicada em frameworks como [[AgentScope]] segue invariante: (1) planejamento desacoplado, (2) loop iterativo de execução + observação, (3) atualização de contexto baseada em resultados, (4) terminação condicional. [[Agentes de IA Auto-Aperfeiçoáveis]] vão além ao adicionar mecanismo de persistência: cada erro é registrado em banco estruturado com contexto, correção humana e padrão identificado. Sobre esse histórico, busca RAG recupera padrões relevantes nas novas requisições. Implementar via SQLite + embeddings simples (BM25) viabiliza agentes que "lembram": a próxima vez que encontram padrão similar, invocam solução pronta com confidence score.
+
+[[Agentes Autonomos com Auto-Modificação]] elevam a aposta: agente não apenas aprende, mas modifica seu próprio CLAUDE.md com novos padrões, preferências de usuário, heurísticas de erro. Requiere framework com acesso seguro a arquivo de configuração; implementável com [[Claude Code]] instruído a atualizar CLAUDE.md de forma estruturada. [[Especializações de Modelos]] (generalist vs. specialist) emerge como decisão arquitetural: um agent generalista é custoso mas flexível; múltiplos agents especializados são baratos e rápidos, mas exigem orquestração sofisticada. [[Agent Router Model]] implementa classificação de complexidade — requisições simples rodam em modelos locais 2-7B via Ollama; tarefas complexas escalem para Claude Opus. Roteador especializado (treinado ou configurado) recebe prompt, emite score 0-1 de complexidade, direciona executor. Log de roteamentos alimenta loop de melhoria contínua: trocas de threshold, re-fitting do router.
+
+Em contextos multi-agente, [[Arquitetura Multi-Agente com Avaliador Separado]] provou superior: Planejador + Gerador + Crítico em tensão criativa produz outputs mais altos que agente solo. Planejador expande requisito em spec estruturada; Gerador implementa iterativamente; Crítico testa com Playwright, valida contrato. Delta de custo compensa com delta de qualidade não-linear. [[separacao-de-responsabilidades-em-workflow-de-ia|Separação de Responsabilidades em Workflow de IA]] explora este princípio aplicado a design + código: usar ferramentas especializadas em lugar de exigir que um único modelo genérico execute tudo. [[AgentScope Framework Multi-Agente]] (Alibaba) oferece implementação pronta: memória persistente per-agent, RAG integrado, MCP tools, raciocínio decomposição, designer visual pré-codificação. Visualizar fluxos multi-agente é crítico: [[visualizacao-de-orquestracao-de-agentes-ia|ferramentas de observabilidade]] transformam orquestração opaca em fluxos inspecionáveis. Conceito-chave: agentes não são monolíticos, são composições de capas especializadas, cada uma otimizada para domínio próprio.
+
+### MCP (Model Context Protocol) e Tool Calling
+
+MCP padronizou descoberta de ferramentas: cada servidor MCP expõe schema JSON com nomes, descrições, input/output, permitindo agentes descobrir e invocar de forma genérica. Em vez de pré-registrar 50 tools hardcoded, MCP permite composição dinâmica: plugar novo servidor = novo conjunto de tools disponível. [[Montar Assistente IA 100% Local com 6 MCP Servers]] mapeou stack essencial: browser (navegação web), scraping (rastreamento de conteúdo), multimodal RAG (processamento texto+imagem+vídeo), graph memory (persistência de relacionamentos estruturados), terminal (execução de scripts), orchestrator (coordenação central). A vantagem é modularidade: trocar browser MCP por browser melhorado = mudança local, sem afetar resto da arquitetura.
+
+[[MCP Unity]] demonstra aplicação em desenvolvimento de jogos: atributo `[MCPTool]` transforma qualquer método C# em ferramenta invocável. Agentes em Claude Code podem invocar métodos Unity (spawnBoss, updateComponent, loadScene) naturalmente. Batch operations otimizam latência: uma chamada com 10 operações Unity < 10 chamadas sequenciais. [[10 Projetos MCP Agents RAG Código]] compilou padrões production: RAG com fallback web, book writer com transcrição áudio, multi-agent orchestration com persistência.
+
+MCP viabiliza "container de agente = seu navegador": agente lê código via MCP filesystem, executa via MCP terminal, navega web via MCP browser, armazena memória via MCP database. Stack é agnóstico a qual LLM comanda — Claude, GPT-4o, Llama local — contanto que suporte tool calling.
+
+### Claude Code e Produtividade
+
+[[Claude Code]] representa pico arquitetural de agente de codificação: 26 prompts especializados organizados em camadas funcionais. Reverse-engineered via [[Arquitetura Interna do Claude Code]], a estrutura observável é: (1) prompt contextualizador contendo project knowledge, (2) stage de planejamento (decomposição), (3) iteração de execute-observe-update, (4) condição de terminação. Cada stage pode invocar tools (read_file, write_file, run_shell, search). Contexto persiste através da iteração, permitindo corrigir erros incrementalmente. [[vibe-coding-para-desenvolvimento-de-jogos|Vibe Coding]] aplica este princípio ao desenvolvimento de jogos: IA não apenas gera código, mas produz assets, design de fases e narrativa iterativamente, com o desenvolvedor como diretor criativo. [[visualizacao-de-orquestracao-de-agentes-ia|Visualização de Orquestração]] de agentes Claude Code auxilia debug e otimização de pipelines multi-agente complexos.
+
+[[Boas Práticas Claude Code]] consolidou padrões de uso: (a) **CLAUDE.md afiado** (máx. 200 linhas por [[Estrutura Claude.md Menos de 200 Linhas]]), contendo tech stack, conventions, known issues + soluções, preferências do usuário. Arquivo muito longo Claude ignora seções. (b) **Plan mode** com verificação — /plan descompõe tarefa antes de executar, requer aprovação humana. (c) **/loop** para tarefas recorrentes — executa mesma lógica N vezes com variações (útil para batches). (d) **/btw** (by the way) permite conversas paralelas enquanto agent trabalha. (e) **Git worktrees** para desenvolvimento paralelo em branches sem interferência. (f) **Code review cruzada** — segunda instância do Claude com contexto fresco encontra bugs que primeira perdeu.
+
+[[Plan Mode Claude Code Previne Execução Prematura]] observa que plan mode é prática essencial de segurança: garante verificação humana antes de operações destrutivas. [[Ancorar Janela de Uso do Claude Code Cedo]] descobre que Claude Code usa janela deslizante de 5 horas começando no primeiro uso (arredondado para hora cheia); ancorar cedo evita "dead time" por rate limit. [[Hooks de Notificação Claude Code]] permitem configurar callbacks (via ~/.claude/settings.json) que notificam quando action é necessária — útil para longas sessões. [[redacao-silenciosa-de-thinking-em-llms|Restaurar Exibição de Thinking Tokens]] mostra como recuperar raciocínio oculto do modelo na v2.1.69+.
+
+Evoluir Claude Code requer duas técnicas: [[Claude Peers Múltiplas Instâncias Coordenadas]] permite múltiplos Claudes comunicarem como colegas — primeira instância escreve código, segunda revisa, feedback loop. [[Claude Code Subconscious Letta Memory Layer]] integra camada de memória Letta: contexto transitório (tokens presentes na sessão) vs. contexto persistente (memória entre sessões). [[Claude Code Ativar Resumo de Pensamentos]] — desde v2.1.69 Claude Code oculta pensamento interno por padrão; restaurar via configuração revela raciocínio, útil para debug.
+
+Superpowers adicionais: [[CLAUDE.md Template Sistema de Auto-Melhoria Contínua]] (revelado por Boris Cherny, criador Claude Code) = sistema que Anthropic usa para treinar agentes: histórico de padrões aprendidos, erros recorrentes, preferências de usuário, soluções. [[Auto-Melhoria Persistente em Agentes de Código]] implementa este loop: agente registra padrão em CLAUDE.md ao reconhecer, consulta seção antes de cada decisão, atualiza confidence scores. [[Auto-Evolução em Agentes de Código]] vai além: agente refina próprio CLAUDE.md, promove novos padrões de "experimental" para "confiável", deprecia heurísticas que falharam consistentemente.
+
+### MCP Servers e Integração Especializada
+
+Além de MCP genérico, emergem servers especializados. [[Browser CLI para Agentes de IA]] standardiza navegação programática (XPath, CSS selectors, input preenchimento). [[Browser Como Container de Agente de IA]] propõe usar navegador como runtime: agente vive no tab, executa ações via DOM API, persiste estado em localStorage. [[Computer Use em Agentes de Código]] refere-se a agent que consegue operar computador diretamente (mouse, keyboard via API) — próxima fronteira após tool calling. [[skills-uxui-para-agentes-de-codigo|Skills UX/UI para Agentes de Código]] demonstra como injetar especialização estética em agentes via instruções persistentes.
+
+Casos específicos: [[Indexação de Codebase para Agentes IA]] — geração automática de índice semântico (dependências, arquitetura, APIs públicas, acoplamentos) reduz contexto 61.5%, chamadas de ferramentas 84%, acelera execução 37x. Agente consulta CODEBASE_INDEX.md antes de qualquer busca cega. [[Anotações Visuais Como Input para IA]] permite marcar screenshots (setas, circulos, texto) para dirigir agente; Claude processa imagens anotadas melhor que descrições textuais. [[traducao-de-tela-em-tempo-real|Tradução de Tela em Tempo Real]] via OCR local estende esse princípio: capturar, transcrever e traduzir conteúdo visual de qualquer interface sem latência de rede.
+
+### Inferência Local e Quantização
+
+Quantização é técnica de compressão reduzindo precisão numérica de pesos LLM; viabiliza execução em CPU/edge com overhead computacional mínimo. [[quantizacao-de-llms|Quantização de LLMs]] de forma geral: pesos float32/float16 → int8/int4/ternário. Princípio fundamental: maioria dos pesos em rede treinada concentra-se em faixas de valores estreitas; mapeamento para conjunto discreto menor preserva expressividade. Exemplo concreto: LLaMA 3 8B em float16 = 16GB VRAM; Q4_K_M via GGUF = 5GB = 3.2x redução, com acurácia 99.8% preservada (vs. original). Trade-off: latência 2-5x maior em CPU (mitigável com GPU 4GB). [[quantizacao-dinamica-de-llms|Quantização Dinâmica de LLMs]] vai além: mudar bits dinamicamente por camada/contexto (camadas primárias — onde acontece raciocínio — exigem mais bits, camadas finais — formatting — precisam menos).
+
+[[BitNet b1.58 Inferência em CPU Offline]] é breakthrough extremo: modelo com 2B parâmetros em **1.58 bits** (ternário: -1, 0, +1) cabe em ~380MB RAM vs. 8GB full-precision, com qualidade equivalente. Rodas via bitnet.cpp (Microsoft), Python wrapper fornecido. Trade-off: latência ~2-5x pior que versão float, adequado para buscas offline/background.
+
+[[Compressão de KV Cache em LLMs]] ataca problema diferente: durante geração token-by-token, modelo armazena K (keys) e V (values) de tokens anteriores para não recomputar atenção. KV cache = bottleneck maior em contextos longos (100k+ tokens). [[TurboQuant]] (Google Research) quantiza agressivamente KV cache (int4), reduz memória 6x, speedup 8x, acurácia preservada 99.8%. Implementável via vLLM com `quantization="kv_quant"`.
+
+Em prática: [[Qwen 3.5 4B Destilado Claude Opus Local]] roda completamente em 2-4GB VRAM em laptop. Destilado via knowledge distillation, preserva 85-90% capacity de Claude Opus. [[Setup Qwen 2.5-4B Local Windows]] fornece guia passo-a-passo. Ferramentas comuns: Ollama (gerenciador de modelos local), LM Studio (UI), vLLM (inferência otimizada). [[stack-de-ia-local-self-hosted|Stack Completo de IA Local (Ollama + WebUI + Whisper + RAG)]] documenta configuração end-to-end. [[Democratização de Modelos de IA]] é efeito colateral: conhecimento concentrado em OpenAI/Anthropic agora replicável em hardware consumer.
+
+### RAG, Embeddings e Memória
+
+Retrieval-Augmented Generation (RAG) = padrão de injetar conhecimento externo em prompt antes de geração. Vanilla RAG é simples: (1) embed query via embedding model, (2) busca vetorial em knowledge base (FAISS, Pinecone, Milvus), (3) concatena top-k documentos em prompt, (4) LLM gera baseado em contexto aumentado. Vantagem: reduz hallucination, permite trabalhar com dados frescos sem retreinamento. Limitação: concatenação linear perde contexto estrutural. [[Implementar Sistema RAG com MCP e Agentes Multi-Step]] complica padrão com: fallback web quando vector search falha (se score < threshold, invoca web search), transcrição áudio integrada (Whisper local), múltiplos agentes especializados (pesquisador descobre, crítico valida, sintetizador estrutura). Efeito prático: pipeline robusto funcionando offline + online conforme necessário.
+
+[[Embeddings Multimodais em Espaço Vetorial Unificado]] — breakthrough recente. Modelos como Gemini Embedding 2, IMG2Vec+ mapeiam texto, imagem, áudio, vídeo em **único espaço compartilhado de dimensão unificada** (ex. 768D). Antes: pipeline linear — áudio → transcrição Whisper → embedding textual → busca. Agora: áudio → embedding direto no espaço unificado → busca em microsegundos. Possibilita buscas cross-modal "encontre PDF semanticamente similar a este clipe de voz" sem conversão. Aritmética vetorial funciona cross-modal: (CEO foto) − (homem imagem) ≈ (mulher imagem) em latent space. Implementação viável: Google Gemini Embedding 2 API (USD 0.02 per 1000 inputs), cliente Python, integração FAISS/Pinecone trivial. Armadilha: similaridade cosseno pode ser enganosa (dois items muito diferentes com sim score alto se contexto confunde modelo); sempre validar em labeled test set. Foundation models especializados expandem além de NLP: [[timesfm-foundation-model-para-series-temporais|TimesFM]] (Google) oferece previsão de séries temporais zero-shot, democratizando forecasting sem retreinamento por domínio.
+
+Persistência de memória em agentes é crítica. [[Contexto Persistente em LLMs]] discute trade-offs: (1) **sesão única** = melhor coerência, contexto máximo, caro (5h janela). (2) **memória banco estruturado** = recuperação seletiva via RAG, barato. (3) **embeddings persistentes** = busca semântica entre sessões. [[Consolidação de Memória em Agentes]] propõe merging periódico: após N sessões, consolidar learnings em CLAUDE.md. [[Ancoragem de Janela de Uso em APIs]] observa que APIs cloud usam janelas deslizantes (Anthropic: 5h); compreender mecânica permite otimizar uso.
+
+### Construção e Fine-Tuning de Modelos
+
+[[Construir um LLM do Zero em 2 Semanas é Viável]] — seguindo livro de Sebastian Raschka, dev construiu LLM próprio em projeto pessoal 2-semanas. Processo: (1) raw text corpus, (2) tokenization, (3) transformer architecture (encoder/decoder), (4) treinamento via masked language modeling, (5) avaliação. Viável com hardware consumer (32GB RAM, GPU 8GB). Código disponível em github. Não é state-of-the-art, mas suficiente para entender cada camada.
+
+[[Fine-Tuning de LLMs sem Código]] via Unsloth: interface web para fine-tuning 500+ modelos sem código. Upload dataset (PDF, CSV), seleciona modelo-base, configura via sliders, clica "Train". Backend: tokenização automática, LoRA setup (reduz VRAM 70%), inferência Triton-otimizada. 30min depois, modelo especializado pronto. Export múltiplos formatos (HF Hub, GGUF, Ollama, safetensors). Armadilha: fine-tuning de qualidade exige dataset bem estruturado; LoRA afeta model capacity.
+
+[[Fine-Tuning sem Código com API Anthropic]] permite ajuste de Claude via API: enviar exemplos (input/output), Anthropic fine-tuna internamente, retorna model ID. Menos controle que LoRA local, mas sem overhead de GPU.
+
+### Prompt Engineering e Otimização
+
+[[Prompts Estruturados com Outputs JSON Schema]] — constraining LLM output reduz hallucination. Ao invés de "retorne JSON" (fraco, pode falhar), passar `json_schema` ao modelo força estrutura. Claude 3.5 suporta isso nativamente via `response_format={"type": "json_schema", "schema": {...}}`. Efeito: zero parsing errors, saída 100% válida. [[spec-driven-development|Spec-Driven Development (SDD)]] eleva esta prática: usar especificações formais como artefato primário, permitindo que agentes de IA transformem specs estruturadas em código validado.
+
+[[Conflito de Regras em System Prompts]] — quando system_prompt contém regras contraditórias ("sempre cite fontes" vs. "respostas curtas <100 tokens"), LLM fica confuso, performance degrada. Consolidar/priorizar regras. [[Configuração de Contexto para LLMs]] discute técnicas: (1) exemplos em-contexto (few-shot), (2) estruturação de informação (JSON vs. prosa), (3) order matters (informação crítica primeiro). [[Otimizar Preferências Claude Chief of Staff]] — guia por Clara Ma sobre configurar preferências pessoais para conversas naturais.
+
+[[Simplificar Setup Claude Deletar Regras Extras]] — contra-intuitivo: Ole Lehmann descobriu que deletar metade do setup resultou em outputs **melhores**. Équipe Anthropic confirmou: regras excessivas criam atrito. Mantra: máximo 200 linhas CLAUDE.md, máx. 5-7 prioridades, resto descarta-se.
+
+### Geração de Conteúdo Multimodal
+
+[[Pipelines Multimodais de IA Permitem Produção Automatizada de Vídeo a Custo Marginal Próximo de Zero]] — encadear Claude (script geração) + Gemini Imagen (imagem) + [[text-to-speech-apis|ElevenLabs TTS]] (voz) + [[ffmpeg-montagem-video|vídeo compositor]]. Resultado: YouTube Shorts production line automatizada, ~5 minutos por vídeo. [[Mistral TTS Text-to-Speech Local Gratuito]] — model open-source gerando áudio qualidade premium em 3GB RAM, superior a ElevenLabs. Integrado em Telegram bots, aplicações offline. [[tts-open-weight-com-clonagem-de-voz|Voxtral TTS com Clonagem Zero-Shot]] (Mistral) oferece síntese de voz com identidade vocal adaptável e suporte multilíngue.
+
+[[Claude Desconstrói Imagem de Referência para Gerar Prompt Estruturado]] — pipeline: usuário fornece imagem de referência (Pinterest, Savee.it); Claude analisa, extrai componentes, gera prompt estruturado tipo "cinematic lighting, subject in center, shallow DOF, warm color grading". Usado em production design virtual, sprite generation.
+
+[[Maestri Orquestrador de Agentes de IA com Canvas 2D]] (Evert Junior) = aplicação que coordena múltiplos agentes em canvas 2D: um agente escreve narrativa, outro desenha personagens, terceiro anima. Canvas compartilhado permite sinergia.
+
+### Frameworks e Orquestração
+
+[[AgentScope Framework Multi-Agente]] (Alibaba) oferece primitivos: Agent, AgentConfig, Memory (SQLite/Redis), RAG (Milvus), MCP tool registry. Designer visual pré-codificação. Especializações por domínio. [[Bibliotecas de Workflows com LLMs]] — 450+ workflows prontos encapsulando lógica, evitam "prompt amador". Exemplos: TDD assistido (gera teste → implementa → valida), pesquisa com auto-citação, análise de causa-raiz. [[Construir Biblioteca Reutilizável de Workflows]] estrutura WorkflowStep (tipo: LLM_CALL, TOOL_USE, DECISION, PARALLEL, LOOP), encadeia via DAG, valida ciclos.
+
+[[Empresas Virtuais de Agentes de IA]] — conceito: múltiplos agentes especializados em "empresa": CEO (coordenador), CTO (arquiteto), Product Lead, QA. Simulação emerge. [[Estudio de Games com Multi-Agentes IA]] — aplicação: agentes como asset designers, animators, narrative designers trabalham em harmo via MCP.
+
+### Treinamento e Auto-Melhoria
+
+[[Auto-Melhoria Persistente em Agentes de Código]] — cada erro é registrado, solução humanamente corrigida é capturada, padrão extraído e promovido. Próxima requisição similar consulta memória. Loop de confiança crescente. [[Auto-Evolução em Agentes de Código]] — agente modifica próprio CLAUDE.md iterativamente. [[Agente IA Autônomo com Auto-Modificação]] — segurança requer: (1) sandboxing de edições CLAUDE.md, (2) revisão humana antes de aplicar, (3) rollback automático se performance degrada.
+
+[[Red Team de IA Autônomo Mudança na Cibersegurança]] — múltiplos agentes orquestrados para testes de invasão, busca de vulnerabilidades, com quase zero intervenção. [[Aprendizado Acelerado com IA]] — usar Claude para gerar exercícios progressivos, receber feedback, adaptando dificuldade.
+
+### Temas Especializados
+
+[[Desempenho e Otimização]] — [[Desafio de Engenharia de Performance da Anthropic]] = problema original de contratação Anthropic, envolvendo otimizações de latência em LLM serving. [[Explicabilidade Como Medida de Compreensão]] — ao invés de apenas acurácia, medir se agente consegue explicar raciocínio. [[Design.md Como Contrato de Design para LLMs]] — documento estruturado especificando UI/UX que LLM deve gerar, reduz alucinações visuais. [[teleporte-de-sessoes-entre-dispositivos|Teleporte de Sessões]] permite mover contexto entre ambientes (desktop, mobile, web) sem interrupção. [[vazamento-de-codigo-proprietario-de-ia|Dinâmicas de Vazamento]] em ecossistema open-source: quando código proprietário vaza, forks em cascata demonstram como limites de propriedade intelectual são testados em IA.
+
+Recursos de aprendizado: [[Cursos Gratuitos Hugging Face IA]], [[Livro You and Your Research Richard Hamming]] (pensar como melhores cientistas), [[Masterclass Gratuita Construindo Apps Claude Code GPT-5]] (Riley Brown), [[Cheat Sheet Oficial 33 Páginas Claude Skills]] (Anthropic — recurso official essential). [[repositorios-github-para-aiml|16 Repositórios GitHub para Aprendizado AI/ML]] oferece cursos práticos baseados em código. [[repositorios-github-para-claude-code|Ecossistema de Skills e Extensions para Claude Code]] mapeia frameworks comunitários. [[repositorios-open-source-de-ia|Papercli, MiroFish, Hermes Agent e Automação Open-Source]] documenta agentes e automações viáveis.
+
+## Estado Atual e Tendências
+
+**Consolidação de Padrões**: Multi-agente com avaliador separado provou consistentemente superior a agente solo em qualidade de outputs. Padrão estabiliza-se em produção. Planejador + Gerador + Crítico em loop iterativo superou agente monolítico em testes de Anthropic e implementações open-source (AgentScope). **Persistência é Chave**: CLAUDE.md evolutivo (não estático) permite agentes crescerem em competência. Equipes Anthropic/open-source convergem neste design: memória > tamanho do modelo. Uma configuração CLAUDE.md bem mantida (200 linhas, padrões aprendidos, heurísticas de erro, preferências do usuário) transforma agente genérico em especialista de domínio.
+
+**Quantização Extrema Viável**: BitNet b1.58 (1.58 bits ternário), TurboQuant (int4 KV cache) demonstram que 1.58-4 bits é suficiente sem perda qualidade significativa. Implicação radical: laptops velhos (2015-era MacBook) agora rodam LLMs localmente. Modelos 2-4B quantizados ocupam 380MB-2GB, velocidade offline imediata, zero latência cloud. **Especializações Baratas**: Ao invés de aumentar modelo base (70B = custoso), multiplique especialistas leves + roteador inteligente. N agentes 2B via Ollama << 1 agente 70B em custo, latência, complexidade. Observação prática: agente roteador 7B consegue rotear 80%+ das requisições corretamente; fallback para Claude Opus apenas em casos complexos reais.
+
+**MCP é Standard Convergido**: Não mais "qual API usar?", mas "qual MCP server plugar?". Composição por modularidade. Agnóstico a LLM subjacente (Claude, GPT-4o, Llama local). **Memória > Contexto**: Janelas deslizantes (5h Anthropic) incentivam persistência inteligente, não concatenação naive de histórico. Padrão observado: agentes com memória estruturada superam agentes contexto-infinite 3-5x em tasks longas. **Auto-Melhoria é Operacional**: Não conceitual ou teórico. Loop de padrão → log estruturado → learn → atualizar CLAUDE.md → aplicação → validação → confidence score está implementado em productions reais. Terceiro trimestre 2026 marcará transição de "agentes falam sobre aprender" para "agentes operacionalmente aprendem".
+
+## Ferramentas e Recursos Práticos
+
+**Inferência Local**: Ollama (gerenciador modelos), LM Studio (UI desktop), vLLM (serving otimizado), llama.cpp (CPU inference). Modelos: Qwen 2.5-4B, Mistral 7B, Llama 3-8B. **Desenvolvimento**: Claude Code (gold standard), Cursor (atalhos), Windsurf (UI). MCP servers para browser, scraping, terminal, RAG. **Organização**: CLAUDE.md (max 200 linhas), CODEBASE_INDEX.md (semântica), agent_memory.db (SQLite), estado persistente. **Datasets**: Hugging Face (modelos + datasets), unstructured (extração document), PDF OCR + LLM para Q&A geração.
+
+**Monitoramento**: Logging de roteamentos, pattern confidence scores, error rates. Dashboards simples (Grafana) suficientes. **APIs**: Anthropic (soberana para Claude), OpenAI (GPT-4o fallback), Gemini (embeddings multimodais). **Quantização**: ollama pull (baixar modelo quantizado), ggufquant (converter), bitnet.cpp (ternário).
+
+## Conexões com Outros Temas
+
+[[MOC - Games e 3D]] — agentes IA gerando assets 3D, sprites, animações via [[MCP Unity]], [[Maestri Orquestrador]]. [[MOC - Dev e Open Source]] — frameworks open-source ([[AgentScope]], [[Ollama]], bitnet.cpp), deployments auto-hosted. [[MOC - Ferramentas e Produtividade]] — Claude Code + hooks + CLAUDE.md como sistema de produtividade. [[MOC - Agentes Autônomos]] — referência cruzada esperada, core topic neste MOC.
+
+---
+
+## Resumo Executivo para Navegação Rápida
+
+**Para Começar**: Ler [[Boas Práticas Claude Code]], clonar exemplo AgentScope, configurar CLAUDE.md < 200 linhas.
+
+**Para Aprofundar**: [[Arquitetura Interna do Claude Code]], [[Auto-Melhoria Persistente]], [[AgentScope Framework Multi-Agente]], [[Fine-Tuning LLMs sem Código]].
+
+**Para Produção**: [[Índice de Codebase para Agentes]], [[RAG com Fallback Web]], [[Router de Complexidade]], [[Avaliador Separado]].
+
+**Para Edge**: [[BitNet b1.58]], [[Qwen 4B Local]], [[Mistral TTS]], [[Quantização Dinâmica KV Cache]].
+
+**Para Criatividade**: [[Pipelines Multimodais Vídeo]], [[Claude Desconstrói Imagem]], [[Maestri Orquestrador Canvas]], [[MCP Unity Agentes Games]].

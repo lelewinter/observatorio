@@ -2,112 +2,356 @@
 date: 2026-03-08
 tags: [Claude, skills, Anthropic, cheat sheet, building skills, guia oficial, documentação]
 source: https://x.com/RoundtableSpace/status/2030595632998580328
-autor: "Anthropic (via 0xMarioNawfal)"
-tipo: zettelkasten
+author: "Anthropic (via 0xMarioNawfal)"
+tipo: aplicacao
 ---
 
-# Cheat Sheet Oficial de 33 Páginas — Como Construir Claude Skills
+# Implementar Claude Skills Produtivos
 
-## Resumo
+## O que é
+33-página cheat sheet oficial da Anthropic consolidando padrões, templates e boas práticas para construir [[Claude]] skills — blocos reutilizáveis que integram com Claude Code, workflows e ecossistema completo, evitando armadilhas comuns.
 
-Anthropic lançou um cheat sheet oficial de 33 páginas dedicado exclusivamente à construção de Claude skills. Este documento consolida as melhores práticas, padrões de design, e exemplos práticos para criar skills que se integrem com Claude Code, workflows, e o ecossistema completo da plataforma — como um manual de referência rápida que evita armadilhas comuns.
+## Como implementar
+**1. Estrutura de diretório de skill**:
 
-## Explicação
-
-O cheat sheet de 33 páginas cobre:
-
-**Fundamentação de Claude Skills**
-- O que é um skill (blocos de funcionalidade reutilizáveis)
-- Arquitetura de skills no Claude Code
-- Diferença entre skills, workflows, e prompts
-
-**Design Patterns**
-- Padrões para entrada/saída de dados
-- Estrutura recomendada de arquivos
-- Nomeação e versionamento
-
-**Casos de Uso Comuns**
-- Skills para automação de tarefas
-- Skills para análise de dados
-- Skills para geração de conteúdo
-- Skills para integração com APIs externas
-
-**Boas Práticas**
-- Tratamento de erros em skills
-- Validação de entrada
-- Documentação efetiva
-- Testes e debugging
-
-**Exemplos Práticos**
-- Skill de processamento de texto
-- Skill de análise de imagens
-- Skill de chamadas HTTP
-- Skill de manipulação de banco de dados
-
-**Integração com Workflows**
-- Como conectar skills a workflows
-- Passagem de variáveis entre skills
-- Composição de múltiplos skills
-- Orquestração complexa
-
-**Publicação e Compartilhamento**
-- Como publicar skills no marketplace
-- Documentação para outras pessoas usarem
-- Versionamento e compatibilidade
-- Monetização (se aplicável)
-
-## Exemplos
-
-**Exemplo de Estrutura de Skill (do cheat sheet):**
-
-```
+```bash
 my-skill/
-├── SKILL.md          # Metadata e documentação
-├── skill.json        # Configuração
+├── SKILL.md                 # Metadados e documentação
+├── skill.json              # Configuração JSON
 ├── src/
-│   ├── main.ts       # Lógica principal
-│   └── utils.ts      # Funções auxiliares
+│   ├── main.ts             # Lógica principal
+│   ├── utils.ts            # Funções auxiliares
+│   └── types.ts            # TypeScript interfaces
 ├── tests/
-│   └── main.test.ts  # Testes
-└── README.md         # Documentação para usuários
+│   ├── main.test.ts        # Testes unitários
+│   └── integration.test.ts # Testes de integração
+├── README.md               # Documentação para usuários
+├── package.json            # Dependências
+└── .gitignore              # Arquivos a ignorar
 ```
 
-**Exemplo de SKILL.md:**
-```markdown
+**2. SKILL.md template** (metadados e UI):
+
+```yaml
 ---
-name: "Process CSV File"
-description: "Lê um arquivo CSV e transforma em formato JSON estruturado"
-author: "seu-nome"
+name: "Process CSV to JSON"
+displayName: "CSV to JSON Converter"
+description: "Lê arquivo CSV e transforma em JSON estruturado com tipagem"
 version: "1.0.0"
-tags: ["data-processing", "csv", "transformation"]
+author: "seu-nome"
+authorUrl: "https://github.com/seu-usuario"
+license: "MIT"
+tags: ["data-processing", "csv", "transformation", "json"]
+category: "Data"
+icon: "📊"
+keywords: ["csv", "json", "converter", "data"]
+
+# Configuração de input/output
+inputSchema:
+  type: "object"
+  properties:
+    csvFile:
+      type: "file"
+      description: "Arquivo CSV para processar"
+      mimeType: "text/csv"
+    delimiter:
+      type: "string"
+      description: "Delimitador (padrão: vírgula)"
+      default: ","
+    hasHeader:
+      type: "boolean"
+      description: "Primeira linha é cabeçalho?"
+      default: true
+  required: ["csvFile"]
+
+outputSchema:
+  type: "object"
+  properties:
+    data:
+      type: "array"
+      description: "Dados como array de objetos"
+    rowCount:
+      type: "number"
+    columnNames:
+      type: "array"
+    errors:
+      type: "array"
+      description: "Problemas encontrados durante processamento"
 ---
 
-# Process CSV File Skill
+# Descrição Detalhada
 
-Descrição detalhada do que o skill faz...
+Conversor robusto de CSV para JSON com validação automática de tipos.
+Detecta automaticamente tipos de coluna (string, number, date, boolean).
 ```
 
-**Exemplo de Input/Output Padrão:**
+**3. skill.json (configuração)**:
+
+```json
+{
+  "name": "process-csv-json",
+  "version": "1.0.0",
+  "runtime": "node",
+  "handler": "src/main.ts",
+  "dependencies": {
+    "csv-parse": "^5.4.1",
+    "typescript": "^5.2.0"
+  },
+  "timeout": 30000,
+  "memory": 512,
+  "environment": {
+    "NODE_ENV": "production"
+  },
+  "permissions": ["file-read"],
+  "caching": {
+    "enabled": true,
+    "ttl": 3600
+  }
+}
 ```
-INPUT:
-- file: File (arquivo CSV)
-- delimiter: string (padrão: ",")
-- hasHeader: boolean (padrão: true)
 
-OUTPUT:
-- data: Array<Object>
-- rowCount: number
-- columnNames: Array<string>
+**4. Implementação em TypeScript** (src/main.ts):
+
+```typescript
+import { parse } from 'csv-parse/sync';
+import * as fs from 'fs';
+
+interface SkillInput {
+  csvFile: Buffer | string;
+  delimiter?: string;
+  hasHeader?: boolean;
+}
+
+interface SkillOutput {
+  data: Record<string, any>[];
+  rowCount: number;
+  columnNames: string[];
+  errors: string[];
+}
+
+export async function handler(input: SkillInput): Promise<SkillOutput> {
+  const errors: string[] = [];
+
+  try {
+    // Validar input
+    if (!input.csvFile) {
+      throw new Error("csvFile is required");
+    }
+
+    const content = typeof input.csvFile === 'string'
+      ? fs.readFileSync(input.csvFile, 'utf-8')
+      : input.csvFile.toString('utf-8');
+
+    // Parse CSV
+    const records = parse(content, {
+      delimiter: input.delimiter || ',',
+      columns: input.hasHeader !== false,
+      skip_empty_lines: true,
+      on_error: (err) => errors.push(err.message)
+    });
+
+    // Inferir tipos
+    const columnNames = Object.keys(records[0] || {});
+    const typedData = records.map((row: any) =>
+      inferTypes(row, columnNames)
+    );
+
+    return {
+      data: typedData,
+      rowCount: records.length,
+      columnNames,
+      errors
+    };
+
+  } catch (err) {
+    return {
+      data: [],
+      rowCount: 0,
+      columnNames: [],
+      errors: [err instanceof Error ? err.message : String(err)]
+    };
+  }
+}
+
+function inferTypes(row: any, columns: string[]) {
+  const result: Record<string, any> = {};
+
+  for (const col of columns) {
+    const value = row[col];
+
+    // Tentar converter em tipos mais específicos
+    if (value === null || value === '') {
+      result[col] = null;
+    } else if (value === 'true' || value === 'false') {
+      result[col] = value === 'true';
+    } else if (!isNaN(Number(value))) {
+      result[col] = Number(value);
+    } else if (isValidDate(value)) {
+      result[col] = new Date(value).toISOString();
+    } else {
+      result[col] = value;
+    }
+  }
+
+  return result;
+}
+
+function isValidDate(dateString: string): boolean {
+  const date = new Date(dateString);
+  return date instanceof Date && !isNaN(date.getTime());
+}
 ```
 
-## Relacionado
+**5. Testes** (tests/main.test.ts):
 
-[[Claude Code - Melhores Práticas]]
-[[450_skills_workflows_claude]]
-[[plan-mode-claude-code-previne-execucao-prematura]]
+```typescript
+import { handler } from '../src/main';
 
-## Perguntas de Revisão
+describe('CSV to JSON Skill', () => {
+  it('should convert simple CSV', async () => {
+    const input = {
+      csvFile: Buffer.from('name,age\nAlice,30\nBob,25'),
+      hasHeader: true
+    };
 
-1. Qual é a diferença estrutural entre um skill e um workflow, segundo o cheat sheet?
-2. Como o cheat sheet recomenda estruturar erros e exceções em skills para reutilização?
-3. Qual seria o primeiro skill que você criaria usando as práticas do documento?
+    const result = await handler(input);
+
+    expect(result.rowCount).toBe(2);
+    expect(result.data[0]).toEqual({ name: 'Alice', age: 30 });
+    expect(result.columnNames).toEqual(['name', 'age']);
+  });
+
+  it('should handle missing file', async () => {
+    const result = await handler({ csvFile: undefined as any });
+    expect(result.errors.length).toBeGreaterThan(0);
+  });
+
+  it('should infer types correctly', async () => {
+    const input = {
+      csvFile: Buffer.from('id,price,active,date\n1,9.99,true,2026-04-02'),
+      hasHeader: true
+    };
+
+    const result = await handler(input);
+    const row = result.data[0];
+
+    expect(typeof row.id).toBe('number');
+    expect(typeof row.price).toBe('number');
+    expect(typeof row.active).toBe('boolean');
+    expect(row.date).toMatch(/^\d{4}-\d{2}-\d{2}/);
+  });
+});
+```
+
+**6. Publicar skill**:
+
+```bash
+# 1. Criar conta Anthropic (se não tiver)
+# 2. Autenticar
+claude login
+
+# 3. Publicar
+claude skill publish
+
+# 4. Disponível para uso em Claude Code:
+# /install my-skill
+```
+
+**7. Boas práticas de entrada/saída**:
+
+```typescript
+// ❌ EVITAR: Muito genérico
+export async function handler(input: any): Promise<any> {
+  return JSON.parse(input);
+}
+
+// ✅ FAZER: Tipos explícitos, validação
+interface Input {
+  data: string;
+  format: 'csv' | 'json' | 'yaml';
+}
+
+interface Output {
+  result: any;
+  warnings: string[];
+  executionTimeMs: number;
+}
+
+export async function handler(input: Input): Promise<Output> {
+  const startTime = Date.now();
+
+  // Validar
+  if (!input.data) throw new Error("data required");
+  if (!['csv', 'json', 'yaml'].includes(input.format)) {
+    throw new Error("Invalid format");
+  }
+
+  // ... processar ...
+
+  return {
+    result: parsed,
+    warnings: [],
+    executionTimeMs: Date.now() - startTime
+  };
+}
+```
+
+**8. Tratamento de erros robusto**:
+
+```typescript
+class SkillError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public retryable: boolean = false
+  ) {
+    super(message);
+  }
+}
+
+export async function handler(input: SkillInput) {
+  try {
+    // ...
+  } catch (err) {
+    if (err instanceof SkillError) {
+      return {
+        success: false,
+        error: err.message,
+        code: err.code,
+        retryable: err.retryable
+      };
+    }
+
+    // Erro inesperado
+    console.error("Unexpected error:", err);
+    return {
+      success: false,
+      error: "Internal server error",
+      code: "INTERNAL_ERROR",
+      retryable: true
+    };
+  }
+}
+```
+
+## Stack e requisitos
+- **Runtime**: Node.js 18+ ou Deno
+- **Linguagem**: TypeScript recomendado (ou JavaScript)
+- **Testing**: Jest, Vitest
+- **Packaging**: zip ou Docker
+- **Publicação**: Marketplace da Anthropic
+- **Versioning**: Semantic Versioning (MAJOR.MINOR.PATCH)
+
+## Armadilhas e limitações
+- **Context window**: skills rodando em Claude Code têm acesso ao contexto completo. Documentar impacto em custo de tokens.
+- **Timeouts**: skills têm timeout máximo (30s padrão). Tarefas longas precisam ser async + polling.
+- **Dependencies**: minimizar dependências externas reduz tamanho. Use stdlib quando possível.
+- **Backwards compatibility**: ao atualizar, manter compatibilidade ou versionar adequadamente.
+- **Documentação**: skills sem docs boas não serão usados. Incluir exemplos, casos de erro, limites.
+
+## Conexões
+[[Claude Code - Melhores Práticas]], [[Tool Use com LLMs]], [[Workflows com LLMs]], [[MCP - Model Context Protocol]]
+
+## Histórico
+- 2026-03-08: Nota criada
+- 2026-04-02: Reescrita em padrão aplicação

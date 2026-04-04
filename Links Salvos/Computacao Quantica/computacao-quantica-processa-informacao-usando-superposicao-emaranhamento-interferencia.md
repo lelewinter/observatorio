@@ -2,42 +2,192 @@
 tags: [computacao-quantica, qubits, superposicao, emaranhamento, interferencia, fisica-quantica, hardware]
 source: https://www.linkedin.com/posts/erinaldofonseca_computa%C3%A7%C3%A3o-qu%C3%A2ntica-ugcPost-7442262752494100480-ESEg
 date: 2026-03-28
+tipo: aplicacao
 ---
-# Computação Quântica Processa Informação Usando Superposição, Emaranhamento e Interferência
+# Explorar Superposição, Emaranhamento e Interferência em Circuitos Quânticos Básicos
 
-## Resumo
+## O que é
 
-Computação quântica é uma nova forma de processar informação que nasce das leis da física quântica — as mesmas leis que regem o universo em escala atômica. Em vez de bits clássicos (0 ou 1), usa qubits, que podem existir em superposição de estados simultaneamente. Isso permite explorar múltiplos caminhos computacionais em paralelo, com emaranhamento e interferência como os mecanismos de controle.
+Computação quântica processa informação de forma fundamentalmente diferente da clássica, baseando-se em três mecanismos: superposição (qubits em múltiplos estados simultaneamente), emaranhamento (correlação não-local entre qubits), e interferência (amplificação de soluções corretas). Dominar esses três conceitos é pré-requisito para entender qualquer algoritmo quântico. Este guia oferece hands-on experiência construindo circuitos que demonstram cada mecanismo isoladamente, depois combinados.
 
-## Explicação
+## Como implementar
 
-Os três pilares que diferenciam computação quântica da clássica:
+**Conceito 1: Superposição com Porta Hadamard**
 
-**Qubits**: unidade básica de informação quântica. Um qubit pode ser 0, 1, ou qualquer combinação de ambos ao mesmo tempo (superposição). Com N qubits, o sistema representa 2^N estados simultaneamente — daí o potencial de paralelismo massivo.
+A porta Hadamard é a operação fundamental que cria superposição. Aplicada a um qubit em |0⟩, transforma para (|0⟩ + |1⟩)/√2 — uma combinação igual de 0 e 1. Aplicar Hadamard a N qubits cria superposição de 2^N estados com amplitudes iguais — parallelismo massivo.
 
-**Superposição**: criada por portas quânticas como a porta de Hadamard. A porta Hadamard transforma um qubit em |0⟩ no estado (|0⟩ + |1⟩)/√2 — colocando-o em superposição igual entre 0 e 1. É a operação que "abre" o espaço de possibilidades.
+Implementação Qiskit:
+```python
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit_aer import AerSimulator
 
-**Emaranhamento**: dois ou mais qubits emaranhados têm seus estados correlacionados de forma que medir um instantaneamente define o estado do outro, independente da distância. Usado para transmitir informação entre partes de um circuito quântico.
+# 3 qubits, 3 bits clássicos para medição
+qc = QuantumCircuit(3, 3)
 
-**Interferência**: o mecanismo que fecha o cálculo. Amplifica caminhos que levam à resposta correta e cancela os que levam a respostas erradas. Sem interferência, a superposição geraria resultados aleatórios. Com interferência bem projetada, o algoritmo converge para a solução.
+# Aplicar Hadamard em cada qubit
+for i in range(3):
+    qc.h(i)
 
-O resultado é uma arquitetura computacional fundamentalmente diferente — não mais rápida em todas as tarefas, mas exponencialmente mais eficiente em classes específicas de problemas: fatoração de inteiros grandes, simulação molecular, otimização combinatória, criptografia.
+# Medir todos os qubits
+qc.measure(range(3), range(3))
 
-## Exemplos
+# Simular 1000 shots
+simulator = AerSimulator()
+result = simulator.run(qc, shots=1000).result()
+counts = result.get_counts(qc)
 
-- **Algoritmo de Shor**: usa superposição e interferência para fatorar números grandes em tempo polinomial, quebrando RSA — impossível para computadores clássicos em escala prática.
-- **Algoritmo de Grover**: busca em banco de dados não estruturado com aceleração quadrática via interferência quântica.
-- **Simulação molecular**: simular interações de moléculas para descoberta de fármacos — um problema que cresce exponencialmente para clássicos, mas linearmente para quânticos.
-- **Quantum ML (QML)**: treinar modelos em espaços de alta dimensão usando circuitos quânticos como camadas de rede neural.
+# Resultado: distribuição uniforme sobre 000, 001, 010, 011, 100, 101, 110, 111
+# Cada estado aparece ~125 vezes (1000/8)
+print(counts)
+```
 
-## Relacionado
+Interpretação: 3 Hadamards criam superposição de 8 estados com peso igual. Sem medição, o circuito "experimenta" todas as 8 possibilidades em paralelo. Este é o fundamento do paralelismo quântico.
 
-- [[mit-700-paginas-livro-algorithms-thinking]] — algoritmos clássicos como base para entender o que computação quântica supera
-- [[construir-llm-do-zero-projeto-mestrado-sebastian-raschka]] — entender arquiteturas computacionais no nível fundamental
-- [[Gemini Embedding 2 Multimodal Vetores]] — espaços vetoriais de alta dimensão são onde vantagem quântica pode emergir em ML
+**Conceito 2: Emaranhamento via CNOT**
 
-## Perguntas de Revisão
+O portão CNOT (Controlled-NOT) emaranha dois qubits: se controle é |1⟩, inverte alvo. Quando aplicado a um par em superposição, cria correlação que não pode ser descrita por qubits individuais.
 
-1. Qual a diferença fundamental entre um bit clássico e um qubit, e o que torna o qubit computacionalmente poderoso?
-2. Para que serve a porta de Hadamard e como ela cria superposição?
-3. Por que interferência é o mecanismo que "salva" a computação quântica de gerar resultados puramente aleatórios?
+Implementação:
+```python
+qc = QuantumCircuit(2, 2)
+
+# Superposição no primeiro qubit
+qc.h(0)
+
+# CNOT: 0 é controle, 1 é alvo
+qc.cx(0, 1)
+
+qc.measure(range(2), range(2))
+
+simulator = AerSimulator()
+result = simulator.run(qc, shots=1000).result()
+counts = result.get_counts(qc)
+
+# Resultado: APENAS |00⟩ e |11⟩ aparecem (~500 cada)
+# NÃO apareça |01⟩ ou |10⟩ — esses estados são impossíveis
+print(counts)
+```
+
+Interpretação: os dois qubits estão correlacionados. Medir o primeiro como 0 força o segundo a ser 0. Medir como 1 força o segundo a ser 1. Esta é a "magic" do emaranhamento — medir um informa sobre o outro instantaneamente.
+
+**Conceito 3: Interferência via Padrão de Amplitude**
+
+Interferência é o mecanismo que amplifica soluções corretas. Usamos portas para criar amplitudes positivas para respostas certas e negativas (ou canceladas) para erradas.
+
+Implementação de interferência construtiva:
+```python
+qc = QuantumCircuit(1)
+
+# Criar superposição
+qc.h(0)
+
+# "Marcar" um estado com fase relativa
+# Phase gate: rotaciona fase sem afetar probabilidade
+qc.p(1.57, 0)  # adicionar π/2 de fase
+
+# Segunda Hadamard para interferir
+qc.h(0)
+
+qc.measure(0, 0)
+
+simulator = AerSimulator()
+result = simulator.run(qc, shots=1000).result()
+counts = result.get_counts(qc)
+
+# Resultado: maioria em |0⟩ (interferência construtiva)
+print(counts)
+```
+
+Concatenar dois Hadamards com uma phase gate no meio cria padrão de interferência. Amplitudes reforçam ou cancelam dependendo da fase relativa.
+
+**Integração: Bell State (máximo emaranhamento + superposição)**
+
+Combinar Hadamard + CNOT cria um estado de Bell — maximamente emaranhado e em superposição simultânea:
+
+```python
+qc = QuantumCircuit(2, 2)
+
+# Hadamard no primeiro qubit
+qc.h(0)
+
+# CNOT para emaranhar
+qc.cx(0, 1)
+
+# Visualizar o estado antes de medir
+qc.draw(output='mpl')
+
+qc.measure(range(2), range(2))
+
+simulator = AerSimulator()
+result = simulator.run(qc, shots=1000).result()
+counts = result.get_counts(qc)
+
+# Resultado: 50% |00⟩, 50% |11⟩
+print(counts)
+```
+
+Este é o estado de Bell mais básico — superposição de dois estados emaranhados. Qualquer algoritmo quântico real usa técnicas similares para coordenar qubits.
+
+**Exercício Completo: Simulador de Grover 2-qubit**
+
+Implementar versão simplificada de Grover (buscar por um item marcado entre 4):
+
+```python
+def grover_2qubit():
+    qc = QuantumCircuit(2, 2)
+
+    # Inicializar em superposição
+    qc.h(0)
+    qc.h(1)
+
+    # Oracle: marcar |11⟩ com phase flip
+    # (Controle: ambos qubits 1, então flip fase)
+    qc.cz(0, 1)  # fase -1 se ambos 1
+
+    # Amplificação (invert over average)
+    qc.h(0)
+    qc.h(1)
+    qc.z(0)
+    qc.z(1)
+    qc.cz(0, 1)  # interferência
+    qc.h(0)
+    qc.h(1)
+
+    qc.measure(range(2), range(2))
+
+    simulator = AerSimulator()
+    result = simulator.run(qc, shots=1000).result()
+    return result.get_counts(qc)
+
+counts = grover_2qubit()
+# Resultado: maioria em |11⟩ (item marcado)
+print(counts)
+```
+
+## Stack e requisitos
+
+- **Linguagem**: Python 3.8+
+- **Libs**: Qiskit 1.0+, Qiskit Aer, Matplotlib (visualização)
+- **Hardware**: Simulador local suficiente (até 25 qubits, segundos), ou IBM Quantum Cloud
+- **Custo**: Grátis (simulador local + IBM free tier)
+- **Tempo**: 2-3 horas hands-on para entender os 3 conceitos + Grover básico
+
+## Armadilhas e limitações
+
+1. **Superposição não é "múltiplas realidades paralelas"**: é uma representação matemática de probabilidades. Só há uma resposta após medição.
+
+2. **Emaranhamento não transmite informação**: medir qubit A não envia sinal para qubit B — A e B já compartilham correlação. Usar para comunicação violaría relatividade.
+
+3. **Interferência requer design preciso**: fases erradas anulam a vantagem. Algoritmos quânticos são delicados — uma porta fora do lugar quebra tudo.
+
+4. **Simulador clássico é limitado**: simuladores Aer conseguem até ~25-30 qubits em segundos, ~40 qubits em minutos/horas. Para mais, precisa hardware real.
+
+5. **Ruído real degrada superposição**: hardware atual com 0,1% de erro por gate faz superposição com >100 gates impraticável sem mitigation.
+
+## Conexões
+
+Estes três mecanismos são os fundamentos de todos os [[algoritmos-quanticos-shor-grover-vqe-qaoa-classes-problemas]]. Superposição e interferência são o coração de [[quantum-machine-learning-circuitos-variaclionais-aplicacoes-hibridas]]. Emaranhamento é explorado em [[correcao-erros-quanticos-codigos-superficie-caminho-computacao-tolerante-falhas]] para redundância. Implementação prática depende da escolha de [[frameworks-programacao-quantica-qiskit-cirq-pennylane-comparacao]] e [[hardware-quantico-nisq-era-supercondutores-ions-fotonico]].
+
+## Histórico
+- 2026-03-28: Nota criada a partir de post LinkedIn
+- 2026-04-02: Reescrita com código executável e exercícios hands-on

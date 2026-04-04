@@ -1,0 +1,77 @@
+name: Deploy Quartz to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Sync vault content to Quartz
+        run: |
+          QUARTZ_DIR="Projects/second-brain-pipeline/quartz"
+          CONTENT_DIR="$QUARTZ_DIR/content"
+
+          # Limpar content antigo (exceto index.md)
+          find "$CONTENT_DIR" -mindepth 1 -not -name "index.md" -delete 2>/dev/null || true
+
+          # Copiar notas do vault para content/
+          cp -r "Links Salvos" "$CONTENT_DIR/" 2>/dev/null || true
+          cp -r "Conceitos" "$CONTENT_DIR/" 2>/dev/null || true
+          cp -r "MOCs" "$CONTENT_DIR/" 2>/dev/null || true
+
+          # Criar index.md se nao existir
+          if [ ! -f "$CONTENT_DIR/index.md" ]; then
+            echo "---" > "$CONTENT_DIR/index.md"
+            echo "title: Observatorio" >> "$CONTENT_DIR/index.md"
+            echo "---" >> "$CONTENT_DIR/index.md"
+            echo "# Observatorio" >> "$CONTENT_DIR/index.md"
+            echo "" >> "$CONTENT_DIR/index.md"
+            echo "Base de conhecimento pessoal." >> "$CONTENT_DIR/index.md"
+          fi
+
+          echo "Content synced. Files:"
+          find "$CONTENT_DIR" -name "*.md" | wc -l
+
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: Projects/second-brain-pipeline/quartz
+
+      - name: Build Quartz
+        run: npx quartz build
+        working-directory: Projects/second-brain-pipeline/quartz
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: Projects/second-brain-pipeline/quartz/public
+
+  deploy:
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

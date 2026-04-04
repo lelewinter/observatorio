@@ -2,8 +2,10 @@
 tags: [llm, quantização, otimização, inferência, machine-learning]
 source: https://x.com/ngrokHQ/status/2036844409145512255?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Quantização de LLMs
+
+# Implementar Quantização de LLMs com GGUF e Q4_K_M para Inferência Local
 
 ## Resumo
 Quantização é uma técnica de compressão que reduz a precisão numérica dos pesos de um LLM, tornando o modelo até 4x menor e 2x mais rápido com perda mínima de qualidade.
@@ -23,7 +25,10 @@ Do ponto de vista de engenharia, quantização opera majoritariamente em tempo d
 3. **Redução de custo de hosting**: Em servidores, modelos quantizados aumentam o throughput de tokens por segundo e reduzem custo por requisição, viabilizando startups com orçamento limitado de GPU.
 
 ## Relacionado
-*(Nenhuma nota relacionada disponível no vault no momento da criação.)*
+- [[quantizacao-dinamica-de-llms|Quantização Dinâmica de LLMs]]
+- [[stack-de-ia-local-self-hosted|Stack de IA Local Self-Hosted]]
+- [[kv-cache-quantization|KV Cache Quantization (Conceito)]]
+- [[Inferência Local e Quantização]] (seção do MOC)
 
 ## Perguntas de Revisão
 1. Qual é o trade-off fundamental da quantização e como ele é minimizado em técnicas modernas como Q4_K_M?

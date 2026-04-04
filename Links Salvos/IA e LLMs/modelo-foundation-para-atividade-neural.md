@@ -1,34 +1,104 @@
 ---
-tags: [neurociencia-computacional, foundation-model, fmri, gemeo-digital, multimodal, zero-shot]
+tags: [neurociencia, foundation-model, fmri, multimodal, zero-shot, bci]
 source: https://x.com/AIatMeta/status/2037153756346016207?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Modelo Foundation para Atividade Neural
 
-## Resumo
-TRIBE v2 (Trimodal Brain Encoder) é um modelo foundation treinado para prever como o cérebro humano responde a estímulos visuais e auditivos, criando um gêmeo digital da atividade neural com capacidade zero-shot.
+# TRIBE v2: Prever Atividade Neural com Modelo Foundation Trimodal
 
-## Explicação
-TRIBE v2 representa uma convergência entre neurociência cognitiva e aprendizado profundo: ao invés de modelar linguagem ou imagens, o modelo aprende a mapear estímulos sensoriais diretamente para padrões de ativação cerebral mensurados via fMRI. O sistema foi treinado em mais de 500 horas de registros de fMRI coletados de mais de 700 participantes, o que o torna um dos maiores esforços de modelagem neural em escala populacional já realizados.
+## O que e
 
-A arquitetura é chamada "trimodal" porque integra três modalidades — visual, auditiva e neural (BOLD signal do fMRI) — em uma representação compartilhada. Essa abordagem segue a lógica de modelos multimodais como CLIP, mas com o cérebro como modalidade-alvo em vez de texto. O resultado é um modelo capaz de prever a resposta neural de novos sujeitos que nunca participaram do treinamento, em novas línguas e tarefas — comportamento zero-shot que é incomum em neuroimagem, onde modelos tradicionais são altamente específicos por sujeito.
+TRIBE v2 (Trimodal Brain Encoder) integra visão, áudio e fMRI em modelo foundation que prediz como cérebro humano responde a estímulos. Treinado em 500+ horas de fMRI de 700+ participantes. Capacidade zero-shot (sem re-treinar) em novos sujeitos/idiomas/tarefas.
 
-A capacidade de generalização zero-shot tem implicações profundas: sugere que o modelo capturou estrutura universal do processamento sensorial humano, não apenas idiossincrasias individuais. Isso abre caminho para interfaces cérebro-computador, diagnóstico neurológico, e pesquisa sobre percepção sem a necessidade de re-treinar para cada indivíduo. A Meta constrói sobre a arquitetura vencedora do desafio Algonauts 2025, indicando que essa abordagem já passou por validação competitiva rigorosa.
+## Como implementar
 
-O conceito de "gêmeo digital neural" é central aqui: ao criar uma representação computacional que replica o comportamento do cérebro real, o modelo permite simulação e experimentação sem a necessidade de novos experimentos com humanos — análogo ao que gêmeos digitais fazem em engenharia industrial, mas aplicado ao sistema nervoso central.
+**Dataset e treinamento** (referência):
+- **Dados**: fMRI de 700+ participantes em 500+ horas
+- **Estímulos**: vídeos com áudio sincrônico, imagens, conteúdo multimodal
+- **BOLD signal**: medições de ativação neural via ressonância magnética funcional
 
-## Exemplos
-1. **Interface cérebro-computador generalizada**: prever como um novo usuário processaria comandos visuais sem sessão de calibração com fMRI real, acelerando o onboarding de BCIs não-invasivas.
-2. **Pesquisa de percepção cross-linguística**: testar como o cérebro processa sons de idiomas não vistos no treinamento, usando predição zero-shot para comparar universais fonéticos entre populações.
-3. **Triagem neurológica**: comparar a resposta neural prevista pelo modelo com a resposta real de um paciente para detectar desvios associados a condições como dislexia ou déficits de processamento auditivo.
+**Arquitetura trimodal**:
+1. **Encoder visual**: CNN (ResNet-like) que processa frames de vídeo
+2. **Encoder auditivo**: spectrogram processor que mapeia áudio para features
+3. **Neural mapper**: módulo que relaciona estímulos a BOLD signal de regiões cerebrais específicas
+4. **Shared latent space**: representação unificada onde "ver uma maçã vermelha" e "ouvir som de mastigação" convergem em mesmo estado neural
 
-## Relacionado
-*(Nenhuma nota existente no vault para conectar no momento.)*
+**Inferência** (predição em novo sujeito):
+```python
+# Input: vídeo + áudio (novo sujeito nunca visto no treinamento)
+stimulus = load_video_audio(path="video.mp4")
 
-## Perguntas de Revisão
-1. O que significa um modelo foundation ser "trimodal" no contexto de neuroimagem, e por que isso é diferente de modelos multimodais como CLIP?
-2. Qual é a diferença entre um modelo de decodificação neural específico por sujeito e um modelo com capacidade zero-shot, e por que essa distinção importa para aplicações práticas?
-3. Como o conceito de "gêmeo digital neural" se relaciona com a tradição de gêmeos digitais em engenharia de sistemas?
+# TRIBE processa
+visual_features = visual_encoder(stimulus.video)
+audio_features = audio_encoder(stimulus.audio)
+combined = fusion_module(visual_features, audio_features)
 
-## Histórico de Atualizações
-- 2026-04-02: Nota criada a partir de Telegram
+# Output: predição de ativação em regiões cerebrais (ex: V1, A1, prefrontal cortex)
+predicted_bold = neural_mapper(combined)
+# Shape: (time_points, brain_regions, voxels)
+```
+
+**Validação zero-shot**: Comparar predição com fMRI real do novo sujeito:
+```python
+# Correlação entre predito e real (métrica de acurácia)
+correlation = pearsonr(predicted_bold, actual_bold)
+# Esperado: 0.4-0.7 mesmo em novo sujeito (comportamento genuinamente zero-shot)
+```
+
+**Aplicações práticas**:
+
+1. **Interface cérebro-computador** (BCI acelerada):
+```python
+# Em vez de sessão 2h+ de calibração com fMRI, usar TRIBE para predict
+# onde sinais de BCI se manifestariam (reduz setup time 90%)
+new_user_stimulus = "think about moving right hand"
+predicted_motor_cortex_signal = tribe.predict(new_user_stimulus)
+# Usar como inicializador de BCI decoder
+```
+
+2. **Diagnóstico neurológico**:
+```python
+# Paciente com dislexia: comparar predito vs real ao ler texto
+patient_stimulus = read_text("The quick brown fox")
+predicted = tribe.predict(patient_stimulus, region="language_areas")
+actual = patient_fmri
+deviation = abs(predicted - actual).mean()
+# Se deviation > threshold, compatível com dislexia
+```
+
+3. **Pesquisa cross-linguística**:
+```python
+# Testar como cérebro processa idioma novo (ex: mandarim para falante nativo de português)
+stimulus = audio_in_mandarin()
+prediction = tribe.predict(stimulus)
+# Comparar V5 (áudio processing) entre predito e real em população
+# Responde: há universais neuronais na percepção fonética?
+```
+
+## Stack e requisitos
+
+- **fMRI hardware**: 3T+ MRI scanner (para coleta; inference é software-only)
+- **Python**: 3.9+
+- **Deep learning**: PyTorch 2.0+
+- **Processamento fMRI**: FSL, SPM, ou nilearn
+- **VRAM**: 8GB+ (modelos pesam ~500MB-2GB)
+- **Dataset tamanho**: 500+ horas fMRI para treinar do zero
+- **Latência inference**: 1-5 segundos por vídeo/áudio (GPU acelerado)
+
+## Armadilhas e limitacoes
+
+- **Individualidade**: Cérebros variam bastante; zero-shot funciona bem em média mas piora em outliers (ex: pessoas com deficiências perceptivas).
+- **Qualidade fMRI**: ruído em fMRI é alto; correlações ~0.5-0.7 são consideradas "boas"; esperar erro sistemático.
+- **Modalidade dominante**: TRIBE pode dar peso desproporcional a visual ou áudio dependendo estímulo; balancear é crítico.
+- **Interpretabilidade**: Qual region prediz o quê? Black-box; usar attention maps ou saliency mas resultados são aproximados.
+- **Drift temporal**: Cérebro adapta a estímulos repetidos (habituation); TRIBE treina em prime viewing, pode degradar em consumo real.
+
+## Conexoes
+
+[[Modelos Omnimodais Nativos Multimodal]] [[Modelos de Codificacao Multimodal]]
+
+## Historico
+
+- 2026-04-02: Nota criada
+- 2026-04-02: Reescrita para template aplicacao

@@ -2,8 +2,10 @@
 tags: []
 source: https://x.com/MeshyAI/status/2039304414092206440?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Workflow 3D Completo via MCP
+
+# Usar Meshy MCP para Pipeline End-to-End de Geração 3D (Rigging, Retexturing, Remesh)
 
 ## Resumo
 O Meshy MCP expande agentes de IA além da geração 3D pontual, oferecendo um pipeline completo que inclui rigging, retexturização, remesh, animação e preparação para impressão 3D — tudo orquestrado por um agente.
@@ -23,7 +25,10 @@ Como não há notas relacionadas no vault, este conceito pode servir de âncora 
 3. **Prototipagem de produto**: Uma equipe de design usa o agente para iterar rapidamente sobre variações de forma, retexturizando e ajustando geometria sem intervenção manual a cada ciclo.
 
 ## Relacionado
-*(Nenhuma nota existente no vault para linkar no momento.)*
+- [[mcp-tool-composition|MCP Tool Composition]] — fundação para encadear operações 3D via MCP
+- [[neural-rendering-nerf-vs-3dgs|Neural Rendering: NeRF vs 3DGS]] — técnicas de renderização integráveis em workflows
+- [[10 Projetos MCP Agents RAG Código]] — padrões de orquestração com MCP em produção
+- [[Maestri Orquestrador de Agentes de IA com Canvas 2D]] — orquestração de agentes especializados para criatividade
 
 ## Perguntas de Revisão
 1. Qual é a diferença funcional entre uma ferramenta de geração 3D convencional e um workflow 3D via MCP?

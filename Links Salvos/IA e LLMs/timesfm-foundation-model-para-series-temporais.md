@@ -2,8 +2,10 @@
 tags: [machine-learning, time-series, foundation-models, forecasting, google, open-source]
 source: https://x.com/hasantoxr/status/2039285154171249012?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# TimesFM: Foundation Model para Séries Temporais
+
+# Usar TimesFM do Google para Previsão de Séries Temporais em Modo Zero-Shot
 
 ## Resumo
 TimesFM é um modelo de fundação open-source do Google para previsão de séries temporais que opera em modo zero-shot — sem necessidade de treinamento específico para cada domínio ou dataset.
@@ -21,7 +23,9 @@ A importância estratégica do TimesFM está na democratização do forecasting 
 3. **Setor público**: previsão de fluxo de veículos ou consumo de energia elétrica em municípios com dados esparsos, onde treinar modelos dedicados seria inviável.
 
 ## Relacionado
-*(Nenhuma nota existente no vault para linkar no momento.)*
+- [[Construir um LLM do Zero em 2 Semanas é Viável]] — abordagem pragmática a modelos de fundação
+- [[transfer-learning|Transfer Learning]] — base teórica para modelos pré-treinados generalizarem
+- [[Fine-Tuning de LLMs sem Código]] — adaptação rápida de foundation models a domínios específicos
 
 ## Perguntas de Revisão
 1. Qual é a diferença fundamental entre um modelo de forecasting tradicional (como ARIMA ou Prophet) e um foundation model como o TimesFM em termos de fluxo de trabalho?

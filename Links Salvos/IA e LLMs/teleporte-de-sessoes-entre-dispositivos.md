@@ -2,8 +2,10 @@
 tags: []
 source: https://x.com/bcherny/status/2038454339933548804?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Teleporte de Sessões entre Dispositivos
+
+# Usar --teleport e /remote-control para Mover Sessões Claude entre Desktop/Mobile/Web
 
 ## Resumo
 O Claude permite mover sessões ativas entre diferentes ambientes (mobile, web, desktop, terminal) de forma contínua, sem perder contexto, através dos comandos `--teleport` e `/remote-control`.
@@ -23,7 +25,9 @@ A arquitetura subjacente depende de sessões armazenadas em nuvem (`code.claude.
 3. Usar `--teleport` para "puxar" para a máquina local uma sessão iniciada na interface web do Claude, ganhando acesso ao sistema de arquivos local.
 
 ## Relacionado
-*(Nenhuma nota relacionada disponível no vault no momento da criação.)*
+- [[Claude Code]] — agentes de código que podem rodar em diferentes ambientes
+- [[agentes-autonomos-multi-agente|Agentes Autônomos]] — contexto persistente entre instâncias
+- [[Contexto Persistente em LLMs]] — conceito de manter estado através de sessões
 
 ## Perguntas de Revisão
 1. Qual é a diferença funcional entre `--teleport` e `/remote-control`? Em qual direção cada um transfere o controle da sessão?

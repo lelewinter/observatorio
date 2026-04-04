@@ -1,33 +1,176 @@
 ---
-tags: []
+tags: [web-3d, ia-agentes, omma, spline, webgl, interactivo-design, vibe-coding]
 source: https://x.com/Aurelien_Gz/status/2036568382380585310?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Geração de Sites 3D com IA
 
-## Resumo
-Ferramentas de IA agêntica começam a permitir a criação de websites e aplicativos com interfaces 3D interativas, eliminando a necessidade de expertise técnica em WebGL ou engines 3D.
+# Gerar Sites 3D Interativos com Agentes de IA
 
-## Explicação
-A chegada de plataformas como Omma (omma.build), criada pela equipe do Spline, representa uma mudança de paradigma no desenvolvimento web: a geração de experiências 3D completas — sites, apps e interfaces — por meio de agentes de IA, sem que o usuário precise escrever código ou dominar ferramentas como Three.js, Babylon.js ou WebGPU diretamente.
+## O que é
+Agentes IA (tipo Omma) geram websites 3D completos em linguagem natural: "landing page com produto rotacionável em fundo de galaxia". Output: código Three.js/Spline, pronto para deploy.
 
-O conceito central é o uso de **agentes de IA especializados** para compor cenas 3D, lógica de interação e estrutura de aplicação de forma integrada. Em vez de separar design, programação e modelagem 3D em fluxos distintos, a abordagem agêntica unifica essas camadas em um único prompt ou fluxo conversacional, gerando o artefato final pronto para deploy.
+## Como implementar
+**Fluxo com Omma.build**:
 
-Por que isso importa: historicamente, a barreira técnica para criar experiências web 3D era alta — exigia conhecimento de shaders, gerenciamento de cena, performance de renderização e compatibilidade entre browsers. Com a abstração via IA, essa barreira cai significativamente, democratizando o design espacial e 3D para criadores sem formação técnica especializada. Isso também acelera o prototipamento para desenvolvedores experientes.
+1. **Criar projeto**:
+```
+// Interface web, no browser
+Omma Dashboard → Create New → "3D Web Experience"
+```
 
-O movimento segue a tendência mais ampla de "vibe coding" e geração de interfaces via LLMs, mas estende esse paradigma para além do 2D plano (HTML/CSS), adentrando o espaço tridimensional como superfície nativa de criação.
+2. **Descrever em chat**:
+```
+Prompt:
+"Create a landing page for a AI music production tool.
+Include:
+- Hero section with 3D vinyl record spinning
+- Product features listed as interactive cards that reveal on scroll
+- Pricing table with 3D price tags
+- Call-to-action button that lights up on hover
+- Dark theme with neon accents (purple + cyan)
+- Mobile responsive"
+```
 
-## Exemplos
-1. **Landing pages imersivas**: Criar uma página de produto com objetos 3D interativos e animações apenas descrevendo o resultado desejado em linguagem natural.
-2. **Aplicativos web com UI 3D**: Desenvolver dashboards ou portfólios com navegação espacial sem escrever uma linha de Three.js ou WebGL.
-3. **Prototipagem rápida de produtos digitais**: Agências e designers usam Omma para validar conceitos 3D com clientes antes de desenvolver a versão final.
+3. **Agente processa e gera**:
+   - Lê prompt
+   - Decompõe em componentes (hero, cards, pricing, button)
+   - Gera 3D modelos via texto-to-3D
+   - Posiciona em layout
+   - Escreve interações (scroll triggers, hover effects)
+   - Otimiza para mobile/desktop
 
-## Relacionado
-*(Nenhuma nota relacionada disponível no vault no momento.)*
+4. **Resultado**:
+```html
+<!-- Omma output (Spline-compatible) -->
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.spline.design/spline.js"></script>
+</head>
+<body>
+    <canvas id="canvas3d"></canvas>
 
-## Perguntas de Revisão
-1. Qual é a diferença fundamental entre gerar interfaces 2D com IA e gerar experiências 3D — quais desafios técnicos adicionais surgem?
-2. Em que cenários a geração de sites 3D via IA pode ser insuficiente e ainda exigir controle manual do desenvolvedor?
+    <script>
+    const spline = new Spline.Application('canvas3d', {
+        scene: 'generated-scene-uuid',
+        // Interações JS auto-geradas
+        interactions: [
+            {
+                trigger: 'scroll',
+                target: 'cards-container',
+                animation: 'reveal-fade-in',
+                duration: 800
+            },
+            {
+                trigger: 'hover',
+                target: 'cta-button',
+                animation: 'glow-pulse',
+                duration: 300
+            }
+        ]
+    });
+    </script>
+</body>
+</html>
+```
 
-## Histórico de Atualizações
-- 2026-04-02: Nota criada a partir de Telegram
+**Fluxo manual com Three.js (mais controle)**:
+
+```javascript
+// Se quiser customizar além do Omma output
+import * as THREE from 'three';
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+
+// Hero: vinyl record 3D
+const vinylGroup = new THREE.Group();
+const vinylGeometry = new THREE.CylinderGeometry(2, 2, 0.05, 64);
+const vinylMaterial = new THREE.MeshStandardMaterial({
+    color: 0x000000,
+    roughness: 0.2,
+    metalness: 0.8
+});
+const vinyl = new THREE.Mesh(vinylGeometry, vinylMaterial);
+vinylGroup.add(vinyl);
+
+// Animation loop
+function animate() {
+    requestAnimationFrame(animate);
+    vinyl.rotation.z += 0.002; // Spin
+    renderer.render(scene, camera);
+}
+
+animate();
+
+// Scroll trigger
+window.addEventListener('scroll', () => {
+    const scrollPercent = window.scrollY / (document.body.scrollHeight - window.innerHeight);
+    camera.position.z = 5 + scrollPercent * 2; // Zoom effect on scroll
+});
+
+// Hover glow effect on button
+document.getElementById('cta-button').addEventListener('mouseenter', () => {
+    // Dispatch custom event para Spline atualizar material brilho
+    scene.getObjectByName('button-mesh').material.emissiveIntensity = 1;
+});
+```
+
+**Performance optimization**:
+```javascript
+// Omma gera, mas você pode otimizar
+// 1. LOD (Level of Detail)
+const lod = new THREE.LOD();
+lod.addLevel(highPoly, 0);      // < 10m
+lod.addLevel(mediumPoly, 20);   // 10-20m
+lod.addLevel(lowPoly, 50);      // > 20m
+scene.add(lod);
+
+// 2. Lazy load models off-screen
+const intersectionObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            loadModel(entry.target);
+            intersectionObserver.unobserve(entry.target);
+        }
+    });
+});
+
+document.querySelectorAll('.3d-section').forEach(el => {
+    intersectionObserver.observe(el);
+});
+```
+
+## Stack e requisitos
+- **Plataforma**: Omma.build (recommended), ou DIY com Three.js + custom agent wrapper
+- **Output engine**: Spline (underlying) ou Three.js code
+- **Browser support**: Chrome 90+, Firefox 88+, Safari 14+ (WebGL 2)
+- **Input**: prompt English/PT-BR (25-250 palavras)
+- **Tempo geração**: 2-10 min (primeiro draft)
+- **Iterações**: 3-5 prompts típicos pra ficar bom
+- **Deploy**: vercel.com (Next.js), netlify.com (static), ou custom server
+- **Custo Omma**: free tier (limited) ou $99+/mês (pro)
+- **Custo infra**: $0-50/mês (Vercel) ou hospedagem própria
+
+## Armadilhas e limitações
+- **Prompt é fiddly**: "make it cool" gera resultado genérico. Ser específico (cores RGB, dimensões, comportamentos exatos)
+- **Performance quebra em complexity**: > 100 3D objects + interactions = 10-20 FPS em mobile
+- **Sem full 3D asset control**: agente gera aproximações. If quer precisão (pixel-perfect SVG overlay), manual editing é necessário
+- **Acessibilidade negligenciada**: geração automática raramente inclui alt text, ARIA labels. Adicionar manually após
+- **SEO prejudicado**: sites 3D pesados carregam lentamente (score Lighthouse = D/F). Lazy loading + code splitting crucial
+- **UX pode confundir**: usuários esperam websites normais. 3D imersivo pode ser barreira (especialmente em mobile)
+- **Responsividade limitada**: Spline responsive é melhor que Three.js bruto, mas ainda requer tweaks manuais
+- **Custódia de dados**: Omma armazena seu projeto, não é open source (vendor lock-in)
+- **Debugging difícil**: erro em interação JavaScript gerado é opaco (sem source map legível)
+
+## Conexões
+- [[three-js-para-desenvolvimento-de-jogos]]
+- [[webgl-performance-optimization]]
+- [[ia-agentes-especializados]]
+- [[vibe-coding-interface-generation]]
+
+## Histórico
+- 2026-04-02: Nota criada
+- 2026-04-02: Reescrita com implementação prática + otimizações

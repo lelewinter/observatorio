@@ -1,33 +1,158 @@
 ---
-tags: [IA, multimodal, coding-agents, visão-computacional, LLM]
+tags: [ia, multimodal, coding-agents, visao-computacional, llm]
 source: https://x.com/zaidmukaddam/status/2039372037538685018?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Modelos de Codificação Multimodal
 
-## Resumo
-Modelos de visão-código (Vision Coding Models) integram nativamente entradas visuais — imagens, vídeos, layouts de documentos — com capacidades de programação, permitindo que agentes de IA entendam e gerem código a partir de contextos visuais diretamente.
+# Gerar Código a partir de Screenshots com Modelos Vision-Coding Nativos
 
-## Explicação
-O GLM-5V-Turbo, lançado pela Z.ai, representa uma categoria emergente de modelos que une percepção visual com geração de código em uma única arquitetura nativa. Diferente de pipelines onde visão e linguagem são módulos separados conectados por adaptadores, modelos como este processam multimodalidade de forma integrada — o que tende a resultar em melhor coerência entre o que é "visto" e o código produzido.
+## O que e
 
-A proposta de valor central está na aplicação a **GUI Agents** e **cenários de automação visual**: o modelo consegue interpretar um design draft (wireframe, screenshot de interface) e produzir código funcional correspondente, ou navegar interfaces gráficas como um agente autônomo. Isso é especialmente relevante para ferramentas como Claude Code e OpenClaw, com as quais o modelo declara ter "sinergia profunda" — sugerindo otimização de prompts e tool-use específica para esses ecossistemas.
+GLM-5V-Turbo e similares integram visão e codificação em arquitetura unificada (não pipeline). Convertem screenshots/wireframes direto em HTML/React sem passo intermediário textual. GUI Agents nativos podem navegar interfaces interpretando elementos visuais.
 
-O benchmark de referência cobre três eixos: codificação multimodal, uso de ferramentas (tool use) e GUI Agents — áreas que estão se tornando o campo de batalha principal entre labs de fronteira. A competição direta com Anthropic mencionada no post original reflete a percepção de que modelos com forte integração visual-código ameaçam diretamente o posicionamento do Claude em workflows de desenvolvimento assistido por IA.
+## Como implementar
 
-Do ponto de vista arquitetural, a tendência é que modelos multimodais nativos substituam soluções de visão acopladas a LLMs de texto, pois eliminam perdas de informação na tradução entre modalidades e permitem raciocínio conjunto sobre imagem e código no mesmo espaço de representação.
+**Diferença arquitetural**:
+- **Pipeline traditional**: Image → Vision Encoder → caption "blue button on left side" → Language Model → "create button with blue color" → código
+- **Native multimodal**: Image → Unified Encoder → Direct Code Generation (fusão acontece em camadas profundas, não em interface textual)
 
-## Exemplos
-1. **Geração de código a partir de wireframes**: O modelo recebe um screenshot de interface e produz o HTML/CSS/React correspondente sem necessidade de descrição textual intermediária.
-2. **GUI Agent para automação**: O agente observa a tela, interpreta elementos visuais e executa sequências de ações (cliques, formulários) com base em objetivos em linguagem natural.
-3. **Análise de documentos técnicos**: Diagramas de arquitetura ou layouts de PDFs são interpretados diretamente para gerar código de infraestrutura ou scripts de processamento.
+**Setup para geração de código visual** (exemplo com GLM-5V-Turbo):
+```python
+from glm_vision_code import GLMVisionCodeModel
 
-## Relacionado
-*(Nenhuma nota existente no vault para conectar no momento.)*
+model = GLMVisionCodeModel.from_pretrained("glm-5v-turbo")
 
-## Perguntas de Revisão
-1. Qual a diferença arquitetural entre um modelo multimodal nativo e um pipeline que acopla um modelo de visão a um LLM de texto, e por que isso importa para tarefas de codificação?
-2. Em que sentido GUI Agents dependem de capacidades de visão-código integradas, e quais são os gargalos atuais para sua adoção em produção?
+# Input: screenshot
+screenshot = load_image("app-screenshot.png")
 
-## Histórico de Atualizações
-- 2026-04-02: Nota criada a partir de Telegram
+# Direct code generation
+code = model.generate_code(
+    image=screenshot,
+    target_language="react",
+    framework="tailwind",
+    include_responsive=True
+)
+
+print(code)
+# Output:
+# export default function App() {
+#   return (
+#     <div className="flex items-center justify-center h-screen bg-blue-50">
+#       <button className="px-6 py-3 bg-blue-600 text-white rounded">
+#         Click me
+#       </button>
+#     </div>
+#   )
+# }
+```
+
+**GUI Agent para automação** (navegar e interagir com interfaces):
+```python
+from glm_vision_code import GUIAgent
+
+agent = GUIAgent(model=model)
+
+# Objective: "log into Twitter and like the top tweet"
+goal = "log into Twitter and like the top tweet"
+
+# Agent loop
+while not agent.is_goal_complete():
+    screenshot = agent.take_screenshot()
+
+    # Modelo prediz: qual é próxima ação?
+    action = agent.predict_action(
+        image=screenshot,
+        goal=goal
+    )
+    # Possíveis actions: click(x, y), type(text), scroll(direction)
+
+    agent.execute_action(action)
+
+print("Goal completed!")
+```
+
+**Workflow de design → code**:
+```python
+# Wireframe (low fidelity design)
+wireframe = load_image("wireframe.png")
+
+# Gerar versão inline (CSS included)
+inline_code = model.generate_code(
+    image=wireframe,
+    target_language="html",
+    css_framework="bootstrap"
+)
+
+# Gerar versão component (React)
+component_code = model.generate_code(
+    image=wireframe,
+    target_language="jsx",
+    framework="nextjs"
+)
+
+# Ambos a partir da mesma imagem!
+```
+
+**Prompt engineering para visão-código**:
+```python
+# Contexto adicional ajuda qualidade
+code = model.generate_code(
+    image=screenshot,
+    target_language="react",
+    context={
+        "design_system": "Material UI",
+        "theme": "dark mode",
+        "accessibility": "WCAG AA",
+        "responsive_breakpoints": ["mobile", "tablet", "desktop"]
+    }
+)
+```
+
+**Integração com Claude Code** (agente híbrido):
+```python
+# Usar GLM-5V-Turbo para interpretar screenshots
+# Usar Claude Code para refactoring/testing/deployment
+screenshot = agent.take_screenshot()
+
+# Step 1: GLM-5V gera scaffold
+scaffold = glm_model.generate_code(screenshot)
+
+# Step 2: Claude Code refina e testa
+claude_response = claude.request(f"""
+Here's the generated scaffold:
+{scaffold}
+
+Please:
+1. Add proper error handling
+2. Include unit tests with jest
+3. Follow this design system: {design_tokens}
+""")
+```
+
+## Stack e requisitos
+
+- **Model**: GLM-5V-Turbo (ou OpenAI GPT-4V com plugins de codificação)
+- **Latência**: 2-5 segundos por inferência (GPU recomendada)
+- **VRAM**: 16GB+ (modelo ~13B parâmetros)
+- **Suporte visual**: PNG, JPEG, GIF, SVG (exceto vídeo por enquanto)
+- **Linguagens alvo**: Python, JavaScript/TypeScript, Java, C#, Go
+- **Frameworks**: React, Vue, Angular, Flutter, SwiftUI
+
+## Armadilhas e limitacoes
+
+- **Qualidade código**: Gera boilerplate rápido mas refactoring manual é necessário (não é production-ready direto).
+- **Specificity visual**: Se wireframe é ambíguo, modelo pode interpretar diferente do intencionado; ser explícito em design.
+- **Gaps visuais**: Elementos muito pequenos, textos em alta resolução podem ser perdidos; screenshot deve ser clara.
+- **Gui Agents lento**: Loop de screenshot→predict→execute é serial e lento (2-5s por ação). Para 10 ações: 20-50s total.
+- **State tracking**: Agent não "aprende" ao longo da navegação; cada screenshot é processado independentemente.
+- **Dynamic content**: Interfaces com conteúdo renderizado dinamicamente (carregamento via JS) podem confundir modelo.
+
+## Conexoes
+
+[[Modelos Omnimodais Nativos Multimodal]] [[Modelo Foundation para Atividade Neural]] [[Claude Code Melhores Praticas]]
+
+## Historico
+
+- 2026-04-02: Nota criada
+- 2026-04-02: Reescrita para template aplicacao

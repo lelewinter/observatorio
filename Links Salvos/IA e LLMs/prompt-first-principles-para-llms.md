@@ -2,32 +2,114 @@
 tags: [first-principles, prompt-engineering, llm, raciocinio, ia]
 source: https://x.com/aiwithmayank/status/2035314341965447270?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Prompt First Principles para LLMs
 
-## Resumo
-Um prompt estruturado que força LLMs a desmontar suposições sobre um tema e reconstruir o conceito a partir apenas do que é fundamentalmente verdadeiro, evitando respostas baseadas em conhecimento convencional repetido.
+# Usar Prompts de Primeiros Princípios para Decomposição Analítica
 
-## Explicação
-O raciocínio por primeiros princípios é uma técnica filosófica e científica — popularizada por pensadores como Aristóteles e, modernamente, por engenheiros como Elon Musk — que consiste em decompor um problema até suas verdades irredutíveis, eliminando suposições herdadas. O insight aqui é que LLMs, sem instrução específica, tendem a reproduzir o entendimento médio e consensual sobre um tema, ou seja, o "conhecimento herdado" presente em seu corpus de treinamento.
+## O que é
 
-O prompt proposto atua como um operador cognitivo explícito: ao incluir a instrução "strip each assumption away", o modelo é forçado a iterar camada por camada, identificando e removendo cada pressuposto até atingir o que o prompt chama de "bedrock" — a base factual irredutível. A reconstrução a partir desse ponto gera uma compreensão estruturalmente diferente da resposta padrão.
+Padrão de prompt que força LLM a desmontar suposições camada por camada até base irredutível (bedrock), reconstruindo entendimento sem conhecimento herdado. Alterna LLM de modo "recuperação de informação" para modo "decomposição epistemológica".
 
-O mecanismo funciona porque LLMs são sensíveis à estrutura e ao vocabulário do prompt. A frase-chave "strip each assumption away" serve como gatilho para um modo de decomposição analítica, diferente do modo padrão de recuperação e síntese de informação. É engenharia de prompt aplicada à epistemologia: você não está pedindo *o que* o modelo sabe, mas *como* ele deve processar o conhecimento antes de responder.
+## Como implementar
 
-Do ponto de vista prático, este prompt é especialmente útil quando se estuda um tema que carrega muita bagagem conceitual — economia, saúde, educação, física — onde as explicações convencionais mascaram os mecanismos reais com metáforas e simplificações consolidadas.
+**Template base:**
+```
+Analise [CONCEITO] usando primeiros princípios.
 
-## Exemplos
-1. **Aprendizado:** "Break 'memorização é inferior à compreensão' down using first principles..." → força questionar o que é compreensão, o que é memorização e se a distinção é real ou cultural.
-2. **Negócios:** Aplicar ao conceito de "reunião produtiva" para descobrir quais suposições sobre colaboração são herdadas de modelos industriais e quais são fundamentalmente necessárias.
-3. **Tecnologia:** Usar o prompt para decompor "banco de dados relacional é o padrão" e identificar quais propriedades são fisicamente necessárias versus historicamente contingentes.
+Instruções:
+1. Identifique TODAS as suposições implícitas que você carrega sobre [CONCEITO]
+2. Para cada suposição, questione:
+   - É uma verdade física/lógica, ou uma construção social?
+   - Qual é a evidência mais primitiva para isso?
+   - Se remover essa suposição, o que permanece verdadeiro?
+3. Strip each assumption away iterativamente até atingir bedrock
+4. A partir do bedrock, reconstrua [CONCEITO] do zero
 
-## Relacionado
-*(Nenhuma nota existente no vault para linkar neste momento.)*
+Formato de resposta:
+- Camada 1: Suposições superficiais
+- Camada 2: Suposições subjacentes
+- ...
+- Bedrock: Verdade irredutível
+- Reconstrução: Novo entendimento sem suposições
+```
 
-## Perguntas de Revisão
-1. Qual é a diferença entre pedir a um LLM para "explicar" um tema versus usar este prompt de primeiros princípios — o que muda estruturalmente na resposta?
-2. Em quais tipos de temas o raciocínio por primeiros princípios é mais valioso, e por quê temas com alto "conhecimento herdado" são os candidatos ideais?
+**Exemplo prático:**
+```
+Analise "reunião produtiva" usando primeiros princípios.
 
-## Histórico de Atualizações
-- 2026-04-02: Nota criada a partir de Telegram
+Instruções: [template acima]
+```
+
+Esperado:
+```
+Camada 1: "Uma reunião produtiva é quando todos falam"
+  Questão: Por que "falar" = produtivo?
+  Insight: Assumimos que comunicação verbal é necessária
+
+Camada 2: "Reunião requer presença síncrona"
+  Questão: É síncrono fundamental, ou conveniência histórica?
+  Insight: Síncronismo vem de era pré-digital; pode ser assíncrono
+
+Camada 3: "Reunião precisa resolver problema"
+  Questão: E se objetivo é socializar ou informar, não resolver?
+  Insight: "Produtivo" é definido por resultado, não atividade
+
+Bedrock: Reunião produtiva = transferência eficiente de contexto entre pessoas
+
+Reconstrução: Uma reunião é produtiva se:
+- Reduz tempo para que pessoas alcancem goal (cualquer goal, não só "resolver problema")
+- Pode ser síncrona, assíncrona, ou híbrida — o meio é irrelevante
+- Métrica: Tempo economizado vs. Tempo gasto
+```
+
+**Aplicação temática:**
+
+Para **economia:**
+```
+Analise "inflação é ruim" usando primeiros princípios.
+[template padrão]
+```
+
+Para **desenvolvimento:**
+```
+Analise "código limpo é sempre melhor" usando primeiros princípios.
+
+Bedrock esperado: Código é ferramenta para intenção. "Limpo" é trade-off entre legibilidade (humana) e velocidade (desenvolvimento).
+```
+
+Para **educação:**
+```
+Analise "memorização é inferior à compreensão" usando primeiros princípios.
+
+Bedrock esperado: Memorização e compreensão são dimensões ortogonais. Ambas têm valor em contextos diferentes.
+```
+
+**Estrutura de iteração.** Se resposta do LLM fica superficial, re-prompt:
+```
+Você ainda está usando conhecimento herdado. Para a suposição "X",
+desça uma camada: qual é a verdade MAIS PRIMITIVA que suporta X?
+Ignora convenção.
+```
+
+Força LLM a descer mais fundo.
+
+## Stack e requisitos
+
+- LLM com capacidade de raciocínio estendido (Claude 3.5 Sonnet+, GPT-4, Gemini 2.0 recomendado)
+- Tema com alta "bagagem conceitual" (educação, economia, negócios, filosofia)
+- Tempo: 5-15 minutos por análise
+- Sem custos adicionais (usa LLM já disponível)
+
+## Armadilhas e limitações
+
+LLM pode travar em loops de auto-referência ("o que é verdade? a verdade é...") — interrompa e re-direcione. Para temas com base física bem estabelecida (física, química), bedrock é alcançado rápido; para temas sociais (economia, educação), bedrock é multifacetado. LLM pode confundir "primeiros princípios" com "definiçõe simples" — re-enforce que "bedrock" é evidência mais primitiva, não resumo. Resposta fica muito longa — considere dividir por suposição individual.
+
+## Conexões
+
+[[Simplificar Setup Claude Deletar Regras Extras]], [[Plan Mode Claude Code]], [[Spec-Driven Development]]
+
+## Histórico
+
+- 2026-04-02: Nota criada
+- 2026-04-02: Reescrita como guia de uso

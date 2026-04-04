@@ -6,12 +6,16 @@ Extrai conteudo, detecta duplicatas, gera/atualiza notas Zettelkasten,
 classifica em subpastas por tema, notifica no Telegram.
 
 Uso:
-  python pipeline.py                        # roda tudo (Telegram + RSS)
+  python pipeline.py                        # so Telegram (padrao)
   python pipeline.py --mode telegram        # so Telegram (1x)
-  python pipeline.py --mode rss             # so RSS
+  python pipeline.py --mode rss             # so RSS (manual)
   python pipeline.py --mode telegram-daemon # Telegram em loop (a cada 2min)
-  python pipeline.py --digest               # digest semanal
+  python pipeline.py --digest               # RSS semanal + digest (1x/semana)
   python pipeline.py --dry-run              # simula sem salvar
+
+Agenda:
+  Telegram: a cada 1-2h via scheduled task (SecondBrainPipeline-Manha/Tarde)
+  RSS + Digest: 1x por semana (--digest roda RSS automaticamente antes)
 """
 
 import json
@@ -54,6 +58,7 @@ log.addHandler(_file)
 BASE_DIR = Path(__file__).parent
 CONFIG_FILE = BASE_DIR / "config.json"
 STATE_FILE = BASE_DIR / "state.json"
+FAILED_LINKS_FILE = BASE_DIR / "failed_links.json"
 
 
 # =============================================================================
@@ -78,6 +83,30 @@ def save_state(state: dict):
     state["processed"] = list(state["processed"])[-2000:]
     with open(STATE_FILE, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2)
+
+
+def log_failed_link(url: str, title: str, source: str, reason: str):
+    """Loga link que falhou na extracao em failed_links.json."""
+    entries = []
+    if FAILED_LINKS_FILE.exists():
+        try:
+            entries = json.loads(FAILED_LINKS_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            entries = []
+
+    entries.append({
+        "url": url,
+        "title": title,
+        "source": source,
+        "reason": reason,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    })
+
+    # Manter ultimas 500 entradas
+    entries = entries[-500:]
+    FAILED_LINKS_FILE.write_text(
+        json.dumps(entries, indent=2, ensure_ascii=False), encoding="utf-8")
+    log.info(f"  Falha logada: {url[:60]}")
 
 
 # =============================================================================
@@ -701,26 +730,52 @@ def get_existing_notes(vault_path: str) -> list[dict]:
 
 
 def find_notes_by_tags(existing_notes: list[dict], new_tags: list[str],
-                       max_results: int = 10) -> list[dict]:
-    """Filtra notas existentes que compartilham tags com o conteudo novo."""
-    if not new_tags:
-        return []
-
-    new_tags_lower = {t.lower() for t in new_tags}
+                       max_results: int = 10, title: str = "",
+                       content: str = "") -> list[dict]:
+    """Filtra notas existentes que compartilham tags com o conteudo novo.
+    Fallback: se tags nao encontram nada, busca por palavras-chave no titulo."""
+    new_tags_lower = {t.lower() for t in new_tags} if new_tags else set()
     scored = []
 
-    for note in existing_notes:
-        note_tags = {t.lower() for t in note.get("tags", [])}
-        overlap = new_tags_lower & note_tags
-        if overlap:
-            scored.append((len(overlap), note))
+    # Primeira passada: matching por tags
+    if new_tags_lower:
+        for note in existing_notes:
+            note_tags = {t.lower() for t in note.get("tags", [])}
+            overlap = new_tags_lower & note_tags
+            if overlap:
+                scored.append((len(overlap) * 10, note))  # peso 10 por tag match
 
-    # Ordenar por numero de tags em comum (mais tags = mais relevante)
+    # Fallback: se tags nao encontraram nada (ou poucas), busca por keywords
+    if len(scored) < 3 and (title or content):
+        # Extrair keywords do titulo e inicio do conteudo
+        text = f"{title} {content[:300]}".lower()
+        # Remover palavras muito comuns
+        stopwords = {"de", "do", "da", "dos", "das", "em", "com", "para", "por",
+                     "um", "uma", "que", "se", "os", "as", "no", "na", "ao", "ou",
+                     "e", "a", "o", "the", "and", "for", "with", "this", "that",
+                     "is", "are", "from", "how", "to", "in", "of", "on", "at"}
+        keywords = {w for w in re.findall(r'[a-z0-9]{3,}', text) if w not in stopwords}
+
+        already_found = {id(n) for _, n in scored}
+        for note in existing_notes:
+            if id(note) in already_found:
+                continue
+            note_title = note.get("title", "").lower()
+            note_tags_str = " ".join(note.get("tags", [])).lower()
+            note_text = f"{note_title} {note_tags_str}"
+
+            # Contar keywords que aparecem no titulo/tags da nota existente
+            matches = sum(1 for kw in keywords if kw in note_text)
+            if matches >= 2:
+                scored.append((matches, note))
+
+    # Ordenar por score (mais matches = mais relevante)
     scored.sort(key=lambda x: x[0], reverse=True)
     return [note for _, note in scored[:max_results]]
 
 
 MATCH_PROMPT = """\
+IDIOMA: responda em portugues brasileiro (PT-BR).
 Voce e um assistente de deduplicacao de notas.
 
 Conteudo novo:
@@ -742,8 +797,9 @@ ou
 def find_matching_note(client: Anthropic, new_title: str, new_summary: str,
                        existing_notes: list[dict], new_tags: list[str]) -> dict | None:
     """Busca nota existente semanticamente similar, filtrando por tags primeiro."""
-    # Filtro local por tags (zero tokens)
-    candidates = find_notes_by_tags(existing_notes, new_tags, max_results=15)
+    # Filtro local por tags + fallback por keywords
+    candidates = find_notes_by_tags(existing_notes, new_tags, max_results=15,
+                                    title=new_title, content=new_summary)
     if not candidates:
         return None
 
@@ -780,9 +836,11 @@ def find_matching_note(client: Anthropic, new_title: str, new_summary: str,
 # =============================================================================
 
 def build_vault_context(existing_notes: list[dict], new_tags: list[str],
-                        vault_path: str, exclude_filename: str | None = None) -> str:
-    """Busca notas relacionadas por tags e monta contexto do vault."""
-    related = find_notes_by_tags(existing_notes, new_tags, max_results=8)
+                        vault_path: str, exclude_filename: str | None = None,
+                        title: str = "", content: str = "") -> str:
+    """Busca notas relacionadas por tags + keywords e monta contexto do vault."""
+    related = find_notes_by_tags(existing_notes, new_tags, max_results=8,
+                                title=title, content=content)
 
     if exclude_filename:
         related = [n for n in related if n["filename"] != exclude_filename]
@@ -840,6 +898,7 @@ def build_vault_context(existing_notes: list[dict], new_tags: list[str],
 # =============================================================================
 
 EVAL_PROMPT = """\
+IDIOMA: responda em portugues brasileiro (PT-BR).
 Voce filtra conteudo para um second brain pessoal.
 
 Topicos de interesse: {topics}
@@ -849,22 +908,42 @@ Titulo: {title}
 Fonte:  {source}
 Resumo: {summary}
 
+TAGS PERMITIDAS (use SOMENTE tags desta lista):
+{allowed_tags}
+
 Responda SOMENTE em JSON valido:
 {{"score": <0-10>, "reason": "<uma frase>", "tags": ["tag1","tag2","tag3"]}}
 
-Criterio:
+Regras para tags:
+- Use entre 3 e 6 tags da lista acima
+- Escolha as tags mais especificas que se aplicam
+- NAO invente tags fora da lista
+
+Criterio de score:
 8-10 = pratico, especifico, aplicavel, novidade real
 5-7  = relacionado mas generico ou repetido
 0-4  = irrelevante, spam, ou conteudo raso"""
 
 
-def evaluate_relevance(client: Anthropic, item: dict, topics: list[str]) -> dict:
-    """Avalia relevancia de um item RSS."""
+def get_allowed_tags(cfg: dict) -> str:
+    """Retorna lista flat de todas as tags permitidas dos topic_folders."""
+    topic_folders = cfg.get("topic_folders", {})
+    all_tags = set()
+    for folder_tags in topic_folders.values():
+        all_tags.update(folder_tags)
+    return ", ".join(sorted(all_tags))
+
+
+def evaluate_relevance(client: Anthropic, item: dict, topics: list[str],
+                       cfg: dict | None = None) -> dict:
+    """Avalia relevancia de um item RSS ou Telegram."""
+    allowed_tags = get_allowed_tags(cfg) if cfg else ""
     prompt = EVAL_PROMPT.format(
         topics=", ".join(topics[:25]),
         title=item.get("title", ""),
         source=item.get("source", ""),
         summary=item.get("summary", "")[:400],
+        allowed_tags=allowed_tags or "(use tags livres)",
     )
 
     try:
@@ -880,12 +959,14 @@ def evaluate_relevance(client: Anthropic, item: dict, topics: list[str]) -> dict
 # =============================================================================
 
 NOTE_PROMPT = """\
-Sistema automatizado. NAO converse, NAO faca perguntas. Produza APENAS a nota no template.
-Se o conteudo for curto (tweet, post), use as notas relacionadas do vault para dar contexto.
+Sistema automatizado. NAO converse, NAO faca perguntas. Produza APENAS a nota.
+IDIOMA OBRIGATORIO: toda a nota deve ser escrita em portugues brasileiro (PT-BR).
+Termos tecnicos consolidados em ingles (ex: API, pipeline, framework) podem ser mantidos.
 
-Crie nota Zettelkasten em PT-BR. Foco: conceito claro para estudo posterior.
-IMPORTANTE: conecte este conteudo com o conhecimento existente no vault.
-Explique como este conceito complementa, contradiz ou expande as notas relacionadas.
+Crie um GUIA DE APLICACAO PRATICA em PT-BR. Esta nota e o nivel intermediario:
+mais profunda que um resumo, focada em COMO IMPLEMENTAR o que o link propoe.
+Pesquise alem do conteudo do link. Pense como um tutorial denso para alguem que
+quer replicar e aplicar isso HOJE.
 
 Fonte: {source}
 URL: {url}
@@ -894,22 +975,16 @@ Conteudo: {content}
 Tags: {tags}
 Data: {date}
 
-NOTAS RELACIONADAS DO VAULT (use para criar conexoes e enriquecer):
+NOTAS RELACIONADAS DO VAULT (conecte e compare):
 {vault_context}
 
 REGRA CRITICA PARA O TITULO (#):
-- O titulo DEVE ser o CONCEITO puro, curto e buscavel. 2-5 palavras.
-- Pense como um termo de glossario ou verbete de enciclopedia.
-- NUNCA usar nomes de usuarios, "@handles", numeros, ou detalhes.
-- Os detalhes, numeros e contexto vao no corpo da nota (Resumo e Explicacao).
-- BOM: "Destilacao de LLMs"
-- BOM: "Hand Tracking via WebGPU"
-- BOM: "Correcao de Erros Quanticos"
-- BOM: "RAG com Embeddings Multimodais"
-- RUIM: "Destilacao de Modelos Reduz LLMs a 4B Parametros Sem Perda Significativa" (longo demais)
-- RUIM: "Thread do @karpathy sobre treinamento" (referencia fonte)
-- RUIM: "Nova ferramenta de hand tracking no browser" (descritivo, nao conceitual)
-- O titulo deve funcionar como nome de nota no Obsidian e ser facil de linkar com [[]].
+- Titulo descritivo da APLICACAO, nao do conceito abstrato. 5-15 palavras.
+- BOM: "Configurar 6 MCP Servers para Assistente IA 100% Local"
+- BOM: "Pipeline de Geracao de Sprites Isometricos com ComfyUI"
+- BOM: "Setup de Inferencia Local com Qwen 4B no Windows"
+- RUIM: "MCP Servers" (muito vago, isso e conceito)
+- RUIM: "Thread interessante sobre IA" (descritivo sem acao)
 
 Template EXATO:
 
@@ -917,33 +992,46 @@ Template EXATO:
 tags: [{tags}]
 source: {url}
 date: {date}
+tipo: aplicacao
 ---
-# [Conceito central como afirmacao clara e especifica]
+# [Titulo descritivo da aplicacao pratica]
 
-## Resumo
-[1-2 frases. O conceito central.]
+## O que e
 
-## Explicacao
-[2-4 paragrafos em PT-BR. O que e, por que importa, como funciona.
-Conecte com o conhecimento que ja existe no vault. Mencione como complementa
-ou expande conceitos das notas relacionadas. Seja tecnico e especifico.]
+[2-3 frases. O que este link propoe/mostra e por que importa pra voce.]
 
-## Exemplos
-[2-3 aplicacoes praticas]
+## Como implementar
 
-## Relacionado
-[Links usando [[filename|Titulo]] para notas listadas acima. Use o filename (sem .md) como primeiro argumento e o titulo legivel depois do pipe. Explique a conexao em 1 frase.]
+[A parte principal da nota. 4-8 paragrafos densos e tecnicos.
+Passo a passo de como replicar: ferramentas necessarias, configuracao,
+comandos, arquitetura, decisoes tecnicas.
+Se o link menciona uma ferramenta, explique como instalar e configurar.
+Se menciona um conceito, explique como aplicar na pratica.
+Inclua [[wikilinks]] para conceitos do vault quando relevante.]
 
-## Perguntas de Revisao
-1. [Pergunta conceitual]
-2. [Como isso se conecta com [[filename|titulo da nota]]?]
+## Stack e requisitos
 
-## Historico de Atualizacoes
+[Lista tecnica: linguagem, libs, hardware, APIs, custos estimados.
+Seja especifico: versoes, tamanho de modelo, VRAM necessaria, etc.]
+
+## Armadilhas e limitacoes
+
+[O que pode dar errado. Limitacoes tecnicas, custos escondidos,
+casos onde NAO usar esta abordagem. Baseie-se no conteudo do link
+e no seu conhecimento tecnico.]
+
+## Conexoes
+
+[Como isso se conecta com outras notas do vault. Use [[filename|Titulo]].
+Explique a relacao: complementa, substitui, depende de, etc.]
+
+## Historico
 - {date}: Nota criada a partir de {source}"""
 
 
 EXTRACT_PROMPT = """\
-Extraia os pontos-chave deste conteudo em PT-BR. Seja tecnico e especifico.
+IDIOMA OBRIGATORIO: responda inteiramente em portugues brasileiro (PT-BR).
+Extraia os pontos-chave deste conteudo. Seja tecnico e especifico.
 Foque em: o que e, como funciona, numeros/metricas, ferramentas mencionadas, aplicacoes praticas.
 Max 800 palavras. NAO gere nota, apenas extraia os pontos.
 
@@ -995,6 +1083,8 @@ def generate_note(client: Anthropic, title: str, url: str, content: str,
 
 MERGE_PROMPT = """\
 Sistema automatizado. NAO converse. Produza a nota atualizada completa.
+IDIOMA OBRIGATORIO: toda a nota deve ser escrita em portugues brasileiro (PT-BR).
+Termos tecnicos consolidados em ingles podem ser mantidos.
 
 NOTA EXISTENTE:
 {existing_note}
@@ -1146,11 +1236,416 @@ def read_note_from_vault(cfg: dict, filename: str,
 
 
 # =============================================================================
+# MOC: ATUALIZACAO INCREMENTAL (manual de referencia vivo)
+# =============================================================================
+
+MOC_UPDATE_PROMPT = """\
+IDIOMA OBRIGATORIO: todo o MOC deve ser escrito em portugues brasileiro (PT-BR).
+Termos tecnicos consolidados em ingles podem ser mantidos.
+Voce e um curador de conhecimento tecnico. Sua tarefa: INCORPORAR o conhecimento
+de uma nota nova no MOC (Map of Content) existente, transformando-o em um manual
+de referencia cada vez mais completo.
+
+## MOC ATUAL
+{moc_content}
+
+## NOTA NOVA SENDO INCORPORADA
+Arquivo: {note_filename}
+Subfolder: {subfolder}
+{note_content}
+
+## INSTRUCOES
+
+Reescreva o MOC INTEIRO incorporando o conhecimento da nota nova. Regras:
+
+1. ESTRUTURA DE MANUAL DE REFERENCIA:
+   - Organize por sub-temas logicos (ex: "Agentes Autonomos", "MCP Servers", "RAG e Embeddings")
+   - Cada sub-tema tem paragrafos densos com informacao tecnica concreta
+   - Sub-temas crescem e se subdividem conforme mais conteudo chega
+   - Novas secoes podem ser criadas se o conteudo novo abre um sub-tema inedito
+
+2. INCORPORACAO DE CONHECIMENTO:
+   - NAO adicione apenas um bullet ou link. Integre o conhecimento no texto existente
+   - Se a nota nova traz info sobre um sub-tema que ja existe, EXPANDA esse sub-tema
+   - Se contradiz algo existente, atualize com a info mais recente e indique a evolucao
+   - Inclua detalhes tecnicos: nomes de ferramentas, metricas, comparacoes, trade-offs
+   - Use wikilinks [[nome-da-nota]] embutidos no texto como referencias, NAO como lista
+
+3. SECOES OBRIGATORIAS (manter sempre):
+   - Frontmatter YAML (tags, date, tipo: moc)
+   - Titulo principal (# Nome do Tema)
+   - Panorama geral (1-2 paragrafos de contexto do campo)
+   - Sub-temas (## cada um com conteudo substantivo)
+   - Estado atual e tendencias (o que esta mudando agora)
+   - Ferramentas e recursos praticos (o que usar pra que)
+   - Conexoes com outros temas (links para outros MOCs se relevante)
+
+4. O QUE NAO FAZER:
+   - NAO liste notas como bullets (isso e indice, nao conhecimento)
+   - NAO repita o resumo da nota literalmente, sintetize e integre
+   - NAO use frases genericas como "este campo esta crescendo"
+   - NAO remova conhecimento que ja existia no MOC, apenas expanda
+   - NAO coloque @ em tags (quebra YAML)
+
+5. FORMATO:
+   - Responda com o MOC completo em markdown, pronto pra salvar
+   - Comece com --- (frontmatter) e termine com o ultimo paragrafo
+   - Mantenha as tags do frontmatter e adicione novas se a nota traz temas novos
+   - Atualize a data no frontmatter para a data de hoje: {today}
+
+Responda SOMENTE com o conteudo do MOC atualizado, sem explicacoes."""
+
+
+def get_moc_for_subfolder(subfolder: str, vault: str) -> Path | None:
+    """Dado um subfolder (ex: 'Links Salvos/IA e LLMs'), retorna o MOC correspondente."""
+    # Extrair nome do tema do subfolder
+    parts = subfolder.replace("Links Salvos/", "").replace("Links Salvos", "").strip("/")
+    if not parts:
+        return None
+
+    # Tentar match direto: "IA e LLMs" -> "MOCs/MOC - IA e LLMs.md"
+    moc_path = Path(vault) / "MOCs" / f"MOC - {parts}.md"
+    if moc_path.exists():
+        return moc_path
+
+    # Fallback: root (compatibilidade)
+    moc_path_root = Path(vault) / f"MOC - {parts}.md"
+    if moc_path_root.exists():
+        return moc_path_root
+
+    # Tentar match case-insensitive
+    mocs_dir = Path(vault) / "MOCs"
+    glob_target = mocs_dir if mocs_dir.exists() else Path(vault)
+    for f in glob_target.glob("MOC -*.md"):
+        if f.stem.lower().replace("moc - ", "") == parts.lower():
+            return f
+
+    return None
+
+
+def update_moc(cfg: dict, client: Anthropic, note_content: str,
+               note_filename: str, subfolder: str) -> bool:
+    """Atualiza o MOC correspondente incorporando conhecimento da nota nova."""
+    vault = cfg.get("vault_path", "")
+    if not vault:
+        return False
+
+    moc_path = get_moc_for_subfolder(subfolder, vault)
+    if not moc_path:
+        log.info(f"  MOC: nenhum MOC encontrado para {subfolder}, skip")
+        return False
+
+    # Ler MOC atual
+    try:
+        moc_content = moc_path.read_text(encoding="utf-8")
+    except Exception as ex:
+        log.warning(f"  MOC: erro ao ler {moc_path.name}: {ex}")
+        return False
+
+    # Truncar nota se muito longa (manter dentro de limites razoaveis)
+    note_truncated = note_content[:6000] if len(note_content) > 6000 else note_content
+
+    prompt = MOC_UPDATE_PROMPT.format(
+        moc_content=moc_content,
+        note_filename=note_filename,
+        subfolder=subfolder,
+        note_content=note_truncated,
+        today=datetime.now().strftime("%Y-%m-%d"),
+    )
+
+    try:
+        resp = api_call_with_retry(client, "claude-sonnet-4-6", 4000,
+            [{"role": "user", "content": prompt}])
+        updated_moc = extract_text_from_response(resp)
+
+        # Validacao basica: deve ter frontmatter e titulo
+        if not updated_moc.startswith("---") or "# " not in updated_moc:
+            log.warning(f"  MOC: resposta invalida (sem frontmatter ou titulo)")
+            return False
+
+        # Salvar MOC atualizado
+        moc_path.write_text(updated_moc, encoding="utf-8")
+        log.info(f"  MOC: {moc_path.name} atualizado com conhecimento de {note_filename}")
+
+        # Git commit do MOC
+        git_auto_commit(cfg, moc_path.name,
+                       message=f"moc: atualizar {moc_path.name} com {note_filename}")
+        return True
+
+    except Exception as ex:
+        log.warning(f"  MOC: atualizacao falhou para {moc_path.name}: {ex}")
+        return False
+
+
+# =============================================================================
+# CONCEITOS: ZETTELKASTEN GRANULAR
+# =============================================================================
+
+CONCEPT_EXTRACT_PROMPT = """\
+IDIOMA: responda em portugues brasileiro (PT-BR). Nomes de conceitos podem ser em ingles quando sao termos tecnicos estabelecidos.
+Analise o conteudo abaixo e extraia TODOS os conceitos tecnicos atomicos mencionados.
+Um conceito atomico e uma ideia, tecnologia, tecnica ou principio que pode ser explicado
+de forma independente. Pense como verbetes de uma enciclopedia tecnica.
+
+Titulo: {title}
+Fonte: {source}
+Conteudo:
+{content}
+
+CONCEITOS JA EXISTENTES no vault (NAO crie duplicatas, use os nomes existentes):
+{existing_concepts}
+
+Responda SOMENTE em JSON valido:
+{{
+  "concepts": [
+    {{
+      "name": "Nome do Conceito",
+      "filename": "nome-do-conceito.md",
+      "definition": "Definicao tecnica em 1-2 frases",
+      "relevance": "Como este conceito aparece no link sendo processado (1 frase)",
+      "related_concepts": ["Outro Conceito", "Mais Um"]
+    }}
+  ]
+}}
+
+Regras:
+- Extraia entre 3 e 10 conceitos por link (nao mais que 10)
+- Conceitos devem ser ATOMICOS: "MCP" sim, "MCP Servers para IA Local" nao
+- Se o conceito ja existe na lista de existentes, use EXATAMENTE o mesmo filename
+- Nomes em portugues quando natural, ingles quando e termo tecnico estabelecido
+- Filenames em kebab-case sem acentos
+- NAO inclua nomes de pessoas, empresas, ou produtos especificos como conceitos
+- Conceitos bons: "RAG", "Tool Calling", "Inferencia Local", "Destilacao de Modelos"
+- Conceitos ruins: "Avi Chawla", "Claude Code", "Artigo do Twitter", "6 Melhores MCP"
+"""
+
+CONCEPT_NOTE_PROMPT = """\
+IDIOMA OBRIGATORIO: toda a nota deve ser escrita em portugues brasileiro (PT-BR).
+Termos tecnicos consolidados em ingles podem ser mantidos.
+Crie uma nota de conceito tecnico para estudo. Esta nota deve funcionar como um
+verbete de enciclopedia tecnica que permite aprender o conceito de forma independente.
+
+Conceito: {concept_name}
+Definicao inicial: {definition}
+Contexto de onde apareceu: {relevance}
+
+Conteudo fonte (de onde o conceito foi extraido):
+{source_content}
+
+CONCEITOS RELACIONADOS que ja existem no vault (use wikilinks [[filename]]):
+{related_concepts}
+
+Formato EXATO da nota:
+
+---
+tags: [conceito, {tags}]
+date: {date}
+tipo: conceito
+aliases: [{aliases}]
+---
+# {concept_name}
+
+## O que e
+
+[Definicao tecnica clara e precisa. 2-3 frases. O que e isso, em termos concretos.]
+
+## Como funciona
+
+[Explicacao tecnica do mecanismo. Pode incluir: arquitetura, fluxo de dados,
+algoritmo, protocolo. 2-4 paragrafos. Seja especifico: nomes, numeros, comparacoes.]
+
+## Pra que serve
+
+[Aplicacoes praticas concretas. Quando usar, quando nao usar. Trade-offs.
+Conecte com outros conceitos via [[wikilinks]].]
+
+## Exemplo pratico
+
+[Um exemplo concreto de uso. Pode ser codigo, configuracao, workflow, ou caso real.]
+
+## Aparece em
+
+- [[{source_note}]] - {relevance}
+
+---
+*Conceito extraido automaticamente em {date}*
+
+Responda SOMENTE com a nota completa, sem explicacoes."""
+
+CONCEPT_UPDATE_PROMPT = """\
+IDIOMA OBRIGATORIO: toda a nota deve ser escrita em portugues brasileiro (PT-BR).
+Termos tecnicos consolidados em ingles podem ser mantidos.
+Atualize esta nota de conceito existente com informacao nova extraida de um link.
+EXPANDA o conhecimento, nao substitua. Adicione detalhes, exemplos, nuances.
+
+NOTA EXISTENTE:
+{existing_note}
+
+INFORMACAO NOVA:
+Fonte: [[{source_note}]]
+Contexto: {relevance}
+Conteudo:
+{source_content}
+
+Regras:
+1. MANTENHA todo o conteudo existente
+2. EXPANDA secoes com info nova (nao repita o que ja existe)
+3. Adicione a nova fonte em "## Aparece em"
+4. Se a info nova contradiz algo, mencione a evolucao
+5. Adicione novos wikilinks [[]] se conceitos relacionados novos surgiram
+6. Atualize a data no frontmatter para {date}
+7. NAO coloque @ em tags
+
+Responda SOMENTE com a nota completa atualizada."""
+
+
+def get_existing_concepts(vault: str) -> dict[str, Path]:
+    """Retorna dict de filename -> Path para todos os conceitos existentes."""
+    concepts_dir = Path(vault) / "Conceitos"
+    if not concepts_dir.exists():
+        return {}
+    return {f.name: f for f in concepts_dir.glob("*.md")}
+
+
+def extract_concepts(client: Anthropic, title: str, content: str,
+                     source: str, existing_concepts: dict) -> list[dict]:
+    """Extrai conceitos atomicos de um conteudo usando Claude."""
+    # Listar conceitos existentes pro prompt
+    concept_names = "\n".join(
+        f"  - {f.replace('.md', '')}" for f in sorted(existing_concepts.keys())
+    )[:3000] or "(nenhum conceito ainda)"
+
+    # Truncar conteudo
+    content_truncated = content[:4000] if len(content) > 4000 else content
+
+    prompt = CONCEPT_EXTRACT_PROMPT.format(
+        title=title,
+        source=source,
+        content=content_truncated,
+        existing_concepts=concept_names,
+    )
+
+    try:
+        resp = api_call_with_retry(client, "claude-sonnet-4-6", 1500,
+            [{"role": "user", "content": prompt}])
+        raw = extract_text_from_response(resp)
+
+        json_match = re.search(r'\{[\s\S]+\}', raw)
+        if not json_match:
+            log.warning("  Conceitos: resposta sem JSON valido")
+            return []
+
+        result = json.loads(json_match.group())
+        concepts = result.get("concepts", [])
+        log.info(f"  Conceitos: {len(concepts)} extraidos")
+        return concepts
+
+    except Exception as ex:
+        log.warning(f"  Conceitos: extracao falhou: {ex}")
+        return []
+
+
+def save_concept_notes(cfg: dict, client: Anthropic, concepts: list[dict],
+                       source_content: str, source_note_filename: str,
+                       tags: list[str]) -> int:
+    """Cria ou atualiza notas de conceitos no vault. Retorna qtd processada."""
+    vault = cfg.get("vault_path", "")
+    if not vault:
+        return 0
+
+    concepts_dir = Path(vault) / "Conceitos"
+    concepts_dir.mkdir(exist_ok=True)
+
+    existing = get_existing_concepts(vault)
+    saved = 0
+
+    for concept in concepts:
+        name = concept.get("name", "")
+        filename = concept.get("filename", "")
+        if not name or not filename:
+            continue
+
+        # Sanitizar filename
+        filename = re.sub(r'[<>:"/\\|?*]', '', filename)
+        if not filename.endswith(".md"):
+            filename += ".md"
+
+        # Limpar @ de tags
+        concept_tags = ", ".join(t.replace("@", "") for t in tags[:5])
+        source_note_ref = source_note_filename.replace(".md", "")
+
+        filepath = concepts_dir / filename
+
+        if filepath.exists():
+            # Atualizar conceito existente
+            try:
+                existing_note = filepath.read_text(encoding="utf-8")
+                prompt = CONCEPT_UPDATE_PROMPT.format(
+                    existing_note=existing_note,
+                    source_note=source_note_ref,
+                    relevance=concept.get("relevance", ""),
+                    source_content=source_content[:3000],
+                    date=datetime.now().strftime("%Y-%m-%d"),
+                )
+                resp = api_call_with_retry(client, "claude-sonnet-4-6", 3000,
+                    [{"role": "user", "content": prompt}])
+                updated = extract_text_from_response(resp)
+
+                if updated.startswith("---") and "# " in updated:
+                    filepath.write_text(updated, encoding="utf-8")
+                    log.info(f"  Conceito atualizado: {filename}")
+                    git_auto_commit(cfg, f"Conceitos/{filename}",
+                                   message=f"conceito: atualizar {name}")
+                    saved += 1
+            except Exception as ex:
+                log.warning(f"  Conceito update falhou ({filename}): {ex}")
+        else:
+            # Criar conceito novo
+            try:
+                related = concept.get("related_concepts", [])
+                related_text = "\n".join(
+                    f"  - [[{r.lower().replace(' ', '-')}|{r}]]" for r in related
+                ) or "(nenhum ainda)"
+
+                # Gerar aliases (nome em ingles e portugues)
+                aliases = name
+                prompt = CONCEPT_NOTE_PROMPT.format(
+                    concept_name=name,
+                    definition=concept.get("definition", ""),
+                    relevance=concept.get("relevance", ""),
+                    source_content=source_content[:3000],
+                    related_concepts=related_text,
+                    tags=concept_tags,
+                    date=datetime.now().strftime("%Y-%m-%d"),
+                    aliases=aliases,
+                    source_note=source_note_ref,
+                )
+                resp = api_call_with_retry(client, "claude-sonnet-4-6", 2500,
+                    [{"role": "user", "content": prompt}])
+                note = extract_text_from_response(resp)
+
+                if note.startswith("---") and "# " in note:
+                    filepath.write_text(note, encoding="utf-8")
+                    log.info(f"  Conceito criado: {filename}")
+                    git_auto_commit(cfg, f"Conceitos/{filename}",
+                                   message=f"conceito: criar {name}")
+                    saved += 1
+            except Exception as ex:
+                log.warning(f"  Conceito criacao falhou ({filename}): {ex}")
+
+        time.sleep(0.3)  # Rate limit gentil
+
+    return saved
+
+
+# =============================================================================
 # SAIDA: TELEGRAM NOTIFICACAO
 # =============================================================================
 
 TRIAGE_PROMPT = """\
-Resumo TECNICO de triagem em PT-BR para Telegram (max 700 chars).
+IDIOMA OBRIGATORIO: responda inteiramente em portugues brasileiro (PT-BR).
+Termos tecnicos consolidados em ingles podem ser mantidos.
+Resumo TECNICO de triagem para Telegram (max 700 chars).
 Seja especifico: nomes de tecnologias, numeros, comparacoes concretas. Zero frases genericas.
 
 Titulo: {title}
@@ -1244,8 +1739,10 @@ def notify_telegram(cfg: dict, client: Anthropic, title: str, content: str,
 
 TEXT_NOTE_PROMPT = """\
 Sistema automatizado. NAO converse. Produza APENAS a nota.
+IDIOMA OBRIGATORIO: toda a nota deve ser escrita em portugues brasileiro (PT-BR).
+Termos tecnicos consolidados em ingles podem ser mantidos.
 
-A usuario mandou um pensamento/observacao via Telegram. Crie nota Zettelkasten em PT-BR.
+A usuario mandou um pensamento/observacao via Telegram. Crie nota Zettelkasten.
 Trate como um insight pessoal para desenvolver depois.
 
 Texto: {text}
@@ -1325,7 +1822,7 @@ def process_item(cfg: dict, client: Anthropic, item: dict,
             ev = evaluate_relevance(client, {
                 "title": text[:100], "source": source,
                 "summary": text[:400]
-            }, cfg.get("topics", []))
+            }, cfg.get("topics", []), cfg=cfg)
             tags = ev.get("tags", [])
         except Exception:
             tags = ["pensamento", "telegram"]
@@ -1333,7 +1830,8 @@ def process_item(cfg: dict, client: Anthropic, item: dict,
         # Matching
         match = find_matching_note(client, text[:100], text[:500], existing_notes, tags)
         context = build_vault_context(existing_notes, tags, vault_path,
-                                      exclude_filename=match["filename"] if match else None)
+                                      exclude_filename=match["filename"] if match else None,
+                                      title=text[:100], content=text[:500])
 
         if dry_run:
             log.info(f"  [dry-run] TEXTO: {text[:60]}")
@@ -1372,6 +1870,15 @@ def process_item(cfg: dict, client: Anthropic, item: dict,
         subfolder = classify_subfolder(tags, cfg)
         ok = save_note_to_vault(cfg, note, filename, subfolder=subfolder)
         if ok:
+            # Extrair e salvar conceitos atomicos
+            vault = cfg.get("vault_path", "")
+            existing_concepts = get_existing_concepts(vault) if vault else {}
+            concepts = extract_concepts(client, text[:100], text, "Telegram", existing_concepts)
+            if concepts:
+                n_saved = save_concept_notes(cfg, client, concepts, text, filename, tags)
+                log.info(f"  Conceitos: {n_saved} salvos/atualizados")
+            # Atualizar MOC com conhecimento da nota nova
+            update_moc(cfg, client, note, filename, subfolder)
             notify_telegram(cfg, client, text[:100], text, context, tags,
                           filename, subfolder=subfolder, is_update=is_update)
             log.info(f"  {'Atualizada' if is_update else 'Criada'}: {subfolder}/{filename}")
@@ -1393,6 +1900,16 @@ def process_item(cfg: dict, client: Anthropic, item: dict,
 
     if not content:
         log.warning(f"Sem conteudo extraido: {url}")
+        log_failed_link(url, title, source, "Extracao de conteudo falhou")
+        # Notifica no canal de ENTRADA (inbox) pra Leticia saber
+        input_chat = cfg.get("telegram_input_chat_id")
+        if input_chat:
+            send_telegram_message(
+                cfg,
+                f"❌ Falha ao extrair conteudo\n\n{url}\n\nMotivo: site bloqueou acesso ou conteudo requer JavaScript.",
+                chat_id=input_chat,
+                parse_mode=None,
+            )
         return False
 
     # 2. Tags (precisamos antes do matching pra filtrar por tags)
@@ -1402,9 +1919,11 @@ def process_item(cfg: dict, client: Anthropic, item: dict,
             ev = evaluate_relevance(client, {
                 "title": title, "source": source,
                 "summary": content[:400]
-            }, cfg.get("topics", []))
+            }, cfg.get("topics", []), cfg=cfg)
             tags = ev.get("tags", [])
-        except Exception:
+            log.info(f"  Tags geradas: {tags}")
+        except Exception as ex:
+            log.warning(f"  Falha ao gerar tags: {ex}")
             tags = []
 
     # 3. Matching semantico (filtrado por tags, zero tokens se nao tiver candidatos)
@@ -1414,7 +1933,8 @@ def process_item(cfg: dict, client: Anthropic, item: dict,
     # 4. Contexto do vault (notas relacionadas por tags)
     log.info("  Buscando contexto no vault...")
     exclude = match["filename"] if match else None
-    context = build_vault_context(existing_notes, tags, vault_path, exclude_filename=exclude)
+    context = build_vault_context(existing_notes, tags, vault_path, exclude_filename=exclude,
+                                  title=title, content=content[:500])
     related_count = context.count("###")
     log.info(f"  {related_count} notas relacionadas encontradas")
 
@@ -1447,7 +1967,17 @@ def process_item(cfg: dict, client: Anthropic, item: dict,
         log.error(f"  Falha ao salvar: {filename}")
         return False
 
-    # 7. Notificar
+    # 7. Extrair e salvar conceitos atomicos
+    existing_concepts = get_existing_concepts(vault_path) if vault_path else {}
+    concepts = extract_concepts(client, title, content, source, existing_concepts)
+    if concepts:
+        n_saved = save_concept_notes(cfg, client, concepts, content, filename, tags)
+        log.info(f"  Conceitos: {n_saved} salvos/atualizados")
+
+    # 8. Atualizar MOC com conhecimento da nota nova
+    update_moc(cfg, client, note, filename, subfolder)
+
+    # 9. Notificar
     notify_telegram(cfg, client, title, content, context, tags, filename,
                     subfolder=subfolder, is_update=is_update)
 
@@ -1482,8 +2012,8 @@ def run_pipeline(cfg: dict, mode: str = "all", dry_run: bool = False):
         tg_items, new_update_id = fetch_telegram_items(cfg, state)
         all_items += tg_items
 
-    # ── Canal 2: RSS (passivo) ───────────────────────────────────────────
-    if mode in ("all", "rss"):
+    # ── Canal 2: RSS (passivo) — roda apenas com --mode rss ou --digest ──
+    if mode == "rss":
         log.info("--- RSS Feeds ---")
         rss_items = collect_rss_items(cfg)
         log.info(f"RSS total: {len(rss_items)} itens coletados")
@@ -1499,7 +2029,7 @@ def run_pipeline(cfg: dict, mode: str = "all", dry_run: bool = False):
             if item_id in seen:
                 continue
 
-            ev = evaluate_relevance(client, item, cfg.get("topics", []))
+            ev = evaluate_relevance(client, item, cfg.get("topics", []), cfg=cfg)
             score = ev.get("score", 0)
 
             if score >= threshold:
@@ -1537,7 +2067,19 @@ def run_pipeline(cfg: dict, mode: str = "all", dry_run: bool = False):
                 # Refresh notas existentes pro proximo item (dedup atualizado)
                 existing_notes = get_existing_notes(cfg.get("vault_path", ""))
         except Exception as ex:
-            log.error(f"Erro processando {item['link'][:60]}: {ex}")
+            url = item.get("link", "")
+            title = item.get("title", "")
+            source = item.get("source", "")
+            log.error(f"Erro processando {url[:60]}: {ex}")
+
+            # Logar falha e notificar inbox
+            reason = str(ex)[:200]
+            log_failed_link(url, title, source, reason)
+            input_chat = cfg.get("telegram_input_chat_id")
+            if input_chat:
+                send_telegram_message(cfg,
+                    f"❌ Erro ao processar link\n\n{url}\n\nMotivo: {reason}",
+                    chat_id=input_chat, parse_mode=None)
 
         time.sleep(0.5)
 
@@ -1556,13 +2098,15 @@ def run_pipeline(cfg: dict, mode: str = "all", dry_run: bool = False):
 # =============================================================================
 
 DIGEST_PROMPT = """\
+IDIOMA OBRIGATORIO: todo o digest deve ser escrito em portugues brasileiro (PT-BR).
+Termos tecnicos consolidados em ingles podem ser mantidos.
 Sintetize o second brain semanal.
 
 Notas criadas/atualizadas nos ultimos 7 dias:
 
 {notes}
 
-Crie um digest semanal em PT-BR:
+Crie um digest semanal:
 
 ---
 tags: [digest, semanal, revisao]
@@ -1589,10 +2133,15 @@ date: {date}
 
 
 def run_digest(cfg: dict):
-    """Gera digest semanal."""
+    """Gera digest semanal. Roda RSS primeiro, depois compila o digest."""
     print(f"\n{'='*60}")
     print(f"  Digest Semanal  {datetime.now().strftime('%d/%m/%Y')}")
     print(f"{'='*60}\n")
+
+    # ── Passo 1: Rodar RSS antes do digest ──────────────────────────────
+    log.info("=== RSS semanal: coletando feeds dos ultimos 7 dias ===")
+    run_pipeline(cfg, mode="rss", dry_run=False)
+    log.info("=== RSS semanal concluido, gerando digest ===\n")
 
     client = Anthropic(api_key=cfg["anthropic_api_key"])
     vault = cfg.get("vault_path")
@@ -1687,6 +2236,7 @@ Digest:
 # =============================================================================
 
 CURATE_PROMPT = """\
+IDIOMA: responda em portugues brasileiro (PT-BR).
 Voce e um curador de second brain / Zettelkasten.
 
 PASTAS ATUAIS em Links Salvos/:
@@ -1726,20 +2276,29 @@ MOC_TEMPLATE = """\
 ---
 tags: [moc, {tags}]
 date: {date}
+tipo: moc
 ---
 # {title}
 
 {description}
 
-## Notas Relacionadas
+## Panorama Geral
+
+Este campo esta em construcao. Conforme notas forem adicionadas, esta secao sera expandida automaticamente com sinteses, padroes e insights extraidos do conteudo processado.
+
+## Sub-temas
 
 {note_links}
 
-## Conexoes e Padroes
+## Estado Atual e Tendencias
 
-[A ser preenchido conforme o vault cresce]
+Secao atualizada automaticamente conforme novos links sao processados.
 
-## Perguntas Abertas
+## Ferramentas e Recursos Praticos
+
+Secao atualizada automaticamente conforme novos links sao processados.
+
+## Conexoes com Outros Temas
 
 - Quais sub-temas ainda nao foram explorados?
 - Que conexoes com outros MOCs existem?
@@ -1778,7 +2337,8 @@ def curate_vault(cfg: dict, client: Anthropic, vault: str):
     notes_text = "\n".join(notes_text_parts[:120])
 
     # Listar MOCs existentes
-    moc_files = sorted(Path(vault).glob("MOC -*.md"))
+    mocs_dir = Path(vault) / "MOCs"
+    moc_files = sorted(mocs_dir.glob("MOC -*.md")) if mocs_dir.exists() else sorted(Path(vault).glob("MOC -*.md"))
     mocs_text = "\n".join(f"  {m.name}" for m in moc_files) or "(nenhum MOC)"
 
     prompt = CURATE_PROMPT.format(
@@ -1833,7 +2393,9 @@ def curate_vault(cfg: dict, client: Anthropic, vault: str):
         moc_name = moc.get("name", "")
         if not moc_name:
             continue
-        moc_path = Path(vault) / moc_name
+        mocs_dir = Path(vault) / "MOCs"
+        mocs_dir.mkdir(exist_ok=True)
+        moc_path = mocs_dir / moc_name
         if moc_path.exists():
             continue
 
@@ -1910,7 +2472,9 @@ def curate_vault(cfg: dict, client: Anthropic, vault: str):
 # =============================================================================
 
 DAILY_REVIEW_PROMPT = """\
-Crie um resumo diario para Telegram (max 1200 chars) em PT-BR.
+IDIOMA OBRIGATORIO: responda inteiramente em portugues brasileiro (PT-BR).
+Termos tecnicos consolidados em ingles podem ser mantidos.
+Crie um resumo diario para Telegram (max 1200 chars).
 
 Notas criadas/atualizadas nas ultimas 24 horas:
 {notes}
@@ -2052,9 +2616,9 @@ def run_telegram_daemon(cfg: dict):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Second Brain Pipeline v2")
     parser.add_argument(
-        "--mode", choices=["all", "telegram", "rss", "telegram-daemon"],
-        default="all",
-        help="Canal de entrada: all, telegram, rss, ou telegram-daemon (loop continuo)"
+        "--mode", choices=["telegram", "rss", "telegram-daemon"],
+        default="telegram",
+        help="Canal de entrada: telegram (padrao), rss (manual), ou telegram-daemon (loop)"
     )
     parser.add_argument(
         "--dry-run", action="store_true",

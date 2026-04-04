@@ -3,36 +3,142 @@ date: 2026-03-24
 tags: [design, ia, claude, generacao, prompts, visual-production]
 source: https://x.com/AmirMushich/status/2036169931612467708?s=20
 autor: "@AmirMushich"
-tipo: zettelkasten
+tipo: aplicacao
 ---
 
-# Claude Desconstrói Imagem de Referência para Gerar Prompt Estruturado
+# Gerar Prompts Otimizados Desconstruindo Referências Visuais com Claude
 
-## Resumo
+## O que é
 
-No pipeline de produção virtual, Claude analisa imagem de referência (de Pinterest, Savee.it ou shotdeck.com) e gera prompt detalhado e estruturado otimizado para ferramentas de geração de imagem como Google Nano Banana. Processa desconstrução visual com geração automática de prompts. É como ter um art director experiente que olha sua foto de inspiração, escreve um briefing detalhado para o design team, e esse briefing funciona perfeitamente na primeira tentativa.
+Claude analisa imagem de referência (Pinterest, Savee.it, shotdeck), desconstrói componentes visuais (iluminação, composição, texturas, paleta), produz prompt estruturado para Google Nano Banana 2 ou similares. Entrada: imagem. Saída: prompt que funciona em primeira iteração.
 
-## Explicação
+## Como implementar
 
-Processo envolve: upload de imagem de referência para Claude, Claude desconstrói visualmente a cena, identifica componentes chave (iluminação, textura, composição), cria prompt estruturado para geração, output é prompt pronto para usar em Google Nano Banana 2.
+**1. Preparar imagem de referência**
 
-**Analogia:** Normalmente você quer gerar uma imagem, então tenta escrever um prompt manualmente: "desenha um gato em uma cadeira" e fica decepcionado com resultado. Claude Desconstrói é como ter um tradutor visual — você mostra uma foto que adora, Claude diz "essa foto tem iluminação de three-point lighting, background desfocado em blur, gato em pose lateral com olhos focados na câmera, cores quentes em tom sepia, profundidade de campo rasa" — um prompt que na verdade funciona porque descreve o que você realmente quer ao invés do que você pensava que queria.
+Arquivo: screenshot, foto, ou link para inspiração visual.
 
-Vantagem da abordagem é que ao invés de escrever prompts manualmente, Claude identifica detalhes visuais que você poderia perder, estrutura o prompt em ordem de importância, usa terminologia que engines de geração entendem bem (não "bonito", mas "depth of field raso com bokeh circular"), itera rapidamente para refinar resultado.
+**2. Prompt de desconstrução (em Claude)**
 
-**Profundidade:** Por que isso importa? 80% do trabalho em produção visual é criar briefs bons. Um brief ruim = resultado ruim, mesmo que o executor (Google Nano) seja melhor. Claude Desconstrói resolve isso: converte "referência visual" (algo que você sente mas não consegue descrever) em "brief estruturado" (algo que uma IA consegue executar). Isso reduz iterações de 10 tentativas para 2-3.
+```
+Analise esta imagem como art director experiente.
 
-## Exemplos
+Desconstrua em seções:
+1. Tipo de cena
+2. Composição (rule of thirds, focal points)
+3. Iluminação (tipo, direção, temperatura cor, intensidade)
+4. Profundidade de campo (shallow, medium, deep)
+5. Paleta de cores (primária, secundária, acentos)
+6. Texturas (materiais visíveis)
+7. Atmosfera (mood, estilo visual)
+8. Perspectiva (ângulo câmera, lente focal)
+9. Qualidade visual (detalhe, resolução aparente)
+10. Estilo (realista, ilustração, cinematic, etc)
 
-Ferramentas usadas: Claude para análise e geração de prompts, Google Nano Banana 2 para rendering da imagem, OpenArt Worlds para conversão para 3D.
+Agora gere prompt estruturado OTIMIZADO PARA
+[Google Nano Banana 2 | DALL-E 3 | Midjourney]
 
-## Relacionado
+Formato:
+Main subject: [descrição primária]
+Composition: [layout, rule of thirds, focal points]
+Lighting: [tipo, direção, temperatura]
+Depth: [depth of field description]
+Color palette: [hex ou descrição]
+Texture: [materiais, superfícies]
+Mood: [atmosfera, emoção]
+Style: [estilo visual, referências]
+Technical: [resolução, qualidade, aspecto]
+Forbidden: [coisas a evitar]
 
-- [[OpenArt Worlds transforma imagem 2D em cena 3D navegável]]
-- [[Tokens Matrix controle pro-level de poses e expressões]]
+Generate immediately actionable prompt:
+"[Full prompt ready to copy-paste]"
+```
 
-## Perguntas de Revisão
+**3. Exemplo concreto: desconstrução**
 
-1. Por que "descrever visualmente" é diferente de "descrever com palavras" quando se trata de gerar imagens?
-2. Como Claude identificar "detalhes que você poderia perder" melhora qualidade do prompt?
-3. Qual é a conexão entre descrição estruturada e redução de iterações de geração de imagem?
+Referência: foto de cadeira em estúdio
+
+Claude analisa:
+```
+1. Tipo: Product photography, studio setting
+2. Composição: Objeto central, fundo neutro desfocado
+3. Iluminação: Three-point (key light esquerda, fill light direita, back light sutil)
+4. Profundidade: Rasa (shallow depth of field, bokeh background)
+5. Paleta: Tons quentes (sepia/dourado), branco/cinza neutro fundo
+6. Texturas: Madeira clara, tecido linho, metal polido
+7. Atmosfera: Minimalista, limpo, profissional, elegante
+8. Perspectiva: Eye-level, ligeira angulação 45°
+9. Qualidade: Fotorrealística, detalhe alto, resolução 4K
+10. Estilo: Fotografia comercial, editorial luxury
+```
+
+Prompt output:
+```
+"A minimalist luxury wooden chair with natural linen upholstery,
+shot in studio with three-point lighting (warm key light from left,
+subtle fill right, delicate back-light). Shallow depth of field with
+soft bokeh background in warm grey-beige. Warm sepia-toned color
+palette, photorealistic detail, 4K quality, editorial photography,
+professional commercial style."
+```
+
+**4. Refinamento iterativo**
+
+Primeira geração: se resultado não match:
+```
+"Image misses [específico detalhe].
+Adjust prompt:
+- Increase emphasis on [elemento]
+- Reduce [elemento secundário]
+- Add specific reference: [estilo/artista]"
+```
+
+Claude refina e regenera prompt.
+
+**5. Pipeline produção visual**
+
+```
+1. Coleta referência (Pinterest, Pinterest boards)
+2. Upload para Claude
+3. Executa desconstrução (3 min)
+4. Copia prompt output
+5. Cola em [Google Nano | DALL-E | Midjourney]
+6. Primeira geração geralmente "bom"
+7. Se precisa tweak: volta step 4 com feedback "aumenta X, diminui Y"
+```
+
+**6. Casos de uso estruturados**
+
+| Tipo | Output |
+|------|--------|
+| Product design | Renders de produto com múltiplos ângulos |
+| Environment design | Concept art de cenários |
+| Character design | Personagem em múltiplas poses |
+| UX/UI mockup | Interface layout polido |
+| Marketing creative | Banners, hero images, ads |
+
+## Stack e requisitos
+
+- Claude (Vision model, ex: claude-3-sonnet)
+- Imagem referência (PNG, JPG, mín 512x512)
+- Gerador imagem (Google Nano, DALL-E, Midjourney, Krea)
+- Opcional: Figma ou editor para post-processing
+
+## Armadilhas e limitações
+
+- **Claude às vezes falha**: Se referência muito complexa, desconstrução genérica. Especifique detalhes manualmente
+- **Overfitting**: Prompt pode replicar *exatamente* referência, sem criatividade. Peça para "usar referência como inspiração, não cópia"
+- **Terminologia**: Diferentes engines usam "prompt syntax" diferente. Especifique qual engine usando
+- **Estilo bleeding**: Múltiplas referências podem confundir Claude. Use uma referência por sessão
+- **Qualidade varia**: Mesmo com prompt perfeito, gerador pode falhar. Não é garantido
+
+## Conexões
+
+[[geracao-automatizada-de-prompts]]
+[[geracao-de-cenas-multi-shot-por-ia]]
+[[geração-de-json-a-partir-de-qualquer-fonte]]
+
+## Histórico
+
+- 2026-03-24: Nota criada
+- 2026-04-02: Reescrita como guia de implementação

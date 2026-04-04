@@ -1,33 +1,101 @@
 ---
-tags: []
+tags: [geracao-3d, text-to-3d, ia-generativa, glb-format, prototipagem, asset-generation]
 source: https://x.com/omma_ai/status/2036651786443129086?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Geração de Modelos 3D por Comando
 
-## Resumo
-Ferramentas de IA generativa já permitem criar modelos 3D completos a partir de um único comando de texto, entregando o resultado já inserido em uma cena 3D e com o arquivo otimizado automaticamente.
+# Gerar Modelos 3D via Prompt de Texto
 
-## Explicação
-A geração de modelos 3D via comando de texto representa uma etapa significativa na redução do atrito entre intenção criativa e produção de assets digitais. Tradicionalmente, criar um modelo 3D exigia software especializado (Blender, Maya, etc.), conhecimento técnico de topologia e UV mapping, além de etapas manuais de exportação e compressão. Com abordagens como o comando `/3d` da ferramenta Omma, todo esse pipeline é colapsado em uma única instrução.
+## O que é
+Ferramentas de IA que transformam descrição textual em modelo 3D completo, triangulado, texturizado e otimizado em formato GLB. Elimina etapas manuais de topologia, UV mapping e compressão.
 
-O fluxo automatizado engloba três etapas distintas que antes eram separadas: geração do modelo 3D em si (shape e textura), composição do modelo dentro de uma cena 3D contextualizada, e compressão/otimização do arquivo de saída no formato GLB. O formato GLB (Binary GL Transmission Format) é o padrão binário do glTF, amplamente adotado para aplicações web 3D, AR e motores de jogo, o que torna a saída diretamente utilizável em pipelines modernos.
+## Como implementar
+**Ferramentas recomendadas** (ranking por qualidade/velocidade):
 
-A otimização automática do GLB é especialmente relevante porque modelos gerados por IA tendem a ser pesados e com geometria redundante. Comprimir e otimizar sem intervenção manual resolve um gargalo real de adoção. Isso posiciona esse tipo de ferramenta não apenas como protótipo criativo, mas como parte de um workflow de produção real.
+| Ferramenta | Entrada | Velocidade | Custo | Qualidade | Melhor para |
+|---|---|---|---|---|---|
+| **Meshy.ai** | texto/imagem | 2-5 min | $10/10 créditos | ⭐⭐⭐⭐⭐ | assets simples, iteração rápida |
+| **Tripo 3D** | texto/imagem | 1-2 min | free (limited) | ⭐⭐⭐⭐ | prototipagem, web 3D |
+| **OpenAI Shap-E** | texto | 30 seg | $0.01-0.02/geração | ⭐⭐⭐ | testing, desenvolvimento |
+| **Luma AI** | imagem | 3-10 min | $4/3.50 créditos | ⭐⭐⭐⭐ | realismo fotográfico |
+| **Omma** | texto | instantâneo | web+API | ⭐⭐⭐ | composição em cena, iteração |
 
-Este conceito se insere na tendência mais ampla de "pipelines de IA de ponta a ponta", onde múltiplas etapas de produção (geração, composição, otimização, exportação) são unificadas em uma única chamada — similar ao que acontece com geração de código executável ou edição de vídeo assistida por IA.
+**Fluxo de implementação com Meshy.ai**:
 
-## Exemplos
-1. **Prototipagem rápida para jogos**: um desenvolvedor indie digita `/3d medieval sword` e recebe um GLB otimizado pronto para importar na Unity ou Godot.
-2. **E-commerce e AR**: lojistas geram modelos 3D de produtos para visualização em realidade aumentada sem necessidade de estúdio fotográfico 3D.
-3. **Criação de cenas para apresentações**: designers geram cenas 3D completas para storyboards ou mockups interativos diretamente de descrições textuais.
+1. **Criar account** (google/email) e obter API key via dashboard
 
-## Relacionado
-*(Nenhuma nota existente no vault para linkar no momento.)*
+2. **Fazer requisição**:
+```bash
+curl -X POST https://api.meshy.ai/v1/text-to-3d \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mode": "fast",
+    "prompt": "medieval iron sword with ornate leather grip",
+    "art_style": "realistic",
+    "negative_prompt": "blurry, low quality, cartoon"
+  }'
 
-## Perguntas de Revisão
-1. Quais são as limitações atuais da geração de modelos 3D por IA em termos de fidelidade geométrica e controle criativo?
-2. Por que o formato GLB é preferível ao OBJ ou FBX em pipelines modernos de IA generativa para web e AR?
+# Resposta: {"result": {"model_url": "https://..../model.glb", "id": "xyz"}}
+```
 
-## Histórico de Atualizações
-- 2026-04-02: Nota criada a partir de Telegram
+3. **Baixar e integrar**:
+```python
+import requests
+
+response = requests.get("https://..../model.glb")
+with open("sword.glb", "wb") as f:
+    f.write(response.content)
+
+# Usar em engine
+# Unity: modelo → Drag-drop na Scene
+# Godot 4: import GLB via ImportGLTF2 → use em 3D node
+# Web: THREE.js loader
+```
+
+4. **Otimizar para produção**:
+```bash
+# Reduzir tamanho com ferramentas offline
+# Draco compression via gltf-transform
+npm install -g @gltf-transform/cli
+
+gltf-transform compress sword.glb sword_compressed.glb
+# Típico: 150MB → 15MB com Draco, mantendo qualidade visual
+
+# Ou via Blender (GUI)
+# File → Import GLB → Export GLB (ativar Draco compression)
+```
+
+**Workflow para game dev indie**:
+- Prompt genérico → resultado → feedback → refino via Meshy iterations
+- Melhor praticar: decompor em sub-assets (arma, armadura, acessório) em vez de tentar gerar character inteiro
+- Exemplo real: "rusty metal bucket with rope handle, top-down view" (simples) vs "complete human knight with dynamic cloth" (complexo, failure-prone)
+
+## Stack e requisitos
+- **Entrada**: prompt (25-150 palavras, ser específico)
+- **Formato saída**: GLB (triangulado, texturas baked em JPEG/PNG)
+- **Resoluções**: 512x512 a 1024x1024 UV textures (maior = mais custo)
+- **Custo Meshy**: $5 startup + $0.80/modelo fast, $1.20/modelo standard
+- **Custo Shap-E (local)**: $0 (open source, requer GPU A100 ou similar para speed)
+- **Tempo total**: entrada → uso em engine: 5-15 min (web) ou 2-3 min (local se você tem GPU)
+- **Compatibilidade**: GLB universal — Unity, Unreal, Godot, Three.js, Babylon.js, PlayCanvas
+
+## Armadilhas e limitações
+- **Controle geométrico limitado**: não consegue especificar "exatamente 4 pernas", "simetria perfeita". Rede neural é estocástica
+- **Detalhes finos falham**: logos, text, padrões repetitivos saem borrados. Use painting pós-geração em Blender se crítico
+- **Hands e faces**: modelos humanoides têm problemas clássicos de IA (dedos deformados, faces estranhas). Inspecionar antes de usar
+- **Topologia não-otimizada**: modelos saem com polígonos desnecessários. Remesher online (Instant Meshes, voxel remesh) melhora
+- **Baked textures apenas**: sem material nodes. Se precisa de PBR procedural (normal maps, roughness), rebake em Substance ou Blender
+- **Tamanho de arquivo**: GLB base 30-150MB antes de compressão. Necessário Draco para web/mobile
+- **IP/Commercial use**: verificar ToS por ferramenta. Meshy permite uso comercial (paga), OpenAI tem restrições
+
+## Conexões
+- [[glb-format-3d-standard]]
+- [[otimizacao-mesh-topologia]]
+- [[asset-generation-pipeline-automatizado]]
+- [[prototipagem-rapida-3d]]
+
+## Histórico
+- 2026-04-02: Nota criada
+- 2026-04-02: Reescrita com comparação de ferramentas + stack técnico

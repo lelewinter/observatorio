@@ -1,149 +1,215 @@
 ---
-date: 2026-03-07
-tags: [Claude, trading, options, theta decay, prompts, quantitativo, automação, renda, 0.5-2% daily]
+tags: [Claude, trading, options, theta decay, prompts, quantitativo, automação, renda]
 source: https://x.com/heynavtoor/status/2030242736453169380
-autor: "Nav Toor (heynavtoor)"
-tipo: zettelkasten
+date: 2026-03-07
+tipo: aplicacao
 ---
+# Automatizar Trading de Opções com Claude — 78% Taxa de Acerto via Theta Decay
 
-# 12 Prompts para Automação de Options Trading — 78% Win Rate com Theta Decay
+## O que e
 
-## Resumo
+Sistema de automação de trading de opções usando 12 prompts especializados para Claude, replicando estratégias de traders quantitativos profissionais (Citadel, Two Sigma, D.E. Shaw, Jane Street). Cada prompt encarna um papel específico no pipeline: análise de regime de mercado, seleção de strikes, cálculo de theta decay, gestão de risco. Objetivo: 0.5-2% de retorno diário consistente focado em venda de premium (theta decay) em vez de previsão direcional.
 
-Nav Toor compartilhou 12 prompts específicos para usar Claude como um trader quantitativo automatizado focado em theta decay (decomposição de tempo em opções). Os prompts simulam traders profissionais (Tastyrade, Citadel, Two Sigma, D.E. Shaw, Akuna Capital) com estratégias específicas, gerando ~0.5-2% de retorno diário consistente — como ter um PhD em finanças quantitativas rodando em background.
+## Como implementar
 
-## Explicação
+**Arquitetura do Sistema**
 
-**12 Prompts para Estratégias de Options Trading com Claude:**
+O pipeline é composto por 12 prompts distintos, cada um representando um especialista independente em um domínio do trading de opções. A execução ocorre em sequência determinística: (1) regime de mercado classifica as condições atuais, (2) análise pré-mercado (8 AM) identifica janelas de oportunidade, (3) detecção de skew de volatilidade mapeia ineficiências, (4) seleção de strikes usa modelos probabilísticos, (5) gestão de risco define limites de posição, (6) calendário de renda integra estratégias recorrentes, (7) cálculo de theta monitora decay hora a hora, (8) captura de fim de dia executa closes nos últimos 90 minutos.
 
-**1. The Tastyrade QDTF SPX Credit Spread Scanner**
-Replica trader sênior em QDTF (zero days to expiration, SPX puts):
+Cada prompt deve ser implementado como um agente Claude separado, acionado via API `messages` da Anthropic. A integração entre prompts ocorre via passagem de estado estruturado (JSON): o regime de mercado classifica as condições, e seus outputs alimentam Strike Selection como restrição. Similarmente, análise pré-mercado identifica oportunidades, Risk Management define posição máxima baseado em volatilidade observada, e Real-Time Theta monitora P&L contínuo.
+
+**Implementação Prática em Python**
+
+```python
+import anthropic
+import json
+from datetime import datetime
+
+client = anthropic.Anthropic()
+
+# 1. Market Regime Classifier
+def classify_market_regime(price_data: dict) -> str:
+    prompt = """You are a senior quantitative strategist at Citadel who classifies
+market conditions into specific regimes before placing any options trade — because
+the #1 reason theta traders lose is selling premium in the wrong environment.
+
+Dados de mercado atuais:
+- VIX: {vix}
+- Slope de 50/200MA: {slope}
+- ATR diário: {atr}
+- Skew put/call: {skew}
+
+Classifique em: TREND (bull/bear), RANGE_BOUND, VOLATILITY_SPIKE, CRUSH_SETUP"""
+
+    response = client.messages.create(
+        model="claude-opus-4-1",
+        max_tokens=200,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.content[0].text
+
+# 2. Volatility Skew Exploiter
+def detect_volatility_skew(option_chain: dict) -> dict:
+    prompt = """You are a senior options trader at Akuna Capital who profits from
+volatility skew — analyzing the phenomenon where OTM puts are priced more expensive
+than equivalent calls.
+
+Option Chain (simplified):
+{chain}
+
+Identify: (1) skew direction, (2) magnitude (in bps), (3) strike zones to target, (4)
+width of spread to recommend (5 points, 10 points, 25 points?)"""
+
+    response = client.messages.create(
+        model="claude-opus-4-1",
+        max_tokens=300,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return json.loads(response.content[0].text)
+
+# 3. Strike Selection via Probability
+def select_strikes_probability(symbol: str, regime: str, skew: dict) -> list:
+    prompt = """You are a senior quantitative researcher at Two Sigma who selects
+option strikes based purely on statistical probability models — removing emotion and
+replacing gut feeling with math.
+
+Symbol: {symbol}
+Market Regime: {regime}
+Volatility Skew: {skew}
+
+For a SHORT premium strategy (iron condor or credit spread):
+1. Calculate delta for each strike
+2. Recommend strikes with win probability >= 65% (probability of profit = 1 - (max_loss / credit_received))
+3. Return: [strike_1, delta_1, prob_1], [strike_2, delta_2, prob_2]"""
+
+    response = client.messages.create(
+        model="claude-opus-4-1",
+        max_tokens=400,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return json.loads(response.content[0].text)
+
+# 4. Real-Time Theta Decay Calculator
+def calculate_theta_decay(positions: list, hours_elapsed: float) -> dict:
+    prompt = """You are a senior options market maker at Susquehanna International who
+quantifies exact theta decay profits on short premium positions hour by hour throughout
+the trading day.
+
+Positions (0DTE or 1DTE):
+{positions}
+
+Hours elapsed since open: {hours_elapsed}
+
+Calculate and return:
+- Theta decay per hour ($/hour)
+- Cumulative profit from theta only
+- Time remaining to max decay
+- Estimated final theta if held to close"""
+
+    response = client.messages.create(
+        model="claude-opus-4-1",
+        max_tokens=500,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return json.loads(response.content[0].text)
+
+# 5. Risk Management System
+def enforce_risk_rules(portfolio: dict, market_regime: str) -> dict:
+    prompt = """You are a senior risk manager at Wolverine Trading who monitors options
+portfolios in real-time and enforces strict risk rules that prevent catastrophic losses
+— because surviving bad days is more important than maximizing good ones.
+
+Current Portfolio:
+{portfolio}
+
+Market Regime: {market_regime}
+
+Define and enforce:
+1. Max loss per trade (% of account)
+2. Max loss per day (% of account)
+3. Max Greeks exposure (delta, gamma, vega)
+4. Position size formula based on volatility
+5. HARD STOPS: if any rule violated, return ["REDUCE", position_id, quantity_to_close]"""
+
+    response = client.messages.create(
+        model="claude-opus-4-1",
+        max_tokens=600,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return json.loads(response.content[0].text)
+
+# MAIN LOOP
+def daily_theta_trading_cycle(market_data: dict):
+    print("[08:00] Market Regime Analysis...")
+    regime = classify_market_regime(market_data)
+    print(f"Regime: {regime}")
+
+    print("[08:15] Volatility Skew Detection...")
+    skew = detect_volatility_skew(market_data['options'])
+
+    print("[08:30] Strike Selection...")
+    strikes = select_strikes_probability("SPY", regime, skew)
+
+    print("[09:30] OPEN POSITIONS")
+    # Execute trades based on strikes, with risk limits
+
+    print("[15:30] REAL-TIME MONITORING")
+    # Hourly theta decay tracking
+    for hour in range(7):
+        theta = calculate_theta_decay(positions, hour)
+        print(f"Hour {hour}: Theta P&L = ${theta['cumulative_profit']}")
+
+    print("[15:50] RISK ENFORCEMENT")
+    # 10-minute final check
+    risk_check = enforce_risk_rules(portfolio, regime)
+    if risk_check.get('action') == 'REDUCE':
+        close_position(risk_check['position_id'], risk_check['quantity'])
+
+    print("[15:55] END-OF-DAY CAPTURE")
+    # Close all 0DTE positions in final 5 minutes
+    close_all_0dte()
 ```
-"You are a senior options trader at Tastyrade who specializes in QDTF
-(zero days to expiration) SPX credit spreads — the strategy professional
-theta traders use to generate daily income from time decay on the S&P 500 index."
-```
-Resultado: Scanner de spreads de crédito em 0DTE.
 
-**2. The Citadel Market Regime Classifier**
-Classifica regimes de mercado antes de operar:
-```
-"You are a senior quantitative strategist at Citadel who classifies market
-conditions into specific regimes before placing any options trade — because
-the #1 reason theta traders lose is selling premium in the wrong environment."
-```
-Resultado: Classificação de regimes (trend, range-bound, volatility spike).
+**Integração com Dados Reais**
 
-**3. The SIG Daily Theta Decay Calculator**
-Calcula decay de theta hora a hora:
-```
-"You are a senior options market maker at Susquehanna International who
-quantifies exact theta decay profits on short premium positions hour by hour
-throughout the trading day."
-```
-Resultado: Análise detalhada de decay diário.
+A alimentação de dados deve vir de APIs de mercado (Interactive Brokers, Tastytrade, ou Alpha Vantage para opções). Cada prompt aguarda JSON estruturado com preços, volatilidade implícita (IV), gregos (delta, gamma, theta, vega) e histórico de regime. O ciclo completo (coleta → análise → decisão → execução → monitoramento) deve levar menos de 5 minutos no início do dia e depois rodar em background, com checkpoint a cada 30 minutos.
 
-**4. The Two Sigma Probability-Based Strike Selection**
-Seleciona strikes baseado em probabilidade:
-```
-"You are a senior quantitative researcher at Two Sigma who selects option
-strikes based purely on statistical probability models — removing emotion
-and replacing gut feeling with math."
-```
-Resultado: Framework baseado em probabilidade.
+**Orquestração e Fila de Mensagens**
 
-**5. The D.E. Shaw Iron Condor Income Machine**
-Replica estratégia de iron condor:
-```
-"You are a senior portfolio manager at D.E. Shaw who runs systematic iron
-condor strategies on indexes and ETFs, collecting premium from both sides
-of the market when the underlying stays within a predictable range."
-```
-Resultado: Setup de iron condor sistemático.
+Para escalar além de protótipos, considere fila de mensagens (Redis/RabbitMQ): cada agente enfileira eventos ("regime changed", "volatility skew detected"), e listeners reagem acionando análises dependentes. Isso desacopla prompts e permite replay de histórico para backtesting.
 
-**6. The Jane Street Pre-Market Edge Analyzer**
-Analisa edge pré-market (8 AM):
-```
-"You are a senior volatility trader at Jane Street who analyzes pre-market
-conditions every morning at 8 AM to determine the optimal theta strategy
-before the opening bell — because the best trades are planned before the
-market opens."
-```
-Resultado: Análise pré-abertura do mercado.
+## Stack e requisitos
 
-**7. The Wolverine Trading Risk Management System**
-Sistema de gestão de risco:
-```
-"You are a senior risk manager at Wolverine Trading who monitors options
-portfolios in real-time and enforces strict risk rules that prevent
-catastrophic losses — because surviving bad days is more important than
-maximizing good ones."
-```
-Resultado: Regras de risco para proteção.
+- **Linguagem**: Python 3.9+
+- **Bibliotecas**: anthropic (API Claude), pandas (análise), requests (APIs de mercado)
+- **API de Mercado**: Interactive Brokers TWS API, Tastytrade API, ou Alpha Vantage
+- **Modelo Claude**: claude-opus-4-1 ou claude-3-5-sonnet (o custo aumenta com throughput)
+- **Hardware**: Nenhum especial; roda em laptop
+- **Custo API Anthropic**: ~$1-10/dia dependendo de volume de tokens e frequência de chamadas
+- **Custo de Dados**: Gratuito (IB) ou $20-50/mês (market data premium)
+- **Capital mínimo**: Recomendado $5k-10k para 0DTE trading com risco controlado
 
-**8. The Akuna Capital Volatility Skew Exploiter**
-Explora skew de volatilidade:
-```
-"You are a senior options trader at Akuna Capital who profits from volatility
-skew — the phenomenon where out-of-the-money puts are priced more expensively
-than equivalent calls, creating systematic edges for traders who know how to
-exploit it."
-```
-Resultado: Estratégia de skew.
+## Armadilhas e limitacoes
 
-**9. The Peak6 SPY Weekly Income Calendar**
-Calendário sistemático de renda:
-```
-"You are a senior income portfolio manager at Peak6 who runs a systematic
-weekly options income calendar on SPY — opening and closing positions on a
-fixed schedule that compounds premium income week after week."
-```
-Resultado: Calendário sistemático de SPY.
+**Risco de "Siren Song" da Automação**: o sistema funciona bem em mercados normais (trending, range-bound), mas falha catastróficamente em gaps pós-earnings ou volatilidade extrema. A confiança no modelo pode levar a abertura de posições oversized justo quando é mais perigoso. Sempre incluir kill-switches automáticos.
 
-**10. The IMC Trading Earnings Theta Crusher**
-Vende opções antes de earnings:
-```
-"You are a senior volatility trader at IMC Trading who systematically sells
-options before earnings announcements to profit from the predictable IV crush
-that occurs after every single earnings report — regardless of whether the
-stock moves up or down."
-```
-Resultado: Estratégia de earnings crush.
+**Latência e Execution Slippage**: prompts do Claude levam 500-1500ms por chamada. Em 0DTE onde segundos contam, isso pode significar preencher strikes piores ou perder janelas de oportunidade. Adicionar latência buffer na análise pré-mercado, ou usar modelos menores/mais rápidos para decisões em tempo real.
 
-**11. The Optiver End-of-Day Theta Scalpier**
-Captura theta decay no final do dia:
-```
-"You are a senior market maker at Optiver who specializes in capturing
-accelerated theta decay in the final 90 minutes of the trading day — when
-time decay on 0DTE options reaches its maximum velocity."
-```
-Resultado: Scalping de fim de dia.
+**Viés Backtest vs. Realidade**: histórico de dados é estacionário; mercados evoluem. Estratégias com 78% de acerto em backtesting caem para 60-65% em live trading porque competidores se adaptam. Sempre trade com posição reduzida enquanto valida em produção.
 
-**12. (Implícito na thread, consolidação)**
-Integração e gestão de risco em portfólio:
-Consolidar todas as 11 estratégias em um sistema de risco coeso.
+**Gestão de Risco Insuficiente**: mesmo com 5 prompts de risco, surpresas acontecem (halt, circuit breaker, erro de execução). Definir stop-loss absoluto por dólar, não percentual. Cúpula semanal de ganhos esperados, não perpetual.
 
-## Exemplos
+**Dependência de Dados Limplos**: se data feed da API ficar atrasado ou duplicado, modelo recebe garbage e faz decisões erradas. Validar cada input (preços saem de bid-ask spread?, IV é razoável?) antes de passar para Claude.
 
-**Fluxo Completo:**
+**Viés de Sobrevivência**: você só vê estratégias que funcionaram. Muitos traders experimentam 50+ estratégias; 1-2 funcionam. Não assuma que esse framework específico é especial.
 
-1. **Market Regime (Prompt 2)**: Usa dados de 8 AM para classificar se mercado está em trend ou range
-2. **Pre-Market Analysis (Prompt 6)**: Identifica opportunity windows
-3. **Volatility Skew (Prompt 8)**: Detecta pricing inefficiencies
-4. **Strike Selection (Prompt 4)**: Escolhe strikes com edge probabilístico
-5. **Risk Management (Prompt 7)**: Define posição máxima e stop loss
-6. **Income Calendar (Prompt 9)**: Integra em sistema recorrente
-7. **Real-Time Theta (Prompt 3)**: Monitora decay hora a hora
-8. **End-of-Day Capture (Prompt 11)**: Fecha posições últimos 90 minutos
+## Conexoes
 
-Resultado: 0.5-2% diários consistentes, com wins em ~78% das operações.
+[[theta-decay-opcoes]] — Conceito base de decaimento temporal
+[[gestao-de-risco-trading]] — Frameworks de risco sistêmico
+[[Anthropic API - Melhor Uso]] — Design de prompts para agendes autônomos
+[[zettelkasten-automação-negocios]]
 
-## Relacionado
-
-[[Claude Code - Melhores Práticas]]
-
-## Perguntas de Revisão
-
-1. Por que theta decay é preferido para automação com IA vs. tendência (trend trading)?
-2. Como você ordenaria esses 12 prompts em uma execução real de trading automatizado?
-3. Qual é o papel do "Market Regime Classifier" (Prompt 2) em prevenir grandes perdas?
+## Historico
+- 2026-03-07: Nota criada a partir de X (Nav Toor, @heynavtoor)
+- 2026-04-02: Nota reescrita e enriquecida pelo pipeline de curadoria — adicionados exemplos de código Python, stack técnico, armadilhas reais

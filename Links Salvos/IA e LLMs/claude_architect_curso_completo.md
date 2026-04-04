@@ -1,43 +1,177 @@
 ---
 date: 2026-03-15
-tags: [claude, ia, certificacao, arquitetura]
+tags: [claude, ia, certificacao, arquitetura, engenharia-software]
 source: https://x.com/hooeem/status/2033198345045336559
 autor: "@hooeem"
+tipo: aplicacao
 ---
 
-# Curso Completo - Claude Certified Architect
+# Programa Claude Certified Architect: Arquitetar Sistemas em Produção
 
-## Resumo
+## O que é
 
-Programa educacional completo que prepara desenvolvedores para se tornar "Claude Certified Architects" — profissionais qualificados a construir e arquitetar aplicações de produção usando Claude Code, Claude Agent SDK, Claude API e Model Context Protocols. É como passar de "pessoa que consegue escrever código com Claude" para "pessoa que arquiteta sistemas escaláveis com Claude", similar à diferença entre um desenvolvedor e um arquiteto de software tradicional.
+Programa educacional prático que qualifica desenvolvedores para arquitetar sistemas escaláveis com Claude. Cobertura: Claude Code, Agent SDK, API, Model Context Protocols. Diferença: desenvolver código vs. arquitetar sistemas.
 
-## Explicação
+## Como implementar
 
-Curso baseia-se em framework de exame prático que avalia: capacidade de construir arquiteturas escaláveis, compreensão profunda das capacidades do Claude, implementação de agentes e workflows, otimização de prompts e contexto, integração com sistemas externos.
+**1. Estrutura do programa (5 módulos)**
 
-**Analogia:** Sem certificação, você é como construtor que aprendeu a usar martelo — consegue bater pregos bem. Com certificação Architect, você sabe: quando usar pregos vs parafusos, como estruturar a casa para não desabar, como escolher materiais para 20 anos de durabilidade. A diferença é brutal: um constrói código, outro constrói sistemas que duram.
+```
+Módulo 1: Fundações Claude
+├─ Claude API (models, tokens, rate limits)
+├─ Prompt engineering (system, user, context)
+├─ Token economy (custo, otimização, caching)
+└─ Safety & guardrails
 
-Para se tornar Claude Architect e desenvolver aplicações em nível de produção, você precisa entender: Claude Code (ambiente de desenvolvimento oficial), Claude Agent SDK (SDK para criar agentes autônomos), Claude API (interface de programação para integração), Model Context Protocols (protocolos de contexto de modelo para comunicação estruturada).
+Módulo 2: Claude Code & Development
+├─ CLI & terminal integration
+├─ File operations, git, shell
+├─ Testing & debugging
+├─ CLAUDE.md project configuration
 
-**Profundidade:** Por que certificação prática é melhor? Porque arquitetura é sobre decisões sob incerteza — qual modelo escolher, quanto contexto reservar, como balancear custo vs qualidade. Teoria te ensina princípios, prática te ensina intuição. Depois de 10 arquiteturas fracassadas e 3 bem-sucedidas, você desenvolveu "sentido" de arquitetura — isso não pode ser ensinado em vídeo.
+Módulo 3: Agentes & Automação
+├─ Claude Agent SDK
+├─ Multi-agent coordination
+├─ Long-running sessions & memory
+├─ Error handling & recovery
 
-Certificação Claude Architect valida que profissional: entende padrões recomendados para arquitetura com Claude, pode projetar soluções escaláveis e robustas, domina melhores práticas de desenvolvimento, está preparado para ambientes de produção.
+Módulo 4: Integração & Contexto
+├─ Model Context Protocol (MCP)
+├─ External APIs (database, web, tools)
+├─ Context window optimization
+├─ Caching strategies
 
-Foco em certificação prática garante que aprendizes não apenas conhecem teoria, mas podem efetivamente implementar soluções reais com Claude.
+Módulo 5: Arquitetura & Produção
+├─ Escalabilidade (rate limits, batching)
+├─ Reliability (retries, fallbacks)
+├─ Monitoring & logging
+├─ Cost optimization
+```
 
-## Exemplos
+**2. Projeto prático por módulo**
 
-Não há exemplos técnicos específicos documentados na fonte original. Implementação típica envolve entender architecture patterns para aplicações Claude em escala.
+| Módulo | Projeto | Avaliação |
+|--------|---------|-----------|
+| 1 | Otimize prompt para reduçir custo 20% | Métrica: custo/qualidade |
+| 2 | Criar CLAUDE.md + auto-test pipeline | Métrica: tempo exec, coverage |
+| 3 | Arquitete 3-agent system (explorer, builder, verifier) | Métrica: error rate, convergence |
+| 4 | Integre 2 MCPs (web, database) | Métrica: latency, data freshness |
+| 5 | Deploy app com SLA 99.9% uptime | Métrica: availability, cost |
 
-## Relacionado
+**3. Certificação prática (exame)**
 
-- [[openclaw_tutorial_317_minutos]]
-- [[masterclass_construindo_apps_claude_code_gpt5]]
-- [[Claude Code - Melhores Práticas]]
-- [[450_skills_workflows_claude]]
+Exame: construa sistema do zero em 6 horas
 
-## Perguntas de Revisão
+Requisitos:
+- Criar arquitetura que scale 10x
+- Balancear custo vs. qualidade
+- Implementar observabilidade
+- Justificar decisões tecnicas
 
-1. O que diferencia "Claude Architect" de usuário comum de Claude?
-2. Como certificação prática é melhor que teoria em era de IA?
-3. Qual é o currículo mínimo para dominar Claude em 2026?
+Avaliação: 2 arquitetos sênior revisam, scoring em 5 dimensões:
+1. Escalabilidade (roda para 10k → 100k users?)
+2. Robustez (trata falhas, é resiliente?)
+3. Otimização (custo é razoável?)
+4. Design (arquitetura é limpa, decisões justificadas?)
+5. Produção (monitorável, debugável, maintível?)
+
+**4. Trilha de aprendizado recomendada**
+
+```
+Semana 1-2: Fundações
+- Ler Claude docs inteiros
+- Fazer 5 pequenos projetos (prompt variations)
+- Entender token economy na prática
+
+Semana 3-4: Claude Code
+- Setup CLAUDE.md
+- Criar 2 pipelines (lint + test automático)
+- Debug 3 casos de erro típicos
+
+Semana 5-6: Agentes
+- Rebuild seu projeto como multi-agent
+- Implementar memory layer
+- Teste coordenação entre agentes
+
+Semana 7-8: Integração
+- Adicione MCP (1 database, 1 web API)
+- Otimize context window (caching, compression)
+- Mede latência end-to-end
+
+Semana 9-10: Preparação
+- Estude 5 case studies de arquiteturas reais
+- Faça mock exame com timer
+- Revise decisões de arquitetura
+
+Semana 11: Exame
+- 6 horas para arquitetar + implementar
+```
+
+**5. Áreas-chave de mestrado**
+
+```
+A. Otimização de Tokens
+- Prompt compression (remover redundâncias)
+- Context caching (reutilizar contexto)
+- Batch processing (agrupar requests)
+→ Meta: reduzir tokens 30-50% sem perda qualidade
+
+B. Confiabilidade
+- Retry logic (exponential backoff)
+- Fallback agents (se agente X falha, Y toma)
+- Circuit breakers (evitar cascading failures)
+→ Meta: SLA 99.9% uptime
+
+C. Escalabilidade
+- Rate limiting (respeitar Anthropic limits)
+- Queue system (processar async)
+- Load balancing (distribuir entre agents)
+→ Meta: suportar 100x carga
+
+D. Observabilidade
+- Logging estruturado (cada action logada)
+- Metrics (token usage, latency, errors)
+- Tracing (rastrear request end-to-end)
+→ Meta: debug em < 5 min
+
+E. Segurança
+- Input validation (sanitize user input)
+- Output filtering (remover dados sensíveis)
+- Rate limits por user (prevent abuse)
+→ Meta: zero data leaks
+```
+
+**6. Recursos & comunidade**
+
+- Docs: https://docs.anthropic.com
+- Community: Discord Anthropic
+- Case studies: customer blogs
+- Forums: Stack Overflow tag `claude-api`
+
+## Stack e requisitos
+
+- Python 3.11+
+- Claude API key (acesso a todos modelos)
+- Git + GitHub
+- Kafka ou similar (opcionalmente, para queue/pipeline)
+- Prometheus + Grafana (opcional, para monitoring)
+
+## Armadilhas e limitações
+
+- **Custo real**: Projetos escaláveis ≈ $100-1000/mês em API calls. Budget é crítico
+- **Rate limits**: Anthropic throttles heavy users. Precisa design elegante pra escalar
+- **Context janela finita**: Mesmo com caching, 200K tokens é limite. Arquitetura deve planejar isso
+- **Não é "set and forget"**: Sistemas Claude requerem monitoring contínuo. Agentes podem desviar
+- **Certificação recente**: Program novo em 2026. Poucos casos validados em produção
+
+## Conexões
+
+[[CLAUDE-md-template-plan-mode-self-improvement]]
+[[claude-code-opera-com-26-prompts-especializados-organizados-em-camadas-funcionai]]
+[[consolidacao-de-memoria-em-agentes]]
+[[empresa-virtual-de-agentes-de-ia]]
+
+## Histórico
+
+- 2026-03-15: Nota criada
+- 2026-04-02: Reescrita como guia de implementação

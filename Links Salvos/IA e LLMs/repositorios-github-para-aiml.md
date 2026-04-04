@@ -2,8 +2,10 @@
 tags: []
 source: https://www.linkedin.com/posts/stasbel_these-16-github-repos-are-better-than-any-share-7438261435211845633-RGdG?utm_source=social_share_send&utm_medium=android_app&rcm=ACoAAAgQrLIB4LHRfm8oNhRCsOv9i7wGJSYJXQs&utm_campaign=whatsapp
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Repositórios GitHub para AI/ML
+
+# Estudar AI/ML com 16 Repositórios GitHub de Código Funcional (Free)
 
 ## Resumo
 Existem repositórios públicos no GitHub com dezenas de milhares de estrelas que cobrem todo o espectro de aprendizado em AI/ML — de fundamentos matemáticos a LLMs, RAG, agentes e reinforcement learning — de forma gratuita e com código funcional.
@@ -21,7 +23,10 @@ Do ponto de vista de aprendizado, a estrutura dos repositórios favorece o apren
 3. **Reinforcement Learning do zero**: combinar "Awesome RL" com "All RL Algorithms from Scratch" para entender tanto a teoria quanto a implementação de algoritmos como PPO e DQN.
 
 ## Relacionado
-*(Nenhuma nota existente no vault para linkar neste momento.)*
+- [[repositorios-github-para-claude-code|Repositórios GitHub para Claude Code]]
+- [[repositorios-open-source-de-ia|Repositórios Open-Source de IA]]
+- [[transfer-learning|Transfer Learning (Conceito)]]
+- Recursos de aprendizado: Hugging Face, ML prático
 
 ## Perguntas de Revisão
 1. Quais repositórios desta lista cobrem a camada de aplicação sobre LLMs (não treinamento), e por que essa distinção importa para um engenheiro de software?

@@ -2,32 +2,201 @@
 tags: [ferramentas, finanças, open-source, terminal, mercado-financeiro, self-hosted]
 source: https://x.com/RohOnChain/status/2039338468065849589?s=20
 date: 2026-04-01
+tipo: aplicacao
 ---
-# Alternativas open-source ao Bloomberg Terminal podem ser executadas localmente sem custo
 
-## Resumo
-Existe uma alternativa open-source ao Bloomberg Terminal que roda 100% localmente, sem custo de assinatura (que chega a US$ 24.000/ano) e sem dependência de APIs pagas. A instalação leva aproximadamente dez minutos.
+# Executar Terminal Financeiro Open-Source Localmente sem Custo
 
-## Explicação
-O Bloomberg Terminal é o padrão da indústria financeira para acesso a dados de mercado, notícias, análise de ativos e execução de ordens — mas seu custo proibitivo (~US$ 24.000/ano por licença) o torna inacessível para a maioria dos investidores individuais, pesquisadores e desenvolvedores independentes. A existência de uma alternativa open-source e local representa uma ruptura significativa nessa barreira de entrada.
+## O que é
 
-A proposta de rodar o terminal **100% local** elimina três dependências críticas: o custo de licença, os custos de API de dados financeiros e a dependência de infraestrutura de terceiros. Isso é relevante tanto do ponto de vista financeiro quanto de privacidade e soberania sobre os dados analisados. Ferramentas self-hosted desse tipo seguem a mesma filosofia de projetos como Ollama (LLMs locais) e Grafana (dashboards locais) — trazer capacidade de nível institucional para o ambiente pessoal ou de pequenas equipes.
+OpenBB Terminal é uma alternativa open-source e gratuita ao Bloomberg Terminal profissional (~US$ 24.000/ano). Roda 100% local, integra dados de fontes públicas (Yahoo Finance, FRED, Alpha Vantage), e oferece screening de ativos, análise técnica e alertas sem pagar por APIs ou infraestrutura cloud.
 
-Do ponto de vista técnico, alternativas open-source ao Bloomberg tipicamente agregam dados via feeds públicos (Yahoo Finance, FRED, Alpha Vantage free tier, dados on-chain) e oferecem interfaces de linha de comando ou dashboards para análise de séries temporais, screening de ativos, visualização de portfólio e, em alguns casos, alertas automatizados. O projeto referenciado no tweet é provavelmente o **OpenBB Terminal** (hoje OpenBB Platform), que é o mais conhecido nesse espaço e se encaixa exatamente na descrição: open-source, local, sem custo obrigatório.
+## Como implementar
 
-A relevância aumenta no contexto de fluxos de trabalho com IA: terminais financeiros locais podem ser integrados a modelos de linguagem locais para análise automatizada de dados de mercado, criando pipelines de pesquisa financeira inteiramente self-hosted e sem custos recorrentes.
+**Install OpenBB Terminal (10 minutos):**
 
-## Exemplos
-1. **Screening de ações**: Usar o OpenBB localmente para filtrar ações por P/L, momentum e volume sem pagar por APIs — usando fontes públicas como Yahoo Finance e dados do FRED (macroeconomia).
-2. **Análise on-chain + TradFi**: Combinar dados de mercado tradicional com dados on-chain (disponíveis gratuitamente via RPC público ou exploradores) em um único dashboard local, algo que o Bloomberg padrão não oferece nativamente.
-3. **Integração com LLM local**: Conectar o terminal financeiro open-source a um modelo como LLaMA rodando via Ollama para gerar resumos automáticos de dados de mercado ou alertas interpretados em linguagem natural — sem enviar dados a APIs externas.
+```bash
+# Pré-requisito: Python 3.9+
+pip install openbb-terminal
 
-## Relacionado
-*(Nenhuma nota existente no vault para conectar neste momento.)*
+# Iniciar
+openbb
+```
 
-## Perguntas de Revisão
-1. Quais são as limitações reais de uma alternativa open-source ao Bloomberg em termos de qualidade, latência e cobertura de dados em comparação ao terminal pago?
-2. Como a filosofia de ferramentas self-hosted (sem custo, sem dependência de terceiros) se aplica a outros domínios além de finanças — e quais são os trade-offs aceitáveis?
+**Caso de uso 1: Screening de ações por métricas**
 
-## Histórico de Atualizações
-- 2026-04-01: Nota criada a partir de Telegram
+```python
+from openbb_terminal.stocks import stocks_helper as sh
+import pandas as pd
+
+# Buscar ações com P/L < 15 e crescimento > 10%
+stocks_df = sh.load_stocks()  # Yahoo Finance grátis
+
+screened = stocks_df[
+    (stocks_df['PE_RATIO'] < 15) &
+    (stocks_df['GROWTH'] > 0.10)
+]
+
+print(screened[['SYMBOL', 'PE_RATIO', 'GROWTH']])
+```
+
+**Caso de uso 2: Análise técnica com indicadores**
+
+```python
+from openbb_terminal.stocks import technical_analysis
+
+# Carregar série histórica de ação
+data = sh.load('PETR4.SA', start_date='2023-01-01')
+
+# Calcular SMA (Simple Moving Average)
+sma_20 = technical_analysis.sma(data, window=20)
+sma_200 = technical_analysis.sma(data, window=200)
+
+# Sinal: compra quando SMA20 cruza SMA200 para cima
+buy_signals = sma_20[sma_20 > sma_200]
+
+print(f"Sinais de compra: {len(buy_signals)}")
+```
+
+**Caso de uso 3: Dados macroeconomômicos (FRED)**
+
+```python
+from openbb_terminal.economy import economy_helper
+
+# Taxa de desemprego EUA (série UNRATE)
+unemployment = economy_helper.fred('UNRATE', start_date='2020-01-01')
+
+# PIB trimestral Brasil (série via Yahoo)
+gdp_data = sh.load_economic_data('BRL=X')
+
+print(unemployment.tail(10))  # Últimos 10 meses
+```
+
+**Caso de uso 4: Dashboard com Plotly**
+
+```python
+import plotly.graph_objects as go
+from openbb_terminal.stocks import stocks_helper as sh
+
+# Dados
+data = sh.load('AAPL', start_date='2023-01-01')
+
+# Criar gráfico candlestick
+fig = go.Figure(data=[
+    go.Candlestick(
+        x=data.index,
+        open=data['Open'],
+        high=data['High'],
+        low=data['Low'],
+        close=data['Close']
+    )
+])
+
+fig.update_layout(title='AAPL - Últimos 12 meses', height=600)
+fig.show()
+```
+
+**Caso de uso 5: Integração com LLM local para análise**
+
+```python
+import ollama
+from openbb_terminal.stocks import stocks_helper as sh
+
+# Buscar dados recentes
+data = sh.load('NVDA', start_date='2024-01-01')
+latest_price = data['Close'].iloc[-1]
+ma_50 = data['Close'].rolling(50).mean().iloc[-1]
+
+# Usar LLaMA local para análise
+response = ollama.generate(
+    model='llama2',
+    prompt=f"""
+    NVDA atual: ${latest_price:.2f}
+    Média móvel 50 dias: ${ma_50:.2f}
+    Análise técnica em uma frase:
+    """
+)
+
+print(response['response'])
+```
+
+**Caso de uso 6: Alerts automatizados**
+
+```python
+import schedule
+import time
+from openbb_terminal.stocks import stocks_helper as sh
+
+def check_alert():
+    data = sh.load('BTC-USD', start_date='2024-01-01')
+    latest = data['Close'].iloc[-1]
+
+    if latest > 50000:
+        print(f"ALERTA: BTC acima de $50k. Preço atual: ${latest:.2f}")
+        # Enviar email/Slack/Telegram aqui
+
+schedule.every(1).hours.do(check_alert)
+
+while True:
+    schedule.run_pending()
+    time.sleep(60)
+```
+
+## Stack e requisitos
+
+- **OpenBB Terminal**: versão 4.0+
+- **Python**: 3.9+ (3.11 recomendado)
+- **Dependências principais**:
+  - Pandas: manipulação de dados
+  - Plotly: visualização interativa
+  - YFinance: dados Yahoo Finance (grátis)
+  - Requests: chamadas HTTP
+
+```bash
+pip install pandas plotly yfinance requests
+pip install openbb-terminal
+```
+
+- **Dados de APIs públicas (grátis, sem rate limit agressivo)**:
+  - Yahoo Finance: ações, ETFs, cripto, forex
+  - FRED (Federal Reserve): dados macroeconômicos USA
+  - Alpha Vantage: dados técnicos (free tier: 5 chamadas/min)
+  - Blockchain.com: dados on-chain Bitcoin
+
+- **Requisitos de hardware**: CPU 2+ cores, 4GB RAM mínimo, disk 1GB para cache de dados
+
+- **Custo**: $0 em software e dados públicos (APIs Premium podem custar US$ 10-50/mês caso deseje mais rate limit)
+
+## Armadilhas e limitações
+
+1. **Limitação: latência de dados**: Dados públicos (Yahoo Finance) atrasam 15-20 minutos. Bloomberg oferece real-time. Para day trading, inútil.
+
+2. **Armadilha: confiabilidade de APIs públicas**: Yahoo Finance pode falhar ou mudar schema. Alternativas (Alpha Vantage) têm rate limits agressivos (5 req/min free). Produção exige fallbacks.
+
+3. **Limitação: cobertura geográfica**: Dados principalmente EUA/China. Mercados menores (Brasil, Portugal) têm cobertura limitada ou histórico curto.
+
+4. **Armadilha: confundir análise técnica com predição**: Indicadores como SMA, RSI descrevem padrões históricos, não garantem future trends. Usar como *um* sinalizador em estratégia maior, não como sinal único.
+
+5. **Limitação: on-chain data**: RPC públicos são lentos e instáveis. Para análise on-chain pesada, considere infra paga (Alchemy, Infura).
+
+6. **Armadilha: esquecer tratamento de erros**: APIs públicas podem falhar. Sempre wrap chamadas:
+   ```python
+   try:
+       data = sh.load('INVALID')
+   except Exception as e:
+       print(f"Erro ao carregar dados: {e}")
+       # Usar dados cached ou fallback
+   ```
+
+## Conexões
+
+- [[apis-publicas-gratuitas]] - Fontes de dados para integração
+- [[clonagem-de-voz-local-open-source]] - TTS para alertas de voz
+- [[web-scraping-sem-api-para-agentes-ia]] - Coleta alternativa de dados financeiros
+- [[spec-driven-ai-coding]] - Usar Claude para gerar análises
+- [[10-repositorios-github-data-engineering-essenciais]] - Pipeline de dados financeiros
+
+## Histórico
+
+- 2026-04-01: Nota original
+- 2026-04-02: Reescrita com implementação prática

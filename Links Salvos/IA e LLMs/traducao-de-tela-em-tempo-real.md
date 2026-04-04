@@ -2,8 +2,10 @@
 tags: []
 source: https://x.com/sharbel/status/2039299741826142377?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Tradução de Tela em Tempo Real
+
+# Implementar OCR Local + Tradução em Tempo Real para Qualquer Interface
 
 ## Resumo
 Ferramentas de tradução em tempo real via OCR local permitem ler e traduzir qualquer texto visível na tela — jogos, vídeos, legendas — sem APIs externas, sem custo e sem interrupção do fluxo.
@@ -23,7 +25,9 @@ Do ponto de vista de casos de uso, a eliminação da barreira de idioma em tempo
 3. **Monitoramento de streams e vídeos**: acompanhar transmissões ao vivo em idiomas estrangeiros com tradução instantânea das legendas ou textos exibidos.
 
 ## Relacionado
-*(Nenhuma nota relacionada disponível no vault no momento.)*
+- [[Anotações Visuais Como Input para IA]] — processar informações visuais da tela para agentes
+- [[Pipelines Multimodais de IA Permitem Produção Automatizada de Vídeo a Custo Marginal Próximo de Zero|Pipelines Multimodais de IA]] — integração de múltiplas modalidades (visão + linguagem)
+- [[Browser Como Container de Agente de IA]] — agentes operando diretamente na interface do navegador
 
 ## Perguntas de Revisão
 1. Quais são os componentes técnicos mínimos necessários para um sistema de tradução de tela em tempo real funcionar localmente?

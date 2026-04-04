@@ -2,8 +2,10 @@
 tags: []
 source: https://x.com/Butanium_/status/2037575095569269201?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Redação Silenciosa de Thinking em LLMs
+
+# Restaurar Exibição de Thinking Tokens no Claude Code via settings.json
 
 ## Resumo
 A partir da versão 2.1.69 do Claude Code, os "pensamentos" (thinking/reasoning tokens) do modelo são suprimidos silenciosamente por padrão, sem menção no changelog. É possível restaurá-los via configuração não documentada.
@@ -23,7 +25,10 @@ Do ponto de vista de segurança e controle, a supressão padrão pode ser justif
 3. **Descoberta comunitária como documentação alternativa**: A configuração foi descoberta e divulgada por usuários, não pela Anthropic — padrão comum em ecossistemas de ferramentas de IA em rápida evolução.
 
 ## Relacionado
-*(Nenhuma nota relacionada disponível no vault no momento.)*
+- [[450_skills_workflows_claude|Skills e Workflows Claude]]
+- [[claude-code-opera-com-26-prompts-especializados-organizados-em-camadas-funcionai|Claude Code com 26 Prompts Especializados]]
+- [[memory-stack-para-agentes-de-codigo|Memory Stack para Agentes de Código]]
+- Observabilidade em LLMs e transparência do raciocínio
 
 ## Perguntas de Revisão
 1. Por que a supressão silenciosa de thinking tokens é problemática do ponto de vista de transparência em ferramentas de IA para desenvolvedores?

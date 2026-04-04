@@ -3,43 +3,124 @@ date: 2026-03-24
 tags: [ia, google, gemini, embeddings, multimodal, vetores, busca]
 source: https://www.linkedin.com/posts/fabriciocarraro_ia-inteligenciaartificial-ai-share-7441807897744785408-zau-
 autor: "@fabriciocarraro"
+tipo: aplicacao
 ---
 
-# Gemini Embedding 2: Embeddings Multimodais Nativos do Google
+# Implementar Busca Multimodal com Gemini Embedding 2
 
-## Resumo
+## O que é
 
-Google DeepMind lançou "Gemini Embedding 2", primeiro modelo de embeddings nativamente multimodal capaz de mapear texto, imagens, áudio, vídeo e PDFs no mesmo espaço vetorial, permitindo buscas cruzadas utilizando similaridade de cossenos simples. É como ter um tradutor universal que converte qualquer tipo de informação (texto, imagem, som) para mesma linguagem interna — agora você consegue comparar maçã com laranja porque ambas estão em "linguagem de fruta".
+Modelo Google Gemini Embedding 2 mapeia texto, imagens, áudio, vídeo, PDFs para único espaço vetorial. Busca cross-modal nativa: image-to-audio, text-to-video, PDF-to-image, sem conversão intermediária. Operações vetoriais funcionam multimodal (ex: imagem de rei - coroa ouro = imagem homem).
 
-## Explicação
+## Como implementar
 
-Anteriormente os embeddings eram separados por tipo de conteúdo — texto mapeado para uma representação vetorial, imagens para outra, áudio para outra, sem compatibilidade entre eles. Gemini Embedding 2 cria um único espaço vetorial para todo tipo de conteúdo. Capacidades incluem buscas multimodais cross-modal: image-to-image (encontrar imagens similares), audio-to-audio (encontrar áudios similares), video-to-video (encontrar vídeos similares), PDF-to-PDF (encontrar PDFs similares). Também permite buscas cruzadas bizarramente simples: usar imagem para encontrar som, usar voz para buscar PDF sem precisar extrair texto antes, encontrar vídeos baseado em descrição textual, encontrar imagens que correspondem a clipe de áudio.
+**1. Obter API key**
 
-**Analogia:** Sem Gemini Embedding 2: você tem três dicionários diferentes (um para texto, um para imagens, um para áudio) e eles não falam a mesma linguagem — não consegue traduzir de um para outro. Com Gemini Embedding 2: todos os dicionários estão em uma mesma página — texto, imagem, áudio, PDF — tudo descreve conceitos na mesma "linguagem de significado". Agora "foto de gato" e "som de miau" e "palavra 'meow'" apontam para mesma direção nesse dicionário.
+- Acesse: https://ai.google.dev
+- Clique "Get API Key"
+- Copie chave (gratuita para tier inicial)
 
-A matemática de vetores agora funciona multimodal. Exemplo clássico em texto: "rei - homem + mulher = rainha" (em espaço vetorial). Agora em multimodal: "[imagem de rei] - [coroa de ouro] = [imagem de homem]" (mesma operação, mas com imagens). Isto elimina necessidade de conversão prévia (áudio → texto), simplifica pipelines de processamento multimodal, busca mais intuitiva e precisa, menos passos no pipeline, melhor performance e menos latência.
+**2. Setup Python com notebook**
 
-**Profundidade:** Por que isso muda tudo? Pipelines anteriores precisavam converter (áudio → transcrição → embedding → busca). Gemini 2 pula conversão. Resultado: mais rápido, mais preciso (conversão perde informação), menos código, menos pontos de falha. Implicação maior: IA multimodal fica viável para aplicações reais.
+```python
+import google.generativeai as genai
+from google.colab import userdata
 
-## Exemplos
+api_key = userdata.get('GOOGLE_API_KEY')
+genai.configure(api_key=api_key)
 
-Google Colab completíssimo foi criado por Fabrício Carraro e Pedro Gabriel Gengo Lourenço com exemplos práticos.
+# Modelo multimodal
+model = 'models/embedding-001'
+```
 
-Exemplos incluem: matemática de vetores com textos ("rei - homem + mulher = rainha"), aplicação em imagens ("rei - coroa = homem"), buscas nativas (image-to-image, audio-to-audio, video-to-video, PDF-to-PDF), buscas multimodais cruzadas (áudio com PDF, agrupamento de posts de redes sociais).
+**3. Gerar embeddings multimodais**
 
-Para executar: acessar Google Colab, pegar API key no Google AI Studio, começar a usar. Tudo roda gratuito.
+```python
+# Texto
+text_embedding = genai.embed_content(
+    model=model,
+    content="foto de gato"
+)['embedding']
 
-Aplicações práticas incluem: busca multimodal em redes sociais (misturar posts que combinam texto e imagem, agrupar conteúdo relacionado), catálogo inteligente de conteúdo (catalogar vídeos, áudios, imagens, PDFs, busca intuitiva cross-modal sem preprocessamento), RAG melhorado (embeddings nativos mais precisos ao invés de extrair texto de áudio/PDF), busca por similaridade (encontrar conteúdo similar independentemente do formato).
+# Imagem (URL ou base64)
+image_embedding = genai.embed_content(
+    model=model,
+    content={'mime_type': 'image/jpeg', 'data': image_data}
+)['embedding']
 
-Recursos: Google Colab em https://colab.research.google.com/drive/1XDnY2InFiE_UNNyHOoN7NtbZKIKsYVqY?usp=sharing, GitHub Repository em https://github.com/fabriciocarraro/Gemini-Embedding-2-Complete-Guide.
+# Áudio
+audio_embedding = genai.embed_content(
+    model=model,
+    content={'mime_type': 'audio/mpeg', 'data': audio_data}
+)['embedding']
+```
 
-## Relacionado
+**4. Busca por similaridade**
 
-- [[Indexacao de Codebase para Agentes IA]]
-- [[MediaPipe Face Recognition Local Edge]]
+```python
+import numpy as np
 
-## Perguntas de Revisão
+# Cosseno similarity
+def cosine_similarity(a, b):
+    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
-1. Por que embeddings "no mesmo espaço vetorial" é fundamentalmente diferente de "embeddings tradicionais de cada tipo"?
-2. Como eliminar conversão (áudio → texto → embedding) muda velocidade e precisão de buscas multimodais?
-3. Qual é a conexão entre espaços vetoriais unificados e viabilidade de IA multimodal em aplicações reais?
+# Query: imagem → encontrar áudios similares
+query_embedding = image_embedding
+similarities = [cosine_similarity(query_embedding, audio_emb)
+                for audio_emb in audio_embeddings]
+top_k = np.argsort(similarities)[-5:]  # Top 5
+```
+
+**5. Pipeline RAG melhorado**
+
+Sem Gemini 2: áudio → transcrever → embeddings → busca (3 passos, perda info)
+Com Gemini 2:
+
+```python
+# Direto
+document_embeddings = {
+    'video.mp4': genai.embed_content(model, video_data)['embedding'],
+    'doc.pdf': genai.embed_content(model, pdf_data)['embedding'],
+    'image.jpg': genai.embed_content(model, image_data)['embedding'],
+}
+
+# Query com qualquer mídia
+result = max(document_embeddings.items(),
+             key=lambda x: cosine_similarity(query_embedding, x[1]))
+```
+
+**6. Casos de uso estruturados**
+
+| Aplicação | Implementação |
+|-----------|--|
+| Catálogo multimodal | Indexar vídeos + PDFs + imagens, busca por qualquer tipo |
+| Rede social inteligente | Agrupar posts texto/imagem/video similar |
+| Pesquisa documentação | Buscar PDFs por imagens/áudio sem OCR prévio |
+| Recuperação RAG | Chunks áudio/imagem/texto no mesmo índice vetorial |
+
+## Stack e requisitos
+
+- Python 3.9+
+- google-generativeai library
+- NumPy (similaridade cosseno)
+- Google Colab ou local (gratuito tier inicial)
+- Modelos suportados: embedding-001
+
+## Armadilhas e limitações
+
+- **Rate limits**: Tier gratuito: ~600 requests/dia. Use caching se processamento em batch
+- **Tamanho máximo**: Cada entrada até ~100K tokens (texto), ~5min (áudio/vídeo)
+- **Qualidade varia**: Embeddings mais precisos em sânico bem-estruturado. Ruído audio = similaridade imprecisa
+- **Sem fine-tuning**: Modelo genérico. Para domínio específico, considere treinar adapter
+- **Custo escala**: Após free tier, pagamento por 1M embeddings (~$0.02)
+
+## Conexões
+
+[[embeddings-multimodais-em-espaco-vetorial-unificado]]
+[[contexto-persistente-em-llms]]
+[[geracao-de-json-a-partir-de-qualquer-fonte]]
+
+## Histórico
+
+- 2026-03-24: Nota criada
+- 2026-04-02: Reescrita como guia de implementação

@@ -1,33 +1,157 @@
 ---
-tags: []
+tags: [obsidian, claude-code, plugin, pkm, ai-research]
 source: https://x.com/thisguyknowsai/status/2038890248772763842?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Claude Code no Obsidian
 
-## Resumo
-KatmerCode é um plugin open-source que integra o Claude Code diretamente no Obsidian, trazendo capacidades de agente de IA para dentro do ambiente de escrita e gestão de conhecimento.
+# Integrar KatmerCode (Claude Code) em Obsidian
 
-## Explicação
-KatmerCode é um plugin para Obsidian que incorpora uma sessão completa do Claude Code na sidebar do aplicativo. Isso significa que o usuário tem acesso a um agente de IA com capacidades avançadas sem sair do seu vault, unindo gestão de conhecimento pessoal com assistência de IA de nível de desenvolvedor.
+## O que é
 
-Entre as funcionalidades destacadas estão: sete habilidades voltadas para pesquisa acadêmica (como síntese, extração de argumentos e análise de fontes), edição inline com diff (visualização de alterações diretamente no texto, linha a linha), e suporte a MCP (Model Context Protocol), que permite ao agente interagir com ferramentas e contextos externos de forma padronizada. A combinação desses recursos transforma o Obsidian de um editor de notas em um ambiente de trabalho intelectual aumentado por IA.
+Plugin KatmerCode open-source embarca Claude Code em sidebar Obsidian. Inclui: 7 skills pesquisa acadêmica, diff inline, suporte MCP. Transforma vault em ambiente intelectual aumentado por IA.
 
-A relevância desta integração está na convergência de dois paradigmas: o PKM (Personal Knowledge Management) baseado em arquivos Markdown locais e os agentes de IA com capacidade de leitura, escrita e raciocínio sobre contexto longo. O Claude Code, originalmente voltado para desenvolvimento de software, passa a operar sobre o grafo de conhecimento do usuário, podendo ler notas existentes, sugerir conexões, redigir conteúdo e executar tarefas encadeadas.
+## Como implementar
 
-O fato de ser 100% open-source reduz a barreira de adoção e permite auditoria e extensão pela comunidade, o que é relevante para usuários que prezam pela privacidade e controle sobre seus dados no vault.
+**1. Instalar KatmerCode**
 
-## Exemplos
-1. **Pesquisa acadêmica assistida**: usar as 7 habilidades de pesquisa do plugin para analisar um conjunto de notas sobre um tema e gerar uma síntese com lacunas identificadas.
-2. **Edição com diff inline**: solicitar ao Claude Code que revise e melhore um texto já escrito no vault, aprovando ou rejeitando cada alteração linha a linha antes de confirmar.
-3. **Automação via MCP**: conectar o plugin a ferramentas externas (ex: busca na web, banco de dados de referências) para enriquecer notas automaticamente durante uma sessão de pesquisa.
+```bash
+# Opção A: Marketplace Obsidian
+Obsidian → Settings → Community Plugins → Search "KatmerCode" → Install
 
-## Relacionado
-*(Nenhuma nota relacionada disponível no vault no momento.)*
+# Opção B: Manual (desenvolvimento)
+git clone https://github.com/katmercode/katmercode.git
+cd katmercode
+npm install && npm run dev
+# Copy manualmente para .obsidian/plugins/
+```
 
-## Perguntas de Revisão
-1. Quais são as diferenças práticas entre usar Claude Code via terminal versus via plugin no Obsidian em termos de fluxo de trabalho?
-2. Como o suporte a MCP amplia as capacidades do plugin além do que um simples chat com IA ofereceria?
+**2. Configurar API Anthropic**
 
-## Histórico de Atualizações
-- 2026-04-02: Nota criada a partir de Telegram
+Settings → KatmerCode → Cole API key
+
+```json
+{
+  "apiKey": "[your-anthropic-key]",
+  "model": "claude-opus-4-1",
+  "autoSync": true,
+  "mcpEnabled": true
+}
+```
+
+**3. Abrir painel Claude**
+
+- Sidebar esquerda: icone "KatmerCode"
+- Ou: Ctrl+Shift+P → "KatmerCode: Open Panel"
+- Chat interface aparece na sidebar
+
+**4. Usar 7 skills de pesquisa acadêmica**
+
+```
+// 1. Síntese: resumir conjunto de notas
+"Sintetize notas em [[MOC - Agentes Autonomos/]]
+Identifique tema central, conceitos-chave, lacunas"
+
+// 2. Extração de argumentos
+"Leia [[paper-xyz.md]]. Extraia: tese principal,
+3 argumentos principais, contraargumentos, conclusão"
+
+// 3. Análise de fontes
+"Revise [[Referencias/]]. Para cada entrada:
+Tipo (livro/artigo/blog), autor, relevância,
+como cita este projeto"
+
+// 4. Mapping conceitual
+"Crie mapa conceitual: [[conceito-A.md]] → [[conceito-B.md]]
+Mostre relações, diretas vs. indiretas"
+
+// 5. Crítica e validação
+"Critique argumento em [[nota.md]]:
+Assumções, evidência, gaps lógicos"
+
+// 6. Expansão/aprofundamento
+"Expanda [[intro-note.md]]. Adicione:
+História, aplicações práticas, casos de estudo"
+
+// 7. Síntese cruzada
+"Compare 3 notas sobre tema X. Consenso? Divergências?
+Integre em nova nota [[síntese-tema-X.md]]"
+```
+
+**5. Edição com diff inline**
+
+```
+Selecione trecho no vault.
+KatmerCode → "Refine selected text"
+Aprove/rejeite cada linha de mudança
+Aceitar ou descartar mudanças atomicamente
+```
+
+**6. Integração MCP (Model Context Protocol)**
+
+Conectar ferramentas externas:
+
+```json
+{
+  "mcpServers": [
+    {
+      "type": "web_search",
+      "enabled": true
+    },
+    {
+      "type": "arxiv",
+      "enabled": true
+    },
+    {
+      "type": "github_search",
+      "enabled": false
+    }
+  ]
+}
+```
+
+Agora agente pode:
+- Pesquisar web durante análise
+- Buscar papers acadêmicos
+- Enriquecer notas com referências
+
+**7. Workflow prático PKM+IA**
+
+```
+1. Ler/salvar novo artigo em [[Lidos/]]
+2. Abrir KatmerCode → "Extract from current file"
+3. Aprova extração automática: tese, args, referências
+4. Pergunta: "Onde esta nota se conecta em meu vault?"
+5. Agente sugere [[wikilinks]] (aprova manualmente)
+6. "Sintetize com notas relacionadas"
+7. Novo arquivo de síntese gerado
+```
+
+## Stack e requisitos
+
+- Obsidian v1.5+
+- Node.js 16+ (desenvolvimento)
+- Anthropic API key
+- Opcional: MCP servers (web, arxiv, etc)
+- ~100MB RAM para sidebar panel
+
+## Armadilhas e limitações
+
+- **Open source ≠ privado**: Código é aberto, mas dados ainda vão a Anthropic API
+- **Diff inline impreciso**: Às vezes marca mudanças que não são relevantes
+- **MCP ainda emergente**: Nem todos os integrations testadas. Pode quebrar
+- **Performance**: Vaults >50k notas lentificam searches de contexto
+- **Conflitos git**: Se vault tem git, edits simultâneos plugin+manual = merge conflicts
+- **Context janela**: Claude tem limite. Vault gigante não cabe em um prompt
+
+## Conexões
+
+[[claude-code-embarcado-em-editor-de-notas]]
+[[CLAUDE-md-template-plan-mode-self-improvement]]
+[[contexto-persistente-em-llms]]
+[[consolidacao-de-memoria-em-agentes]]
+
+## Histórico
+
+- 2026-04-02: Nota criada
+- 2026-04-02: Reescrita como guia de implementação

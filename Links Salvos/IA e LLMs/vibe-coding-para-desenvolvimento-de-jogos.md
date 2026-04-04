@@ -2,8 +2,10 @@
 tags: []
 source: https://x.com/alightinastorm/status/2028246608811348355?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Vibe Coding para Desenvolvimento de Jogos
+
+# Aplicar Vibe Coding em Desenvolvimento AAA de Jogos com ThreeJS e LLMs
 
 ## Resumo
 Vibe Coding aplicado ao desenvolvimento de jogos AAA consiste em usar IA generativa para produzir integralmente assets, código, design de fases, sons, animações e narrativa, sem que o desenvolvedor precise executar manualmente nenhuma dessas tarefas.
@@ -23,7 +25,10 @@ Um ponto técnico relevante é o uso de ThreeJS como substrato: por ser uma bibl
 3. **Pipeline de audio completo**: trilha sonora, efeitos sonoros e músicas de ambiente gerados por IA e integrados ao jogo sem uso de bibliotecas de assets pagos.
 
 ## Relacionado
-*(Nenhuma nota relacionada disponível no vault no momento da criação desta nota.)*
+- [[Claude Code]] — agente de codificação que viabiliza vibe coding em escala
+- [[Arquitetura Interna do Claude Code]] — estrutura subjacente que permite delegação de tarefas
+- [[Auto-Melhoria Persistente em Agentes de Código]] — loop iterativo de refinamento inerente ao vibe coding
+- [[skill-workflow-composition|Skill Workflow Composition]] — composição de capacidades para automação criativa
 
 ## Perguntas de Revisão
 1. Quais são os limites atuais do Vibe Coding em projetos de jogos — onde a intervenção humana ainda é indispensável?

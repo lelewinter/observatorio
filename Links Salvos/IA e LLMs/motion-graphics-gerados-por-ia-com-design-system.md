@@ -1,31 +1,190 @@
 ---
-tags: []
+tags: [motion-graphics, ia, design-system, remotion, video-generation]
 source: https://x.com/jasondoesstuff/status/2039444150743867561?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Motion Graphics Gerados por IA com Design System
 
-## Resumo
-É possível usar um agente de código (como Claude Code) para extrair automaticamente o design system de um projeto existente e, a partir dele, gerar motion graphics programáticos com Remotion, mantendo consistência visual total.
+# Gerar Motion Graphics com Agente IA: Extrair Design System e Animar com Remotion
 
-## Explicação
-O fluxo consiste em três etapas encadeadas: primeiro, um agente de IA analisa o projeto/app atual e documenta seu design system em um arquivo markdown (`design-system.md`), capturando tokens de cor, tipografia, espaçamento e componentes. Em seguida, instala-se o Remotion — uma biblioteca que permite criar vídeos e animações usando React e código JavaScript. Por fim, o agente utiliza o design system extraído como contexto para gerar animações de interações do próprio app, produzindo motion graphics programaticamente coerentes com a identidade visual existente.
+## O que e
 
-O que torna essa abordagem relevante é a eliminação do gargalo criativo-técnico entre design e produção de vídeo. Tradicionalmente, criar b-roll animado ou demos de produto exigiria um designer de motion graphics trabalhando manualmente em ferramentas como After Effects. Aqui, a IA age como uma ponte entre o artefato de código existente e a produção audiovisual, sem intervenção humana especializada em cada etapa.
+Agente Claude Code extrai design system de projeto existente em markdown. Usa como contexto para gerar animações de app interactions com Remotion (React video library). Resultado: b-roll 16:9 com tokens visuais consistentes, sem motion designer.
 
-A capacidade de mockar apps populares (como Slack) sugere que o agente pode trabalhar não apenas com projetos próprios, mas também recriar interfaces conhecidas como referência — útil para estudos comparativos, apresentações ou conteúdo educativo. O formato 16:9 mencionado indica uso direto como b-roll para YouTube, mostrando aplicação imediata em produção de conteúdo.
+## Como implementar
 
-## Exemplos
-1. **B-roll para YouTube**: Gerar animações de fluxos do próprio SaaS em 16:9 para usar como material de apoio em vídeos explicativos, sem contratar motion designer.
-2. **Demo de produto**: Criar animações das interações principais de um app para landing pages ou pitch decks, garantindo que os tokens visuais sejam fiéis ao produto real.
-3. **Mockup de referência**: Recriar interfaces de apps conhecidos (Slack, Notion) animadas para comparações de UX ou tutoriais.
+**Etapa 1: Extrair design system** (agente lê projeto):
+```bash
+# Instruir Claude Code a fazer isso:
+@claude "Analyze my project and extract:
+- All color tokens (variables, hex values)
+- Typography (fonts, sizes, line heights, weights)
+- Spacing scale (padding, margin standard values)
+- Component library (buttons, cards, inputs)
+- Animation easing curves and durations
+Output as design-system.md"
+```
 
-## Relacionado
-*(Nenhuma nota relacionada disponível no vault no momento.)*
+Claude produz (exemplo):
+```markdown
+# Design System
 
-## Perguntas de Revisão
-1. Quais são os limites do que um agente de IA consegue extrair automaticamente como "design system" de um projeto — ele captura apenas CSS/tokens ou também padrões de interação?
-2. De que forma o uso de Remotion (React-based) facilita a integração com o design system extraído em comparação com ferramentas de vídeo tradicionais?
+## Colors
+- primary: #0066CC
+- success: #22C55E
+- error: #EF4444
+- bg-light: #F9FAFB
+- text-dark: #111827
 
-## Histórico de Atualizações
-- 2026-04-02: Nota criada a partir de Telegram
+## Typography
+- font-family: Inter, sans-serif
+- h1: 32px, 700, line-height 1.2
+- body: 16px, 400, line-height 1.5
+
+## Spacing
+- xs: 4px
+- sm: 8px
+- md: 16px
+- lg: 24px
+- xl: 32px
+
+## Animations
+- standard-curve: cubic-bezier(0.4, 0, 0.2, 1)
+- duration-short: 150ms
+- duration-default: 300ms
+```
+
+**Etapa 2: Instalar Remotion**:
+```bash
+npm install remotion
+npm install @remotion/cli
+```
+
+**Etapa 3: Criar animações** (agente gera código Remotion):
+```javascript
+// user-onboarding-animation.tsx
+import React from 'react';
+import {
+  AbsoluteComposition,
+  Sequence,
+  spring,
+  interpolate,
+  Easing,
+} from 'remotion';
+
+// Importar design system
+import { designSystem } from './design-system';
+
+export const UserOnboardingAnimation = () => {
+  const { duration, fps } = {
+    duration: 10,
+    fps: 30,
+  };
+
+  return (
+    <AbsoluteComposition
+      width={1920}
+      height={1080}
+      durationInFrames={duration * fps}
+      fps={fps}
+      style={{ backgroundColor: designSystem.colors['bg-light'] }}
+    >
+      {/* Sequence 1: Logo animado aparecendo */}
+      <Sequence from={0} durationInFrames={60}>
+        <AnimatedLogo
+          color={designSystem.colors.primary}
+          easing={designSystem.animations['standard-curve']}
+        />
+      </Sequence>
+
+      {/* Sequence 2: Botão com ripple */}
+      <Sequence from={120} durationInFrames={90}>
+        <AnimatedButton
+          text="Get Started"
+          color={designSystem.colors.primary}
+          spacing={designSystem.spacing.md}
+        />
+      </Sequence>
+
+      {/* Sequence 3: Transição para dashboard */}
+      <Sequence from={210} durationInFrames={120}>
+        <DashboardTransition
+          colors={designSystem.colors}
+          easing={designSystem.animations['standard-curve']}
+        />
+      </Sequence>
+    </AbsoluteComposition>
+  );
+};
+```
+
+**Etapa 4: Render video**:
+```bash
+npx remotion render user-onboarding-animation.tsx output.mp4
+# Gera vídeo 1920x1080 16:9, pronto para YouTube
+```
+
+**Fluxo automático** (agente faz tudo):
+```bash
+@claude "Generate a 16:9 video animation showing:
+1. App loading with spinner
+2. Authentication flow (login form)
+3. Dashboard appearing
+4. Key features highlighted
+
+Use design-system.md for all visual tokens.
+Output: Remotion TypeScript file ready to render."
+```
+
+Claude gera arquivo completo, você apenas:
+```bash
+npx remotion render generated-animation.tsx output.mp4
+```
+
+**Mockups de referência** (recreate existing UIs):
+```javascript
+// Recreate Slack sidebar as animation
+export const SlackAnimationDemo = () => {
+  return (
+    <AbsoluteComposition ...>
+      <SlackSidebar
+        channels={['general', 'random', 'design']}
+        activeChannel="general"
+        animate={true}
+        colors={designSystem.colors}
+      />
+      <SlackChat
+        messages={[...]}
+        animate={true}
+      />
+    </AbsoluteComposition>
+  );
+};
+```
+
+## Stack e requisitos
+
+- **Node.js**: 16+
+- **Remotion**: 4.0+
+- **FFmpeg**: 4.4+ (para rendering)
+- **React**: 18.0+
+- **Rendering time**: ~2 minutos por 10s video (depende da complexidade)
+- **Disk space**: 100-500MB por vídeo renderizado
+- **Design system**: arquivo Markdown ou JSON
+
+## Armadilhas e limitacoes
+
+- **Extração incompleta**: Agente pode miss tokens CSS obscuros ou comportamentos dinâmicos (hover, focus states).
+- **Interatividade**: Remotion é para video output; não é app interativa. Para demos interativas, usar Framer Motion ou Three.js.
+- **Performance rendering**: Videos complexos (muitas animações, 4K) levam tempo; use preview mode (`--prores=h265`) para otimizar.
+- **Sincronização áudio**: Remotion suporta áudio, mas sincronizar com narração requer timings precisos.
+- **Animação natural**: LLM às vezes gera animações mecanicamente perfeitas mas não naturais; humano precisa revisar easing curves.
+
+## Conexoes
+
+[[Nothing Style UI Prompting]] [[Claude Code Melhores Praticas]] [[Modelos de Codificacao Multimodal]]
+
+## Historico
+
+- 2026-04-02: Nota criada
+- 2026-04-02: Reescrita para template aplicacao

@@ -1,33 +1,155 @@
 ---
-tags: []
+tags: [modelagem-procedural, geometry-nodes, webgpu, node-graph, 3d-web, editor-parametrico]
 source: https://x.com/alelepd/status/2036758865170346069?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Geometry Nodes no Browser
 
-## Resumo
-Geometry Nodes — sistema de modelagem 3D procedural popularizado pelo Blender — pode ser executado inteiramente no navegador, sem dependência de software nativo. A ferramenta Omma demonstrou uma implementação customizada desse paradigma rodando client-side.
+# Modelagem 3D Procedural Diretamente no Browser
 
-## Explicação
-Geometry Nodes é um sistema de programação visual baseado em grafos (node graphs) onde cada nó representa uma operação geométrica — como extrusão, instanciamento, transformação ou deformação de malhas 3D. A lógica é não-destrutiva: o resultado final é computado dinamicamente a partir de uma cadeia de nós, permitindo ajustes paramétricos em tempo real. O Blender popularizou essa abordagem como alternativa ao modelamento manual estático.
+## O que é
+Sistema de node graphs (como Blender's Geometry Nodes) executado no navegador via WebGPU/WebGL. Crie e deforque geometrias 3D de forma não-destrutiva usando programação visual sem instalar Blender.
 
-Transportar esse sistema para o browser é tecnicamente significativo porque implica executar processamento de geometria 3D em tempo real dentro do ambiente JavaScript/WebGL/WebGPU, sem instalar nada localmente. Isso democratiza o acesso a ferramentas de criação procedural, eliminando a barreira de configuração de software pesado como o Blender.
+## Como implementar
+**Arquitetura de uma engine de Geometry Nodes web-based**:
 
-A implementação da Omma é descrita como extensível: a arquitetura de nós pode ser expandida com novos tipos de operações e controles, o que sugere que o sistema foi projetado com separação clara entre o runtime de execução do grafo e as definições individuais de cada nó. Esse padrão é comum em motores de shaders visuais e ferramentas como Shader Graph (Unity) e Material Editor (Unreal).
+1. **Parser visual (frontend)**:
+```typescript
+// Definir nós em declaração JSON
+const nodeGraph = {
+  nodes: [
+    {
+      id: "input_cube",
+      type: "Mesh.Primitive",
+      params: { shape: "cube", vertices: 8 }
+    },
+    {
+      id: "subdivide",
+      type: "Mesh.Subdivide",
+      params: { levels: 3 },
+      inputs: { mesh: "input_cube.output" }
+    },
+    {
+      id: "twist",
+      type: "Geometry.Transform.Twist",
+      params: { angle: 45, axis: "Z" },
+      inputs: { geometry: "subdivide.output" }
+    }
+  ]
+};
 
-O impacto maior está na integração de fluxos de trabalho criativos 3D diretamente em aplicações web — editores colaborativos, ferramentas de design paramétrico online, visualizadores arquitetônicos e experiências educacionais interativas tornam-se viáveis sem plugins.
+// Renderizar cada nó em tela como caixa visual
+const renderer = new NodeGraphRenderer(container, nodeGraph);
+renderer.on("nodeParamChange", (nodeId, param) => {
+  recompute(nodeGraph);
+});
+```
 
-## Exemplos
-1. **Design paramétrico web**: um usuário ajusta sliders em um editor no browser e vê uma estrutura arquitetônica 3D se reconstruir em tempo real via nós de geometria.
-2. **Educação em modelagem procedural**: plataformas de ensino de 3D podem ensinar o conceito de node graphs sem exigir instalação do Blender.
-3. **Prototipagem de assets de jogos**: artistas técnicos podem criar variações procedurais de props diretamente no browser e exportar para engines.
+2. **Engine de execução (WebGPU)**:
+```typescript
+// Computar grafo em topological order (DAG)
+async function evaluateGraph(graph) {
+  const cache = new Map(); // Memoization
 
-## Relacionado
-*(Nenhuma nota relacionada disponível no vault no momento.)*
+  for (let node of topologicalSort(graph.nodes)) {
+    const inputMeshes = node.inputs.map(inp =>
+      cache.get(inp.nodeId)?.output
+    );
 
-## Perguntas de Revisão
-1. Qual é a diferença fundamental entre modelagem 3D estática e modelagem procedural com Geometry Nodes?
-2. Quais tecnologias de browser (WebGL, WebGPU, WASM) seriam mais adequadas para executar um sistema de Geometry Nodes com boa performance, e por quê?
+    // Executar nó em GPU via compute shader
+    const output = await executeNode(node, inputMeshes);
+    cache.set(node.id, output);
+  }
 
-## Histórico de Atualizações
-- 2026-04-02: Nota criada a partir de Telegram
+  return cache.get(graph.outputNode);
+}
+
+// Shaders de geometria (exemplo: subdivide)
+const subdivideShader = `
+@compute @workgroup_size(8)
+fn subdivide(@builtin(global_invocation_id) id: vec3u) {
+  let triangle_id = id.x;
+  if (triangle_id >= triangleCount) { return; }
+
+  // Ler vértices do triângulo original
+  let v0 = vertices[triangles[triangle_id].a];
+  let v1 = vertices[triangles[triangle_id].b];
+  let v2 = vertices[triangles[triangle_id].c];
+
+  // Criar 3 novos vértices no meio das arestas
+  let e01 = mix(v0, v1, 0.5);
+  let e12 = mix(v1, v2, 0.5);
+  let e20 = mix(v2, v0, 0.5);
+
+  // Escrever 4 novos triângulos
+  // (v0, e01, e20), (v1, e12, e01), (v2, e20, e12), (e01, e12, e20)
+}
+`;
+```
+
+3. **Exportar resultado**:
+```typescript
+async function exportToGLB(finalGeometry) {
+  const gltf = {
+    scene: {
+      nodes: [{
+        mesh: 0,
+        translation: [0, 0, 0],
+        rotation: [0, 0, 0, 1]
+      }],
+      extensions: {}
+    },
+    meshes: [{
+      primitives: [{
+        attributes: { POSITION: 0, NORMAL: 1 },
+        indices: 2,
+        material: 0
+      }]
+    }],
+    materials: [{ pbrMetallicRoughness: { baseColorFactor: [0.8, 0.8, 0.8, 1] } }],
+    bufferViews: [ /* geometry data */ ]
+  };
+
+  return GLTFExporter.export(gltf);
+}
+```
+
+**Ferramentas prontas**:
+- **Omma.ai**: implementação proprietária, interface web, node picker visual
+- **Three.js + CustomNodes**: roll your own com Three.js (template público no GitHub)
+- **Spline.design**: web 3D editor com nós paramétricos (não open source)
+
+**Fluxo prático**:
+1. Abrir editor no browser (sem download)
+2. Drag-and-drop nós: Primitive → Subdivide → Twist → Extrude
+3. Ajustar sliders e ver resultados em tempo real (60 FPS em GPU moderna)
+4. Export GLB ou JSON do grafo
+5. Importar em Godot/Unreal ou guardar JSON para reuso
+
+## Stack e requisitos
+- **Browser**: Chrome 113+ ou Firefox 119+ (WebGPU suporte)
+- **GPU**: qualquer GPU moderna (NVIDIA, AMD, Intel Arc) — WebGPU é backend agnóstico
+- **Dependências típicas**: Three.js, Babylon.js ou custom WebGPU runtime
+- **Entrada**: texto (nó picker) ou JSON (grafo importado)
+- **Saída**: GLB, JSON (programa), PNG (screenshot)
+- **Performance**: 60 FPS para grafos simples (20-30 nós), 15-30 FPS para complexos (100+ nós)
+- **Custo**: $0 (open source) ou $10-50/mês (ferramentas comerciais)
+
+## Armadilhas e limitações
+- **Latência de compile**: cada ajuste de parâmetro recompila shaders (100-500ms em GPU).  Usar debouncing na UI
+- **Erros silenciosos**: compute shaders em WebGPU não têm stack traces legíveis. Usar validation layers agressivas
+- **Geometria limite**: máximo 2^31 vértices por buffer. Acima disso, fragmentar em multi-meshes
+- **Operações complexas lentas**: operações como remeshing ou suavização Laplaciana são O(n²), inviável em tempo real acima de 100k triângulos
+- **Falta de preview rápido**: não há "ocular remota" — tudo renderiza local (BOM para web, ruim para colaboração)
+- **Node library limitada**: não tem centenas de nós como Blender. Implementar nó novo = escrever shader
+- **UX é minefield**: drag-drop nós é intuitivo mas conexão de pins é fiddly. Exigir testes com usuários reais
+
+## Conexões
+- [[procedural-mesh-generation]]
+- [[webgpu-3d-graphics]]
+- [[shader-graphs-node-system]]
+- [[geracao-procedural-de-personagens-e-mapas-isometricos]]
+
+## Histórico
+- 2026-04-02: Nota criada
+- 2026-04-02: Reescrita com arquitetura técnica + implementação prática

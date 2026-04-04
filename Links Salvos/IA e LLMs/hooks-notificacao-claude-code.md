@@ -1,108 +1,23 @@
 ---
-date: 2026-03-28
 tags: [claude-code, configuração, hooks, notificações, automação]
 source: https://www.linkedin.com/posts/vilson-ranijak-932041211_essa-semana-pedi-pro-claude-code-executar-share-7442211445062320128-wKJw
-autor: "@vilson-ranijak"
-tipo: zettelkasten
+date: 2026-03-28
+tipo: aplicacao
 ---
 
-# Hooks de Notificação no Claude Code Avisam Quando Ação é Necessária
+# Configure Notificações Sonoras no Claude Code com Hooks
 
-## Resumo
+## O que e
 
-Configure hooks no arquivo ~/.claude/settings.json para ser notificado automaticamente quando Claude Code conclui tarefas, pede permissão, ou quer sua atenção. Com múltiplas sessões paralelas, diferentes sons criam feedback auditivo distinto para cada tipo de evento, eliminando necessidade de monitorar a tela constantemente. É como ter "alarmes inteligentes" — você não vê tela, mas quando algo importante acontece, você ouve e sabe exatamente o que é só pelo som.
+Hooks no ~/.claude/settings.json disparam notificações auditivas e visuais quando Claude Code conclui tarefas, solicita permissão ou requer atenção. Diferentes tons (Hero, Ping, Glass) diferem tipos de eventos em sessões paralelas, eliminando necessidade de monitorar tela.
 
-## Explicação
+## Como implementar
 
-**Analogia:** Dois Claudes rodando em paralelo é como ter dois colega em mesas diferentes — sem notificação, você verifica cada um a cada 5 minutos (waste). Com hooks diferentes, é como cada um vir te chamar por você (Hero = "terminei!", Ping = "preciso de sim/não", Glass = "ajuda agora!"). Você já sabe o que fazer quando ouve o som.
+**Fundamento arquitetural**: Claude Code emite eventos padronizados (Stop, PermissionRequest, Notification) que podem ser capturados e transformados em ações do sistema operacional via hooks. A configuração ocorre em ~/.claude/settings.json, um arquivo JSON que persiste entre sessões.
 
-### Hook de Notificação quando Claude Code Conclui Tarefa
+**Estratégia de notificação**: Sons diferentes são processados em circuitos auditivos distintos pelo cérebro humano, permitindo identificação instantânea do tipo de evento sem visão visual. Hero (vitória) para conclusões, Ping (alerta simples) para permissões, Glass (alarme claro) para atenção imediata. Em workflows com múltiplas sessões, isso reduz tempo de resposta comparado a notificações visuais que competem por atenção na tela já saturada.
 
-Dispara notificação sonora e visual quando Claude termina uma tarefa. Som recomendado é Hero — som de vitória e celebração que indica sucesso. Permite trabalhar em outros contextos enquanto claudeCode trabalha em background, recebendo alerta imediato quando pronto.
-
-### Hook de Notificação quando Claude Code Pede Permissão
-
-Notifica quando Claude Code está esperando sua permissão para executar uma ação. Som recomendado é Ping — som simples e direto que diferencia permissão. Essencial em workflows onde múltiplas sessões rodam em paralelo: você identifica qual sessão precisa aprovação apenas ouvindo o som.
-
-### Hook de Notificação quando Claude Code Quer Sua Atenção
-
-Alerta quando Claude parou e está aguardando input ou feedback. Som recomendado é Glass — som de alerta claro e distinto. Casos de uso incluem: Claude encontrou ambiguidade e quer clarificação, múltiplas opções onde quer sua preferência, ou parou em ponto de decisão.
-
-### Trio de Sons para Diferentes Situações
-
-- **Hero**: conclusão de tarefa (sucesso)
-- **Glass**: atenção necessária (alerta, aguardando input)
-- **Ping**: permissão solicitada (ação)
-
-**Profundidade:** Por que som é melhor que tela? Porque você já está olhando pra tela o tempo todo (email, browser, IDE). Adicionar mais alerts visuais é "noise em noise". Som corta através — você ouve mesmo que não esteja olhando, e diferentes frequências são processadas automaticamente pelo cérebro (Hero, Ping, Glass ativam circuitos diferentes).
-
-Cada som cria padrão auditivo distinto, permitindo resposta imediata sem olhar para tela.
-
-## Exemplos
-
-### Configuração Hook de Conclusão (macOS)
-
-```json
-{
-  "hooks": {
-    "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "osascript -e 'display notification \"Tarefa concluída!\" with title \"Claude Code\"' && afplay /System/Library/Sounds/Hero.aiff"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-### Configuração Hook de Permissão (macOS)
-
-```json
-{
-  "hooks": {
-    "PermissionRequest": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "osascript -e 'display notification \"Esperando sua permissão!\" with title \"Claude Code\"' && afplay /System/Library/Sounds/Ping.aiff"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-### Configuração Hook de Atenção (macOS)
-
-```json
-{
-  "hooks": {
-    "Notification": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "osascript -e 'display notification \"Preciso da sua atenção!\" with title \"Claude Code\"' && afplay /System/Library/Sounds/Glass.aiff"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-### Configuração Completa com Todos os Três Hooks
-
-Arquivo ~/.claude/settings.json:
+**Configuração completa** para macOS (arquivo ~/.claude/settings.json):
 
 ```json
 {
@@ -144,14 +59,29 @@ Arquivo ~/.claude/settings.json:
 }
 ```
 
-## Relacionado
+**Para Windows**, substituir osascript por PowerShell notification e caminhos de som por arquivos .wav locais (ex: C:\Windows\Media\Notification.Default.wav). **Para Linux**, usar notify-send (já incluso em desktops GNOME/KDE) e paplay ou ffplay para áudio.
 
-- [[Claude Code - Melhores Práticas]]
-- [[Otimizar Preferencias Claude Chief of Staff]]
-- [[btw-conversas-paralelas-enquanto-claude-trabalha]]
+**Adaptar para casos específicos**: matcher pode filtrar eventos por conteúdo (ex: "matcher": "Deploy" para tocar som apenas em deploys), hooks podem encadear múltiplas ações (notificação + email + POST webhook), type pode ser "command" ou "url" (HTTP POST).
 
-## Perguntas de Revisão
+## Stack e requisitos
 
-1. Qual é a importância de diferentes sons de notificação para múltiplas sessões Claude em paralelo?
-2. Como os três tipos de hooks (conclusão, permissão, atenção) suportam produtividade?
-3. Por que notificações sonoras são melhores que visuais quando você está trabalhando em outros contextos?
+- **Sistemas**: macOS 10.14+, Windows 10/11 (PowerShell 5+), Linux (systemd, GNOME/KDE)
+- **Arquivo**: ~/.claude/settings.json (criado automaticamente se não existir)
+- **Sons**: localizados em /System/Library/Sounds (macOS), C:\Windows\Media (Windows), /usr/share/sounds (Linux)
+- **Overhead**: negligenciável, hooks rodam assincronamente
+
+## Armadilhas e limitacoes
+
+- Ordem de execução de hooks não é garantida; usar sleep se múltiplas ações precisam de sequência
+- macOS pode bloquear alguns caminhos de som se SIP (System Integrity Protection) está ativo; verificar permissões
+- Hooks globais; não há forma nativa de enviar notificações apenas a um usuário específico em shared machines
+- JSON mal formatado silenciosamente falha; validar com jq antes de aplicar
+
+## Conexoes
+
+[[Claude Code - Melhores Práticas]] [[Otimizar Preferencias Claude Chief of Staff]] [[Conversas paralelas enquanto Claude trabalha em background]]
+
+## Historico
+
+- 2026-03-28: Nota original
+- 2026-04-02: Reescrita para template aplicacao

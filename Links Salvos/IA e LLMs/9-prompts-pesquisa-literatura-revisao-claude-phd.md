@@ -1,157 +1,409 @@
 ---
-date: 2026-03-10
 tags: [Claude, pesquisa, literature review, prompts, PhD, papers, conhecimento estruturado, synthesis]
 source: https://x.com/aiwithjainam/status/2031282913422225567
-autor: "Jainam Parmar (AI with Jainam)"
-tipo: zettelkasten
+date: 2026-03-10
+tipo: aplicacao
 ---
 
-# 9 Prompts para Pesquisa Acadêmica — Transformar 40+ Papers em Literatura Estruturada como PhD
+# Sistematizar Literature Review com 9 Prompts para Análise Crítica
 
-## Resumo
+## O que é
 
-Claude pode realizar pesquisa acadêmica como um estudante PhD de Stanford: analisar 40+ papers, identificar contradições, mapear conceitos citados, encontrar gaps de pesquisa, e consolidar uma síntese que não resume papers individuais mas expressa o que o campo coletivamente acredita — como passar de leitura passiva para compreensão estruturada e crítica.
+Sequência de 9 prompts que transforma pilha de 30-50 papers acadêmicos em análise estruturada: mapeamento, contradições, genealogia de conceitos, gaps de pesquisa, síntese integrada, pressupostos testáveis, outliers, recomendações. Simula rigor de PhD em Stanford.
 
-## Explicação
+## Como implementar
 
-**9 Prompts Estruturados para Pesquisa Acadêmica:**
+### Setup: Preparar Corpus de Papers
 
-**PROMPT 1: The Intake Protocol**
-Quando você primeiro carrega seus papers:
+```python
+# Struktur local
+research-corpus/
+├── papers.pdf/
+│   ├── paper-1.pdf (Smith et al 2023)
+│   ├── paper-2.pdf (Jones et al 2023)
+│   └── ... (30-50 papers)
+├── prompts.md
+└── outputs/
+    ├── 1-intake-protocol.md
+    ├── 2-contradictions.md
+    ├── 3-citation-chains.md
+    └── ... (9 outputs)
+
+# Para uso com Claude:
+# 1. Upload todos os PDFs (ou copiar texto)
+# 2. Executar Prompt 1
+# 3. Guardar output
+# 4. Executar Prompt 2 com contexto de Prompt 1
+# ... e assim sucessivamente
 ```
-"I'm going to share [X] papers on [topic].
-Before I ask anything, do this:
-1. List every paper by author + year + core claim in one sentence
-2. Group them into clusters of shared assumptions
-3. Flag any obvious gaps"
+
+### Prompt 1: The Intake Protocol
+
 ```
-Resultado: Organização imediata do corpus.
+PROMPT 1: Organizar Corpus
 
-**PROMPT 2: The Contradiction Finder**
-Identifica conflitos diretos entre autores:
+Vou compartilhar [X] papers sobre [TÓPICO].
+
+Antes de qualquer pergunta, faça isso:
+
+1. **Tabela de Resumo:**
+   | # | Autor | Year | Core Claim (1 frase) | Método | Achado Principal |
+   |---|-------|------|----------------------|--------|-----------------|
+   | 1 | Smith | 2023 | Hallucinations vêm de training data | Experimento | Correlação 0.87 |
+   | 2 | Jones | 2023 | Hallucinations vêm de decoding | Teórico | Mecanismo proposto |
+
+2. **Clusters de Premissas Compartilhadas:**
+   - Grupo A (N papers): Assumem que "X causa Y"
+   - Grupo B (N papers): Assumem que "Y não existe"
+   - Grupo C (N papers): Agnóstico
+
+3. **Gaps Óbvios:**
+   - Ninguém estudou Z
+   - Poucos papers testam em contextos reais
+   - Faltam replicações
+
+[COLAR AQUI RESUMO OU LISTA DE PAPERS]
+
+OUTPUT:
+- Tabela estruturada
+- Mapa visual (ASCII) de clusters
+- Top-5 pressupostos compartilhados
 ```
-"Across all papers uploaded, identify every point where two
-or more authors directly contradict each other.
 
-For each contradiction:
-- State both positions
-- Name the papers
-- Explain WHY they contradict"
+### Prompt 2: The Contradiction Finder
+
 ```
-Resultado: Mapa de desacordos fundamentais.
+PROMPT 2: Encontrar Contradições
 
-**PROMPT 3: The Citation Chain**
-Rastreia linhagem intelectual:
+Com base no corpus analisado no Prompt 1:
+
+Identifique CADA PONTO onde 2+ autores contradizem diretamente.
+
+Para CADA contradição, retorne:
+| Paper A | Paper B | Posição A | Posição B | Por Que Contradizem | Resolução Possível |
+|---------|---------|-----------|-----------|-------------------|-------------------|
+| Smith 23 | Jones 23 | "Causa é training data" | "Causa é decoding" | Diferentes mecanismos | Ambos podem estar certos (contribuições multifatoriais) |
+
+IMPORTANTE:
+- Contradição = afirmações inversas, não apenas diferentes ênfases
+- Se Paper A diz "90%" e Paper B diz "80%" = diferença, não contradição
+- Se Paper A diz "causa X" e Paper B diz "causa NOT X" = contradição
+
+OUTPUT:
+- Tabela de contradições
+- Para cada contradição: qual paper tem evidência mais forte?
+- Quais contradições são resolveís vs. genuinamente disputadas?
 ```
-"Pick the 3 most-cited concepts across these papers.
 
-For each concept:
-- Who introduced it first?
-- Who challenged it?
-- Who refined it?
-- What's the current consensus (if any)?"
+### Prompt 3: The Citation Chain
+
 ```
-Resultado: Lineagem intelectual visualizada como árvore genealógica.
+PROMPT 3: Genealogia de Conceitos
 
-**PROMPT 4: The Gap Scanner**
-Encontra questões não respondidas:
+Identifique os 5 CONCEITOS mais citados across papers.
+
+Para CADA conceito, retorne:
+
+## Conceito: [NOME]
+
+**Origem:** Quem introduziu? Quando? [Ano, autor, paper] Contexto original?
+
+**Evolução:**
+- [Ano]: Introdução → [Descrição exata]
+- [Ano]: Desafio por X → [Como foi contestado?]
+- [Ano]: Refinamento por Y → [Melhoria específica]
+- [Ano]: Estado atual → [Como entendemos agora?]
+
+**Árvore genealógica ASCII:**
 ```
-"Based on all uploaded papers, identify the 5 research
-questions that NOBODY has fully answered yet.
-
-For each gap:
-- Why does it exist? (too hard, no niche, overlooked?)
-- Which existing paper came closest to answering it?"
+[Autor Original] 2020
+    │
+    ├─→ [Crítico] 2021 (quebrou pressupostos)
+    │    └─→ [Refinador] 2022 (propôs fix)
+    │
+    └─→ [Extensão] 2021 (novo domínio)
+         └─→ [Aplicador] 2023 (prática)
 ```
-Resultado: Roadmap para pesquisa futura.
 
-**PROMPT 5: The Methodology Audit**
-Compara metodologias usadas:
+**Consenso Atual:** (unificado? Fragmentado? Disputado?)
+
+OUTPUT:
+- 5 genealogias completas
+- Matriz: qual autor cita quem (pode usar | para referências)
 ```
-"Compare the research methodologies used across all papers.
 
-Group by: surveys, experiments, simulations, meta-analyses, case studies.
+### Prompt 4: The Gap Scanner
 
-Then flag:
-- Which methodology dominates this field and why?
-- Which methodology is underused?
-- Which papers use most rigorous methods?"
 ```
-Resultado: Compreensão do que se sabe vs. como se sabe.
+PROMPT 4: Identificar Gaps de Pesquisa
 
-**PROMPT 6: The Master Synthesis**
-Cria síntese integrada após todos os prompts anteriores:
+Com base em tudo analisado:
+
+Identifique as 5 QUESTÕES QUE NINGUÉM RESPONDEU COMPLETAMENTE.
+
+Para CADA gap:
+
+## Gap #1: [PERGUNTA]
+
+**Por que existe este gap?**
+- Muito difícil de estudar? (por quê?)
+- Pouco interesse acadêmico? (por quê?)
+- Negligenciado? (por quê?)
+- Novo demais?
+
+**Qual paper chegou mais perto?**
+- [Paper X]
+- Respondeu [X%] da pergunta
+- Faltou [o quê?]
+
+**Como fechar este gap?**
+- Que metodologia seria adequada?
+- Que dados faltam?
+- Que colaboração ajudaria?
+
+**Impacto:** Se fechado, qual seria o avanço?
+
+OUTPUT:
+- 5 gaps priorizados por impacto
+- Para cada: roadmap de pesquisa
 ```
-"You now have a full picture of this literature.
 
-Write a synthesis that does NOT summarize individual papers.
+### Prompt 5: The Methodology Audit
 
-Instead:
-- State what the field collectively believes
-- State what remains contested
-- State what remains unclear"
 ```
-Resultado: Entendimento holistico do estado da arte.
+PROMPT 5: Auditoria de Metodologias
 
-**PROMPT 7: The Assumption Killer**
-Identifica suposições não testadas:
+Compare métodos usados across papers.
+
+## Inventário
+
+| Tipo | # Papers | Exemplos | Rigor | Escalabilidade |
+|------|----------|----------|-------|---|
+| Survey | 5 | Authors: A, B, C | Baixo | Alta |
+| Experimento | 15 | Controlled, N>100 | Alto | Média |
+| Simulação | 8 | Synthetic data | Médio | Alta |
+| Case Study | 12 | Real-world, N<10 | Médio | Baixa |
+
+## Análise
+
+**Metodologia dominante:** [X tipo] (N% dos papers)
+- Por que domina? Maturidade do campo? Viés de publicação?
+
+**Metodologia underutilizada:** [Y tipo]
+- Por que falta? Caro demais? Difícil logisticamente?
+
+**Metodologia mais rigorosa:** [Z tipo]
+- Qual paper? Por que é rigoroso?
+
+**Metodologia menos rigorosa:** [W tipo]
+- Qual paper? Quais são as limitações?
+
+OUTPUT:
+- Mapa de metodologias
+- Gaps metodológicos
+- Recomendação: qual metodologia faria sentido explorar?
 ```
-"List every assumption that the MAJORITY of these papers share
-but never explicitly test or justify.
 
-For each assumption:
-- What evidence supports it?
-- What would break it?
-- Which papers could be wrong if this assumption fails?"
+### Prompt 6: The Master Synthesis
+
 ```
-Resultado: Descoberta do "óbvio" que pode estar errado.
+PROMPT 6: Síntese Integrada (APÓS prompts 1-5)
 
-**PROMPT 8: The Outlier Analysis**
-Detecta trabalhos únicos ou contraditórios:
+Com tudo analisado, escreva síntese que NÃO resume papers individuais.
+
+Em vez disso:
+
+## O que o campo coletivamente acredita?
+
+[2-3 parágrafos sobre verdades compartilhadas]
+
+## O que permanece contestado?
+
+[Contradições fundamentais não resolvidas]
+
+## O que permanece incerto?
+
+[Gaps verdadeiros, pressupostos testáveis]
+
+## Consenso por subtópico
+
+Subtópico A:
+- Consenso: [X]
+- Evidência: Força: Média/Alta/Baixa
+- Dissidentes: [Quem discorda e por quê]
+
+OUTPUT:
+- Síntese de 2-3 páginas
+- Mapa visual do que se sabe vs. não se sabe
+- Recomendação de donde partir daqui
 ```
-"Identify papers that stand alone or contradict the consensus.
 
-For each outlier:
-- Why is it different?
-- Is it wrong, ahead of its time, or from a different field?
-- What can we learn from papers the field largely ignored?"
+### Prompt 7: The Assumption Killer
+
 ```
-Resultado: Perspectivas negligenciadas.
+PROMPT 7: Questionar Pressupostos
 
-**PROMPT 9: The Next Step Recommender**
-Gera recomendações de pesquisa futura:
+Que PRESSUPOSTOS a MAIORIA dos papers compartilha
+mas NUNCA explicitamente testa ou justifica?
+
+Para CADA pressuposto não-testado:
+
+## Pressuposto: [AFIRMAÇÃO]
+
+**Quantos papers o compartilham?** [X%]
+
+**Evidência que o suporta:**
+- Teórica? Empírica? Nenhuma, é apenas assumi
+
+**O que quebraria este pressuposto?**
+- Que evidência o destruiria?
+- É testável?
+
+**Quais papers dependeriam disso?**
+- Se este pressuposto falhar, esses papers caem:
+- Paper A (hipótese inteira depende disso)
+- Paper B (um resultado depende disso)
+
+**É provável que o pressuposto esteja errado?**
+- Baixa chance: evidência indireta é forte
+- Média chance: nunca foi testado, poderia falhar
+- Alta chance: evidência teórica o contradiz
+
+OUTPUT:
+- Top 5 pressupostos perigosos
+- Para cada: teste proposto que confirmaria/refutaria
 ```
-"Given everything above, what should a researcher do next?
 
-Recommend:
-1. Which gap is most important to close?
-2. What methodology would be best?
-3. What existing tools/data could accelerate this?
-4. What collaboration would help?"
+### Prompt 8: The Outlier Analysis
+
 ```
-Resultado: Roadmap actionável.
+PROMPT 8: Detectar Outliers
 
-## Exemplos
+Identifique papers que:
+- Ficam sozinhos (única visão)
+- Contradizem consenso
+- Vêm de outro campo (cross-disciplinar)
 
-**Fluxo Completo Exemplo: "Pesquisa em Large Language Models e Hallucinations"**
+Para CADA outlier:
 
-1. **Intake Protocol**: Lista 42 papers, agrupa em: "Detecção de Hallucinations", "Causas de Hallucinations", "Mitigação"
-2. **Contradiction Finder**: Paper A diz hallucinations vêm de training data; Paper B diz vêm de decoding; Paper C diz ambos
-3. **Citation Chain**: Token de "hallucination" em LLMs foi introduzido por X em 2021, refinado por Y em 2023
-4. **Gap Scanner**: "Como prevenir hallucinations sem degradar criatividade?" — ninguém respondeu completamente
-5. **Methodology Audit**: 60% dos papers usam avaliação manual (cara), apenas 20% têm benchmarks automáticos
-6. **Master Synthesis**: "O campo acredita que hallucinations vêm de múltiplas causas. Mas não há consenso sobre qual domina."
-7. **Assumption Killer**: Maioria assume que "fluência = conhecimento", mas isso pode estar errado
-8. **Outlier Analysis**: Um paper de 2022 propõe abordagem totalmente diferente, ignorado por todos
-9. **Next Step**: "Pesquisa colaborativa entre grupos A e B, usando metodologia X, focando em gap Y"
+## Paper: [Título]
 
-## Relacionado
+**Por que é outlier?**
+- Metodologia única?
+- Conclusão oposta ao consenso?
+- De campo diferente?
 
-[[Indexacao de Codebase para Agentes IA]]
-[[Claude Code - Melhores Práticas]]
+**É genuinamente diferente, ou foi rejeitado?**
+- Boa evidência?
+- Replicado? Citado?
+- Por que comunidade ignorou?
 
-## Perguntas de Revisão
+**Poderia estar certo (e o consenso errado)?**
+- Quão credível é o outlier?
+- Que evidência o tornaria convincente?
 
-1. Por que usar 9 prompts separados ao invés de um único prompt "analise todos esses papers"?
-2. Qual é a diferença entre "Contradiction Finder" e "Assumption Killer"? Ambos encontram problemas?
-3. Se você tivesse que escolher apenas 3 dos 9 prompts, quais seria e por quê?
+**O que podemos aprender de perspectivas negligenciadas?**
+- Qual insight único esse paper tem?
+
+OUTPUT:
+- Outliers identificados
+- "Heróis não reconhecidos" (outliers que mereciam mais atenção)
+- Perspectivas que foi negligenciadas
+```
+
+### Prompt 9: The Next Step Recommender
+
+```
+PROMPT 9: Recomendar Pesquisa Futura
+
+Dado TUDO acima (Prompts 1-8):
+
+Recomende:
+
+## Gap mais importante a fechar
+
+**Gap:** [Pergunta]
+**Por que agora?** Contexto mudou? Ferramentas novas? Aplicações urgentes?
+**Quem deveria pesquisar?** Qual expertise é necessária?
+
+## Metodologia ideal
+
+**Proposta:** [Tipo de estudo]
+**Por que bater?** (vs. outras metodologias)
+**Tamanho esperado:** Quantos participantes/dados?
+**Tempo esperado:** Quanto tempo levaria?
+**Custo:** Estimativa?
+
+## Ferramentas/dados existentes
+
+**Que pode reaproveitar?** Datasets, code, frameworks publicados
+**Que não existe?** O que precisa ser criado
+
+## Colaboração
+
+**Quem deveria colaborar?**
+- Grupo A traz expertise em [X]
+- Grupo B traz expertise em [Y]
+- Resultado esperado de colaboração: [Z]
+
+## Success Criteria
+
+Se você fizesse este estudo, como saberia que funcionou?
+- Métrica quantitativa:
+- Métrica qualitativa:
+- Impacto esperado:
+
+OUTPUT:
+- Proposta de pesquisa de 1 página
+- "Pitch" do próximo projeto
+```
+
+## Stack e requisitos
+
+**Processamento:**
+- Claude 3.5 Sonnet (melhor para análise de nuances contraditórias)
+- ~50-100K tokens por literatura review completa
+- Custo: ~$0.50-1.00 para workflow completo
+
+**Inputs:**
+- 30-50 papers (PDF ou texto)
+- Tópico bem-definido
+- Contexto do pesquisador
+
+**Outputs:**
+- 9 documentos estruturados (markdown)
+- Síntese integrada
+- Roadmap de pesquisa futura
+
+## Armadilhas e limitações
+
+**Sequência importa:**
+- Não pule Prompt 1 (organize antes de analisar)
+- Prompts 2-5 devem rodar antes de 6 (síntese)
+- Prompts 7-8 complementam (questione pressupostos)
+- Prompt 9 é final (recomendações)
+
+**Qualidade dos papers:**
+- Se corpus é biased (todos mesma visão), análise reflete isso
+- Sempre validar que corpus é representativo
+
+**Claude limitations:**
+- Pode errar em contradições sutis (linguística vs. substância)
+- Pode perder nuances ao sintetizar 50 papers
+- Sempre validar manualmente achados principais
+
+**Tempo:**
+- 1-2 horas por workflow (vs. 40-60 horas manual)
+- Maior impacto em literatura reviews largas (>30 papers)
+
+## Conexões
+
+[[retrieval-augmented-generation]]
+[[agente-de-pesquisa-cientifica-com-llm]]
+[[agente-de-pesquisa-local-autonomo]]
+[[9-prompts-renda-claude-monetizacao-habilidades]]
+
+## Histórico
+
+- 2026-03-10: Nota criada
+- 2026-04-02: Reescrita como guia prático com 9 prompts sequenciais executáveis

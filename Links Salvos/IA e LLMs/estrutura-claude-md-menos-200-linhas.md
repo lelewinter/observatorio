@@ -2,31 +2,30 @@
 date: 2026-03-28
 tags: [claude-code, claude.md, configuracao, prompt-engineering, setup]
 source: https://x.com/techNmak/status/2037788648691884207
+tipo: aplicacao
 autor: "@techNmak"
-tipo: zettelkasten
 ---
+# CLAUDE.md Compacto: Máximo 200 Linhas para Máxima Aderência
 
-# CLAUDE.md Deve Ter Menos de 200 Linhas para Claude Seguir Corretamente
+## O que e
+Arquivo CLAUDE.md de instruções que excede 200 linhas sofre degradação de qualidade — Claude ignora partes, contradições surgem, conformidade geral cai. Arquivo conciso (<200L) com instruções prioritizadas garante que TODAS as regras sejam lidas e seguidas corretamente. Metáfora: mente humana tem "span de atenção para leitura de regras"; além de 200 linhas, retenção cai dramaticamente.
 
-## Resumo
+## Como implementar
+**Auditoria**: lista todas regras atuais de CLAUDE.md, marca por frequência de uso (crítico/importante/nice-to-have). **Consolidação**: combina regras redundantes (3 formas diferentes de "cite fontes" vira 1). **Abstração**: "Siga [[referência-de-style-guide-existente]]" em vez de repetir 20 linhas de detalhes. **Priorização**: mantém 5-10 regras críticas, delegua resto a documentação linkedada. Estrutura eficiente: 20L (meta), 30L (core behaviors), 50L (constraints), 50L (examples), 50L (tools/context). Revisar a cada 2 semanas, remover instruções que não impactam output. Teste: rode mesma tarefa com CLAUDE.md antigo vs. novo, valida se qualidade permanece.
 
-Quando arquivo CLAUDE.md (instruções de contexto) excede 200 linhas, Claude tende a ignorar partes ou seguir instruções de forma incompleta. Manter arquivo compacto garante que todas instruções sejam lidas e seguidas corretamente. É como dar uma lista de tarefas — 5 tarefas sua mãe lê todas, 50 tarefas ela lê apenas as primeiras 5.
+Padrão: "menos é mais" em prompt engineering. Cada linha adicional custa atenção no modelo; você pensa "estou adicionando instrução útil" mas na verdade você está diluindo força de instruções existentes. Matemática: atenção é soma zero.
 
-## Explicação
+## Stack e requisitos
+Editor de texto + Git para versionamento. Sem dependências técnicas. Requer disciplina de manutenção. Validação: usar mesmo test set antes/depois de redução, medir mudanças em qualidade (subjetivamente ou com evals automatizados).
 
-Quando CLAUDE.md ultrapassa 200 linhas: atenção do modelo se dilui com instruções longas, instruções competem por atenção de contexto, instruções ambíguas aparecem em documentos longos, consolidação força clareza.
+## Armadilhas e limitacoes
+Remover regra que parecia redundante mas é na verdade crítica em contexto específico. Mitigar: antes de deletar, testar prompt com tarefa que depende daquela regra. Abstrair muito ("sejam excelentes") perde especificidade. Manter arquivo em sync com tooling real — se adiciona nova tool, adiciona 1 linha ao CLAUDE.md (sem remover outra), senão contexto desatualiza.
 
-**Analogia:** Mente humana tem limite de "span de atenção para instruções". Você consegue seguir 5 regras — "seja breve, cite fontes, pense em contrargumentos, revise antes de enviar, use português PT-BR". Você consegue lembrar disso. 50 regras? Vai lembrar dos primeiros 5 e esquecer do resto. Claude é semelhante — tem orçamento de atenção, 200 linhas é aproximadamente quanto ele consegue processar completamente.
+## Conexoes
+[[contexto-persistente-em-llms|Contexto estruturado]]
+[[designmd-como-contrato-de-design-para-llms|Especificações de design]]
+[[geracao-automatizada-de-prompts|Otimização de prompts]]
 
-Como reduzir para 200 linhas: remova redundância (várias regras dizendo a mesma coisa), agrupe por tema (combine regras relacionadas), use abstração ("Siga padrões estabelecidos" em vez de detalhar todos), priorize (mantenha apenas as mais críticas).
-
-**Profundidade:** Por que menos é mais em configuração? Porque cada linha que você adiciona custa atenção. Você pensa "estou adicionando instrução útil" mas na verdade está diluindo outras instruções. Efeito: mais regras = menos conformidade geral. Contra-intuitivo, mas matemático.
-
-## Exemplos
-
-Implementação envolve aplicar princípio de "subtração" da simplificação de setup: questione cada linha, "Essa regra já está no modelo padrão?", "Isso realmente muda comportamento?".
-
-## Relacionado
-
-- [[Simplificar Setup Claude Deletar Regras Extras]]
-- [[Otimizar Preferencias Claude Chief of Staff]]
+## Historico
+- 2026-03-28: Referência original
+- 2026-04-02: Reescrita pelo pipeline

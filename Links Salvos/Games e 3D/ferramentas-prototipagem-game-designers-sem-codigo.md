@@ -1,38 +1,117 @@
 ---
-tags: [game-design, prototipagem, ferramentas, no-code, game-dev]
+tags: [game-design, no-code, prototipagem-rapida, game-dev, ferramentas]
 source: https://www.linkedin.com/feed/update/urn:li:activity:7391429031008612352/
 date: 2026-03-28
-autor: "Sergei Vasiuk"
+tipo: aplicacao
 ---
 
-# Prototipar Ideias de Games Não Exige Código — Existem Ferramentas para Cada Tipo de Jogo
+# Prototipar Games Sem Código: Escolher Ferramenta por Pergunta
 
-## Resumo
-Game designers podem validar mecânicas, narrativas e sistemas sem escrever uma linha de código usando ferramentas especializadas de prototipagem rápida.
+## O que é
+Game designers validam mecânicas, narrativas e sistemas sem programação usando no-code tools. Objetivo: responder "funciona?" em dias, não semanas.
 
-## Explicação
-O maior erro de designers iniciantes é confundir "preciso fazer um jogo" com "preciso aprender a programar". Para validar se uma ideia funciona, o que importa é criar o loop central o mais rápido possível.
+## Como implementar
+**Matriz: ferramenta por tipo de pergunta**:
 
-**Analogia:** Arquitetos usam maquetes de papelão antes de construir em concreto. A maquete não precisa ser o prédio — precisa responder à pergunta "isso funciona?".
+| Pergunta | Ferramenta | Tempo Setup | Tempo Prototipo | Saída |
+|---|---|---|---|---|
+| "A narrativa é interessante?" | Twine | 10 min | 4-8 horas | escolher-seus-próprio-jogo |
+| "Os menus fluem bem?" | Figma | 5 min | 2-4 horas | clickable prototype |
+| "A mecânica central funciona?" | GameMaker | 30 min | 8-16 horas | jogo 2D playable |
+| "O tom/atmosfera cabe?" | Bitsy | 10 min | 2-4 horas | pixel art explorable |
+| "A ideia é divertida em 5 min?" | Flickgame | 5 min | 30 min - 1 hora | micro game |
 
-Ferramentas por tipo de projeto:
-- **Narrativa interativa**: Twine (twinery.org) e Bitsy (bitsy.org) — sem código, baseados em grafos e tiles
-- **Clickable/UI prototyping**: Figma — ideal para jogos de interface ou mobile
-- **Jogos 2D simples**: GameMaker (gamemaker.io) e Construct (construct.net) — visuais, com lógica drag-and-drop
-- **Experimental/conceitual**: Flickgame (flickgame.org) e Downpour (downpour.games) — para explorar ideias em minutos
+**Fluxo prático: validar ideia de RPG narrativo**:
 
-A recomendação prática: escolha a ferramenta pela pergunta que você quer responder, não pela plataforma final.
+1. **Dia 1: Outline em Twine** (validar estrutura)
+```
+:: Start
+You find a cryptic letter.
+[[Read it|Letter]]
+[[Ignore and leave|Leave]]
 
-## Exemplos
-- Twine: usado para prototipar diálogos de RPG antes de implementar em Unity
-- Figma: usado para prototipar UI de mobile games e testar fluxo de menus
-- Bitsy: usado para validar tom e atmosfera de jogos de exploração small-scope
+:: Letter
+The letter hints at treasure.
+[[Believe|Treasure_hunt]]
+[[Skeptical|Leave]]
 
-## Relacionado
-- [[12-principios-animacao-disney-funcionam-diferente-em-games]]
+:: Treasure_hunt
+You search for clues...
+```
+Resultado: ~30 nós, 5 ramificações, 2 horas.
+Feedback: "história tem pacing melhor se cortarmos a cena 2"
+
+2. **Dia 2: UI/Menu em Figma** (validar fluxo)
+- Frame: title screen → play → load game → settings
+- Clicável: cada botão vai pro próximo frame
+- Teste: 5 pessoas testam navegação, timing de transições
+- Resultado: "settings need melhor organization"
+
+3. **Dia 3: Mecânica central em GameMaker** (validar gameplay)
+```gml
+// Exemplo: turn-based combat
+player_hp = 100;
+enemy_hp = 50;
+
+if (action == "attack") {
+    damage = random_range(10, 20);
+    enemy_hp -= damage;
+}
+
+if (enemy_hp <= 0) {
+    game_end("victory");
+}
+```
+- Tempo: 8-12 horas para loop básico
+- Testa: 3-5 pessoas jogam 15 min cada
+- Feedback: "combat too easy", "animations feel slow"
+
+4. **Dia 4: Atmosfera em Bitsy** (validar tom)
+- Pixel art 8-bit
+- Exploração simples (setas para mover)
+- NPCs com diálogo
+- Resultado: visual style validado sem artist
+- 2-3 horas para explorable demo
+
+**Checklist pós-prototipo**:
+- [ ] Pergunta original respondida? (sim/não)
+- [ ] Próximo passo claro?
+- [ ] Recursos estimados para versão full (semanas, budget)?
+- [ ] Pivotar ideia ou prosseguir?
+
+## Stack e requisitos
+- **Twine**: free, aberto, aprender Twine script (simples)
+- **Figma**: free (3 projetos), UI/UX essencial
+- **GameMaker**: free (com logo splash) ou $99/ano (pro)
+- **Bitsy**: free, browser-based, minimalista
+- **Flickgame**: free, web-only, 5 min max game
+- **Construct 3**: free (limited) ou $99/ano, drag-drop visual
+- **Tempo aprendizado**: 1-2 horas cada ferramenta para noob
+- **Output**: jogável no browser ou desktop (export nativo)
+
+## Armadilhas e limitações
+- **Twine é text-only**: não há visual testing de câmera/movimento
+- **Figma prototypes não são jogáveis**: apenas clickthrough mockups
+- **GameMaker tem curva de aprendizado**: GML é language-like, não drag-drop puro
+- **Bitsy é muito minimalista**: sem modo coop, networking, ou polígonos
+- **Nenhuma dessas vai pro production**: tudo é validação. Engine real (Unity/Unreal) vem depois
+- **Performance testing é superficial**: prototipo com 10 sprites, game real tem 100+
+- **Multiplayer impossível**: todas essas são single-player
+- **Audio/music neglected**: nenhuma tem suporte fácil de síntese ou sequencing
+- **Physics fiddly**: GameMaker tem, mas é crude comparado a engine real
+
+## Quando pivotar para engine real
+- Se prototipo funciona e pergunta foi respondida → engine real
+- Se prototipo revela furo na ideia → refine em no-code, não refaça em engine
+- Se prototipo é "eh, funciona" → precisa mais iteração antes de engine
+- Regra: 4+ horas teste user = engine real. <2 horas = volta para no-code
+
+## Conexões
+- [[game-design-iteration-loop]]
+- [[core-loop-game-design]]
+- [[user-testing-game-design]]
 - [[10-youtube-gems-solo-game-devs]]
 
-## Perguntas de Revisão
-1. Qual ferramenta escolher para prototipar um jogo de escolhas narrativas?
-2. Por que prototipar sem código acelera o processo de design?
-3. Em que ponto o protótipo precisa migrar para uma engine real?
+## Histórico
+- 2026-03-28: Nota criada (Sergei Vasiuk)
+- 2026-04-02: Reescrita com matriz de decisão + fluxo prático

@@ -1,33 +1,143 @@
 ---
-tags: [3d, ia-generativa, threejs, ferramentas-criativas, web3d]
+tags: [text-to-3d, image-to-3d, ia-generativa, threejs, single-view-reconstruction, web]
 source: https://x.com/_ArcadeStudio_/status/2036715023314116729?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Geração 3D por IA via Web
 
-## Resumo
-Plataformas web modernas permitem gerar modelos 3D a partir de texto ou imagem usando IA, integrando renderização em tempo real diretamente no browser via Three.js.
+# Converter Texto ou Imagem em Modelo 3D Renderizado na Web
 
-## Explicação
-A geração de modelos 3D por IA representa uma convergência entre modelos generativos multimodais e engines de renderização web. O pipeline funciona em duas modalidades principais: **Text-to-3D**, onde o usuário descreve o objeto em linguagem natural e a IA sintetiza a geometria correspondente; e **Image-to-3D**, onde uma imagem 2D é usada como referência para reconstrução volumétrica — processo tecnicamente conhecido como single-view 3D reconstruction.
+## O que é
+Dois pipelines: **Text-to-3D** (prompt → geometria) e **Image-to-3D** (foto → reconstrução volumétrica), ambos renderizados em Three.js no browser. Sem instalar Blender.
 
-O diferencial desta abordagem está na integração nativa com **Three.js**, biblioteca JavaScript que abstrai WebGL e permite renderização 3D acelerada por GPU diretamente no browser, sem necessidade de software externo como Blender ou Unity. Isso reduz drasticamente a barreira de entrada para criação de assets 3D, especialmente em contextos de game design, VFX e produção audiovisual com IA.
+## Como implementar
+**Text-to-3D (gerar do zero)**:
 
-A capacidade de estilizar a cena 3D gerada em diferentes estilos de renderização (realista, cartoon, técnico, etc.) sugere o uso de técnicas como **neural rendering** ou pós-processamento via shaders, ampliando o controle criativo sem exigir conhecimento técnico profundo do usuário. Isso posiciona a ferramenta no cruzamento entre criação assistida por IA e produção criativa acessível.
+```bash
+# Via API (Meshy, Tripo, Point-E)
+curl -X POST https://api.tripoai.com/v1/generate-model \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "prompt": "a bronze statue of a phoenix with wings spread",
+    "style": "realistic",
+    "model_type": "mesh"
+  }'
 
-Por não haver notas relacionadas no vault, este conceito serve como ponto de entrada para uma futura rede de notas sobre IA generativa para mídia, pipelines de criação 3D e WebGL/Three.js como plataforma criativa.
+# Resposta: {"model_id": "xyz", "download_url": "...model.glb"}
+```
 
-## Exemplos
-1. **Game Design**: gerar props e assets de cenário digitando uma descrição, exportar e usar diretamente em engine web
-2. **AI Filmmaking**: construir cenas 3D estilizadas para pré-visualização ou produção final de curtas gerados por IA
-3. **Prototipagem rápida de produto**: converter foto de um objeto físico em modelo 3D editável via Image-to-3D para apresentações interativas
+**Image-to-3D (reconstruir de foto)**:
 
-## Relacionado
-*(Nenhuma nota existente no vault para linkar no momento. Recomenda-se criar notas sobre [[Three.js]], [[Text-to-3D]], [[Image-to-3D]], [[Neural Rendering]] para compor esta rede.)*
+```python
+# Usar framework como Shap-E ou LRM (Large Reconstruction Model)
+import torch
+from PIL import Image
+from lrm import LRMModel
 
-## Perguntas de Revisão
-1. Quais são as diferenças técnicas fundamentais entre as abordagens Text-to-3D e Image-to-3D em termos de reconstrução geométrica?
-2. Por que Three.js é considerado uma camada crítica de infraestrutura para democratizar a criação 3D na web?
+model = LRMModel.from_pretrained("facebook/lrm-large")
+image = Image.open("phone.jpg")
 
-## Histórico de Atualizações
-- 2026-04-02: Nota criada a partir de Telegram
+# Single-view 3D reconstruction (100-500ms em GPU)
+mesh = model.reconstruct(image,
+                        num_steps=32,
+                        guidance_scale=7.5)
+
+mesh.export_glb("output.glb")
+```
+
+**Renderizar em Three.js**:
+
+```javascript
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, 16/9, 0.1, 100);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+
+// Lighting
+const light = new THREE.HemisphereLight(0xffffff, 0x404040, 1);
+scene.add(light);
+
+// Load gerado modelo
+const loader = new GLTFLoader();
+loader.load('output.glb', (gltf) => {
+    const model = gltf.scene;
+
+    // Auto-center e scale
+    const bbox = new THREE.Box3().setFromObject(model);
+    const center = bbox.getCenter(new THREE.Vector3());
+    model.position.sub(center);
+
+    const size = bbox.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const scale = 2 / maxDim;
+    model.scale.multiplyScalar(scale);
+
+    scene.add(model);
+    animate();
+});
+
+// Controles de estilo via shader
+// (neural rendering para cartoon/sketch/realista)
+const styles = {
+    realistic: { roughness: 0.5, metallic: 0.1 },
+    cartoon: { roughness: 0.9, metallic: 0.0, outline: true },
+    sketch: { wireframe: true, color: 0x333333 }
+};
+
+function applyStyle(style) {
+    model.traverse((node) => {
+        if (node.isMesh) {
+            Object.assign(node.material, styles[style]);
+        }
+    });
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    model.rotation.y += 0.005;
+    renderer.render(scene, camera);
+}
+```
+
+**Workflow completo**:
+
+1. Escolher modal: texto ou imagem
+2. Enviar para API ou local inference
+3. Carregar GLB em Three.js scene
+4. Ajustar lighting/material presets
+5. Capturar PNG ou exportar GLB
+
+## Stack e requisitos
+- **Frontend**: Three.js, Babylon.js, ou o-3D (alternatives)
+- **Backend IA**: Meshy, Tripo 3D, Luma, Point-E, LRM
+- **Browser**: WebGL 2 suporte (Chrome 90+, Firefox 88+)
+- **Tempo Text-to-3D**: 2-10 min (web API) ou 30-300s (local LRM)
+- **Tempo Image-to-3D**: 5-30 min (Luma) ou 100-500ms (LRM local)
+- **Entrada**: prompt 30-150 palavras ou JPG/PNG até 4K
+- **Saída**: GLB + viewport Three.js + PNG screenshot
+- **VRAM local (opcional)**: RTX 3060 min para LRM, RTX 4080 ideal
+- **Custo cloud**: $0.50-5 por geração (Meshy/Tripo/Luma)
+- **Custo local**: $0 (LRM open source)
+
+## Armadilhas e limitações
+- **Text-to-3D ambiguidade**: "phoenix" pode gerar aves muito diferentes. Iteração é necessária
+- **Image-to-3D monoview error**: profundidade é inferida, não medida. Reflexos/transparência causam artefatos
+- **Mesh quality variável**: topologia pode ser pesada ou ter buracos. Remeshing em Blender se crítico
+- **Three.js limitations**: sem materials PBR completos (apenas albedo + normal)
+- **Estilização limitada**: neural rendering no browser é básico (cartoon/wireframe apenas)
+- **Performance web**: 50+ objetos = < 30 FPS
+- **UX fragility**: se API está slow, user vê spinner longo (experiência ruim)
+- **Falta colaboração**: sem multiuser real-time (cada tab é isolada)
+- **No animation**: modelos estáticos, sem skeletal animation ou armature
+
+## Conexões
+- [[single-view-3d-reconstruction]]
+- [[three-js-para-desenvolvimento-de-jogos]]
+- [[material-system-pbr-web]]
+- [[geracao-3d-com-ia-no-browser]]
+
+## Histórico
+- 2026-04-02: Nota criada
+- 2026-04-02: Reescrita com implementação prática

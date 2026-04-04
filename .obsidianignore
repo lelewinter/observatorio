@@ -1,0 +1,9 @@
+node_modules/
+.git/
+Projects/second-brain-pipeline/quartz/content/
+Projects/second-brain-pipeline/quartz/docs/
+Projects/second-brain-pipeline/quartz/.github/
+Projects/second-brain-pipeline/quartz/CODE_OF_CONDUCT.md
+Projects/second-brain-pipeline/quartz/README.md
+Projects/second-brain-pipeline/README.md
+.smart-env/

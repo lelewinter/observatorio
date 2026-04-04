@@ -2,30 +2,30 @@
 tags: [ia, cursos, huggingface, llm, agentes, visao-computacional, audio, open-source]
 source: https://x.com/heynavtoor/status/2039326170421010855?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Cursos Gratuitos HuggingFace IA
+# 9 Cursos Gratuitos HuggingFace: LLMs a Visão Computacional
 
-## Resumo
-A HuggingFace disponibilizou 9 cursos gratuitos e open-source cobrindo as principais áreas de IA moderna, desde LLMs e agentes até visão computacional, áudio, jogos e 3D.
+## O que e
+HuggingFace lançou suite de 9 cursos open-source cobrindo stack completo de IA moderna: LLMs, agentes, visão computacional, áudio, gamedev e 3D. Cada curso combina teoria concisa com notebooks executáveis em Colab, eliminando barreira de custo para aprendizado prático em IA. Modelos, datasets e código são open-source no hub da plataforma.
 
-## Explicação
-A HuggingFace, principal plataforma colaborativa de modelos e datasets de IA, lançou um pacote de 9 cursos gratuitos com foco prático e hands-on. O conteúdo abrange o espectro completo das aplicações de IA contemporânea: Large Language Models (LLMs), sistemas de agentes autônomos, visão computacional, processamento de áudio, IA aplicada a jogos e modelagem 3D. Todo o material é open-source, o que significa que o código, os notebooks e os modelos utilizados estão publicamente acessíveis e reutilizáveis.
+## Como implementar
+Acessar cursos em https://huggingface.co/learn — cada um é autossuficiente. **Curso de LLMs**: cobre arquitetura, pré-treinamento, fine-tuning com [[transformers]] library. Exemplo: fazer fine-tuning de Llama-2 em dataset customizado usando UI na plataforma ou código Python. **Curso de Agentes**: construit agentes com [[smolagents]] ou [[langchain]], integrando tool calling, planejamento e iteração. **Visão Computacional**: fine-tuning [[ViT]] ou [[DINO]] em datasets próprios, detecção de objetos com YOLO. **Áudio**: treinar modelos de speech-to-text ([[Whisper]]), classificação de áudio, text-to-speech. Cada módulo: 30min leitura + 30min código hands-on em Colab. Fluxo recomendado: comeca com LLMs se novo em IA, depois agentes, depois multimodal conforme interesse.
 
-A relevância desse lançamento está na democratização do conhecimento técnico em IA. Historicamente, formação aprofundada em LLMs e agentes exigia acesso a cursos pagos ou ambientes acadêmicos. A HuggingFace, ao centralizar esses cursos em sua plataforma, reduz a barreira de entrada e padroniza o uso do ecossistema `transformers`, `datasets` e `hub` como base de aprendizado.
+Integração prática: modelos fine-tuned no curso podem ser salvos direto no HF Hub, compartilhados, ou deployados via [[spaces]] (hospedagem Gradio gratuita). Usar datasets públicos (ImageNet, Common Voice, LibriSpeech) ou uploads privados.
 
-A abordagem hands-on é especialmente relevante: ao contrário de cursos teóricos, o aprendizado ocorre diretamente manipulando modelos reais, fine-tuning, pipelines de inferência e construção de agentes — habilidades diretamente aplicáveis em projetos profissionais. A cobertura de domínios como áudio e 3D indica que a HuggingFace está posicionando sua plataforma além do texto, acompanhando a expansão multimodal dos modelos atuais.
+## Stack e requisitos
+Conta Google (Colab), conta HuggingFace (grátis). T4 GPU via Colab suficiente para todos os cursos. Python 3.8+, bibliotecas instaláveis via pip: `transformers`, `datasets`, `huggingface-hub`. Pré-requisito de conhecimento: Python intermediário, conceitos básicos de redes neurais (backpropagation, loss, gradient). Tempo: 1-2h por módulo.
 
-## Exemplos
-1. **Curso de Agentes**: aprender a construir agentes LLM com uso de ferramentas (tool use), planejamento e memória, usando frameworks como `smolagents` ou `LangChain` integrados ao HuggingFace Hub.
-2. **Curso de Áudio**: treinar e aplicar modelos de speech-to-text (Whisper), text-to-speech e classificação de áudio com datasets do HuggingFace.
-3. **Curso de Visão Computacional**: fine-tuning de modelos como ViT (Vision Transformer) para classificação de imagens e detecção de objetos com `transformers` e `datasets`.
+## Armadilhas e limitacoes
+Colab memory reset se inativa >90min; salva checkpoints para Google Drive. Datasets grandes (ImageNet full) excedem limite Colab storage; usar shards ou samples. Fine-tuning completo em 24GB RAM é lento; usar LoRA para modelos > 7B parâmetros. Modelos multimodais (Llava, Gemini emulation) exigem GPUs melhor (A100 idealmente), consumer GPUs limitadas a inferência.
 
-## Relacionado
-*(Nenhuma nota existente no vault para conectar neste momento.)*
+## Conexoes
+[[construcao-de-llm-do-zero|LLM do zero]]
+[[fine-tuning-de-llms-sem-codigo|Fine-tuning sem código]]
+[[democratizacao-de-modelos-de-ia|Acesso a modelos]]
+[[embeddings-multimodais-em-espaco-vetorial-unificado|Embeddings multimodais]]
 
-## Perguntas de Revisão
-1. Quais são as principais áreas cobertas pelos cursos da HuggingFace e por que essa combinação de domínios é relevante para o estado atual da IA?
-2. De que forma a abordagem hands-on e open-source desses cursos muda a estratégia de aprendizado em comparação com cursos teóricos tradicionais?
-
-## Histórico de Atualizações
-- 2026-04-02: Nota criada a partir de Telegram
+## Historico
+- 2026-04-02: Nota criada
+- 2026-04-02: Reescrita pelo pipeline

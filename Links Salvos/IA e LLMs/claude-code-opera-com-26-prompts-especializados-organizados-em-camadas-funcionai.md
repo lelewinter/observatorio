@@ -2,32 +2,197 @@
 tags: [prompt-engineering, llm-agents, claude, arquitetura-de-agentes, multi-agent, engenharia-de-software]
 source: https://x.com/NieceOfAnton/status/2039277883127103501?s=20
 date: 2026-04-01
+tipo: aplicacao
 ---
-# Claude Code opera com 26 prompts especializados organizados em camadas funcionais distintas, revelando uma arquitetura modular de agentes como padrão para ferramentas de IA de produção
 
-## Resumo
-O Claude Code, ferramenta de codificação da Anthropic, utiliza 26 prompts distintos organizados em categorias funcionais (sistema, ferramentas, agentes, memória, coordenação e utilidades). Essa arquitetura foi reconstruída a partir do código-fonte npm publicado acidentalmente e disponibilizada sob licença MIT.
+# Arquitetura Multi-Prompt Modular para Agentes IA (Claude Code Pattern)
 
-## Explicação
-A arquitetura do Claude Code revela que ferramentas de IA sofisticadas não operam com um único prompt monolítico, mas com um sistema hierárquico de prompts especializados. O prompt de sistema define identidade, segurança e roteamento de ferramentas — a "constituição" do agente. Abaixo dele, 11 prompts de ferramentas cobrem operações atômicas como shell, manipulação de arquivos e busca, enquanto 5 prompts de agentes encapsulam papéis cognitivos distintos: explorador, arquiteto, verificador e documentador.
+## O que é
 
-Um padrão arquitetural especialmente relevante é a presença de um agente dedicado exclusivamente a tentar quebrar o código antes do deploy — um "red team" automatizado embutido no pipeline. Isso materializa o princípio de que segurança e verificação não são etapas externas, mas componentes de primeira classe dentro do sistema. Complementarmente, há regras anti-over-engineering explicitamente codificadas nos prompts ("não adicione features além do solicitado"), o que demonstra que restrições comportamentais podem e devem ser injetadas via prompt, não apenas via treinamento.
+Claude Code usa 26 prompts especializados em 6 camadas: sistema, ferramentas (11), agentes (5), memória (4), coordenador, utilidades. Padrão arquitetural reutilizável para agentes complexos: separar roles, não monolítico.
 
-O subsistema de memória merece atenção especial: 4 prompts gerenciam compressão de sessão em 9 seções estruturadas, preservando obrigatoriamente todas as mensagens do usuário. Isso resolve um problema clássico de agentes de longa duração — a perda de contexto — através de sumarização estruturada em vez de simples truncamento. O prompt coordenador de multi-agentes funciona como orquestrador, delegando tarefas entre os demais agentes, o que é o padrão arquitetural central em sistemas como AutoGen e similares.
+## Como implementar
 
-O sistema de risco em camadas é outro padrão exportável: o agente edita arquivos livremente (baixo risco), mas solicita permissão explícita antes de operações destrutivas como force-push (alto risco). Isso implementa o princípio do menor privilégio de forma dinâmica e contextual, adaptada ao domínio de desenvolvimento de software.
+**1. Estrutura de 6 camadas**
 
-## Exemplos
-1. **Construção de agente próprio**: Usar a mesma separação de camadas — um prompt de sistema para identidade, prompts de ferramenta para ações atômicas, e um prompt coordenador para orquestração — ao construir qualquer agente de automação de tarefas complexas.
-2. **Pipeline de revisão de código com red team embutido**: Implementar um sub-agente cujo único papel é tentar invalidar, encontrar bugs ou quebrar o output do agente principal antes de entregar o resultado ao usuário.
-3. **Gestão de contexto em sessões longas**: Adotar o padrão de compressão em seções fixas (ex: objetivos, decisões tomadas, próximos passos, mensagens do usuário) para manter coerência em conversas que ultrapassam a janela de contexto.
+```
+├─ Sistema (1 prompt)
+│  ├─ Identidade: "você é agente X"
+│  ├─ Segurança: guardrails, risco
+│  └─ Roteamento: qual tool usar quando
+│
+├─ Ferramentas (11 prompts)
+│  ├─ Shell execution
+│  ├─ File manipulation
+│  ├─ Web search
+│  ├─ Git operations
+│  ├─ Code analysis
+│  └─ [outros específicos]
+│
+├─ Agentes (5 prompts)
+│  ├─ Explorer (pesquisa/descoberta)
+│  ├─ Architect (design)
+│  ├─ Builder (implementação)
+│  ├─ Verifier (QA/red-team)
+│  └─ Documenter (docs/comunicação)
+│
+├─ Memória (4 prompts)
+│  ├─ Session compression
+│  ├─ Context retrieval
+│  ├─ Summary generation
+│  └─ Long-term storage
+│
+├─ Coordenador (1 prompt)
+│  └─ Orquestra delegação entre agentes
+│
+└─ Utilidades (vários)
+   └─ Formatter, error handler, etc
+```
 
-## Relacionado
-*(Nenhuma nota existente no vault para conectar neste momento.)*
+**2. Implementar padrão em Python**
 
-## Perguntas de Revisão
-1. Quais são as seis categorias funcionais de prompts no Claude Code e qual é a responsabilidade específica de cada uma?
-2. Por que separar a lógica de um agente em múltiplos prompts especializados é preferível a um único prompt monolítico em sistemas de produção?
+```python
+from anthropic import Anthropic
 
-## Histórico de Atualizações
-- 2026-04-01: Nota criada a partir de Telegram
+class LayeredAgent:
+    def __init__(self):
+        self.client = Anthropic()
+
+        # Prompts especializados
+        self.system_prompt = """
+        You are a code agent with multi-layer expertise.
+        Identity: Code architect and executor
+        Security: Ask for confirmation on destructive ops
+        Tools available: shell, file, git, web-search
+        """
+
+        self.explorer_prompt = """
+        Your role: Explore codebase, find patterns,
+        suggest approaches. Never execute yet.
+        """
+
+        self.verifier_prompt = """
+        Your role: Red-team. Try to break code.
+        Find edge cases, security issues.
+        Before anything ships, test ruthlessly.
+        """
+
+        self.coordinator_prompt = """
+        You coordinate multi-agent workflow.
+        Route task to Explorer → Architect → Builder → Verifier
+        Ensure handoffs are clean.
+        """
+
+    def explore_task(self, task):
+        """Step 1: Explore"""
+        response = self.client.messages.create(
+            model="claude-opus-4-1",
+            max_tokens=2000,
+            system=self.system_prompt + self.explorer_prompt,
+            messages=[{"role": "user", "content": task}]
+        )
+        return response.content[0].text
+
+    def verify_code(self, code):
+        """Step N: Red-team verify"""
+        response = self.client.messages.create(
+            model="claude-opus-4-1",
+            max_tokens=2000,
+            system=self.system_prompt + self.verifier_prompt,
+            messages=[{"role": "user", "content": f"Break this code:\n{code}"}]
+        )
+        return response.content[0].text
+
+    def coordinate(self, task):
+        """Orchestrate full workflow"""
+        print("1. Explorer phase...")
+        exploration = self.explore_task(task)
+
+        print("2. Architect phase...")
+        # Architect reads explorer output
+
+        print("3. Builder phase...")
+        # Builder implements
+
+        print("4. Verifier phase...")
+        # Verifier breaks it
+
+        print("5. Documenter phase...")
+        # Documenter writes summary
+```
+
+**3. Especialização de prompts por role**
+
+| Role | Responsabilidade | Anti-pattern |
+|------|------------------|-------------|
+| Explorer | Pesquisa, análise, não executa | "Não implemente, só estude" |
+| Architect | Design, decisões estruturais | Muitos detalhes de implementação |
+| Builder | Implementação, execução rápida | Sobre-engineering |
+| Verifier | Testes, red-team, segurança | Roupa suja, aceitar outputs fracos |
+| Documenter | Comunicação, README, explicação | Documentação de "what" sem "why" |
+
+**4. Memória em camadas (9 seções estruturadas)**
+
+```python
+class StructuredMemory:
+    def compress_session(self, messages):
+        """Compress long session into 9 sections"""
+        return {
+            "objectives": "[distille target]",
+            "constraints": "[explicit limits]",
+            "decisions": "[choices made]",
+            "learnings": "[what we learned]",
+            "current_state": "[where we are]",
+            "blockers": "[what's stuck]",
+            "next_steps": "[queued tasks]",
+            "user_messages": "[ALL user msg]",  # MANDATORY
+            "context_metadata": "[timestamps, costs]"
+        }
+```
+
+**5. Segurança contextual por risco**
+
+```python
+class RiskAwareAgent:
+    def execute_task(self, task, risk_level):
+        if risk_level == "low":
+            # Edit files freely
+            return self.builder_agent(task)
+        elif risk_level == "medium":
+            # Ask for confirmation
+            print(f"About to {task}")
+            approval = input("Approve? y/n: ")
+            if approval == "y":
+                return self.builder_agent(task)
+        elif risk_level == "high":
+            # Force-push, delete, deploy?
+            print(f"DESTRUCTIVE: {task}")
+            print("Require explicit approval + verification")
+            return None
+```
+
+## Stack e requisitos
+
+- Claude API (Opus 4.1+ para complexidade)
+- Python 3.9+ ou Node.js
+- Prompt engineering discipline (6 prompts diferentes, cada um foco)
+- Logging estruturado (track qual agente fez o quê)
+
+## Armadilhas e limitações
+
+- **Overhead de coordenação**: 6 prompts = 6x calls. Batch quando possível
+- **Context confusion**: Agente pode "esquecer" seu role se prompt não é claro
+- **Cascading errors**: Se Explorer falha, Architect trabalha com base errada
+- **Custo escala**: Múltiplos agentes = token usage x6
+- **Debugging difícil**: Qual agente causou erro em pipeline de 5?
+
+## Conexões
+
+[[CLAUDE-md-template-plan-mode-self-improvement]]
+[[consolidacao-de-memoria-em-agentes]]
+[[empresa-virtual-de-agentes-de-ia]]
+
+## Histórico
+
+- 2026-04-01: Nota criada
+- 2026-04-02: Reescrita como guia de arquitetura

@@ -1,33 +1,208 @@
 ---
-tags: []
+tags: [contexto, llm, configuracao, markdown, persistencia]
 source: https://x.com/gregisenberg/status/2038220390665724001?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Configuração de Contexto para LLMs
 
-## Resumo
-Arquivos `.md` de configuração funcionam como memória persistente e instruções sistêmicas para modelos como Claude, amplificando consistência e qualidade das respostas sem alterar o modelo em si.
+# Configurar Contexto Persistente para LLMs com 4 Arquivos .md
 
-## Explicação
-A ideia central é usar quatro arquivos Markdown estruturados para fornecer ao Claude (ou qualquer LLM com suporte a contexto persistente) um conjunto fixo de instruções, preferências e conhecimento de domínio. Esses arquivos substituem a necessidade de repetir instruções a cada sessão, funcionando como uma camada de personalização que persiste entre interações.
+## O que é
 
-Na prática, esses arquivos tipicamente cobrem: (1) **perfil do usuário** — quem você é, seu contexto profissional e objetivos; (2) **regras de comportamento** — tom, formato de resposta, restrições; (3) **conhecimento de domínio** — glossários, frameworks e conceitos recorrentes do seu trabalho; (4) **fluxos ou projetos ativos** — contexto situacional de tarefas em andamento. Juntos, eles constroem um "sistema de instrução" informal sem necessidade de fine-tuning.
+4 arquivos Markdown como instrções sistêmicas permanentes para Claude/LLM. Injection no início cada sessão. Elimina re-briefing, amplifica consistência. Funciona como "memória SLA" sem fine-tuning.
 
-O mecanismo subjacente é simples: LLMs como Claude operam dentro de uma janela de contexto. Ao injetar arquivos `.md` no início de cada sessão (manualmente ou via ferramentas como o Project Knowledge do Claude), o modelo passa a ter acesso a metadados ricos sobre o usuário e a tarefa. Isso reduz ambiguidade, elimina retrabalho de briefing e eleva a especificidade das respostas. É engenharia de prompt elevada ao nível de infraestrutura pessoal.
+## Como implementar
 
-A abordagem é especialmente poderosa porque é **composável e versionável** — os arquivos podem ser editados, combinados e mantidos em controle de versão (Git), tratando a configuração do LLM como código. Isso transforma o uso do modelo de uma prática ad hoc em um sistema reproduzível.
+**1. Estrutura de 4 arquivos**
 
-## Exemplos
-1. **Consultor de produto** cria um `perfil.md` com sua especialidade, `projetos.md` com os clientes ativos e `formato.md` exigindo respostas em bullet points executivos — Claude responde como um analista já contextualizado.
-2. **Desenvolvedor solo** mantém um `stack.md` com as tecnologias do projeto e convenções de código, eliminando a necessidade de reexplicar arquitetura a cada sessão.
-3. **Criador de conteúdo** usa um `voz.md` descrevendo tom, expressões preferidas e audiência-alvo, garantindo consistência entre rascunhos gerados pelo modelo.
+```
+.claude/
+├── perfil.md         # Quem você é, contexto profissional
+├── regras.md         # Tons, formatos, restrições
+├── dominio.md        # Glossários, frameworks, conceitos
+└── projetos.md       # Tarefas ativas, contexto temporal
+```
 
-## Relacionado
-*(Nenhuma nota existente no vault para conectar neste momento.)*
+**2. Arquivo 1: perfil.md**
 
-## Perguntas de Revisao
-1. Quais são os quatro tipos de informação que os arquivos `.md` de configuração devem cobrir para maximizar a utilidade de um LLM?
-2. Qual a diferença prática entre usar arquivos `.md` de contexto e fazer fine-tuning do modelo para um caso de uso específico?
+```markdown
+# Perfil Usuário
 
-## Historico de Atualizacoes
-- 2026-04-02: Nota criada a partir de Telegram
+## Quem sou
+- Cargo: Senior Product Manager, IA/Data
+- Empresa: TechCorp (Series B, 50 people)
+- Especialidade: LLM ops, data infrastructure
+- Experiência: 8 anos em ML, 3 anos em DevOps
+
+## Contexto
+- Responsável por: Feature prioritization, roadmap decisions
+- Autoridade: Decide features, não código (delegar builders)
+- Time: 1 data eng, 1 ML eng, 2 backend eng
+
+## Objetivos
+- Build reliable data pipeline (100k events/day)
+- Reduce latency p99 to <500ms
+- Improve observability
+```
+
+**3. Arquivo 2: regras.md**
+
+```markdown
+# Regras de Comportamento
+
+## Tom
+- Pragmatic, not hype
+- Direct, no filler
+- Technical depth assumed
+
+## Formatos
+- Sempre estruturado (bullets, tables)
+- Executive summary primeiro
+- Technical details after summary
+- Max 2 páginas por resposta
+
+## Restrições
+- Não: financial advice, medical claims
+- Sim: technical analysis, architecture decisions
+- Escopo: IA/Data/DevOps. Fora disso = rejeitar politely
+```
+
+**4. Arquivo 3: dominio.md**
+
+```markdown
+# Glossário & Frameworks
+
+## Conceitos chave (nossa empresa)
+- **EventStream**: Real-time data from users
+- **DataPipeline**: Kafka → Spark → PostgreSQL
+- **Throughput**: events/sec (target: 10k/s)
+
+## Frameworks que usamos
+- RICE para priorização (Reach, Impact, Confidence, Effort)
+- Incident severity: P1 (no SLA met), P2 (degraded), P3 (cosmetic)
+- Release process: code review + staging + canary
+
+## Stack tech
+- Language: Python 3.11+
+- DataDB: PostgreSQL 14
+- Stream: Apache Kafka
+- Compute: Spark 3.2
+- Monitor: Prometheus + Grafana
+```
+
+**5. Arquivo 4: projetos.md**
+
+```markdown
+# Projetos Ativos
+
+## Q2 2026 OKRs
+- [ ] EventStream reliability: 99.99% uptime
+- [ ] Latency p99: <500ms (currently 800ms)
+- [ ] Observability: 100% of critical paths traced
+
+## Projeto 1: Latency Reduction
+- Status: In progress (2 weeks in)
+- Lead: John (data eng)
+- Blockers: Awaiting benchmark results
+- Next: Optimize Spark shuffle
+
+## Projeto 2: Observability Revamp
+- Status: Design phase
+- Need: Recommend tracing tool (Jaeger vs Datadog)
+- Timeline: Decision by week 15
+
+## Current Pain Points
+- Debugging is slow (no traces)
+- Kafka partition balancing is manual
+- No alerting on data freshness
+```
+
+**6. Injetar contexto (manual)**
+
+Cada sessão Claude, no início:
+
+```
+[Paste content of perfil.md, regras.md, dominio.md, projetos.md]
+
+---
+
+Now with that context, here's my actual question:
+[Your question]
+```
+
+**7. Automação (context injector)**
+
+```python
+import os
+
+class ContextInjector:
+    def __init__(self, context_dir=".claude"):
+        self.context_dir = context_dir
+
+    def load_all_contexts(self):
+        """Load all .md files from context dir"""
+        files = ["perfil.md", "regras.md", "dominio.md", "projetos.md"]
+        contexts = []
+
+        for f in files:
+            path = os.path.join(self.context_dir, f)
+            if os.path.exists(path):
+                with open(path) as file:
+                    contexts.append(f"## {f}\n{file.read()}")
+
+        return "\n\n".join(contexts)
+
+    def prepare_prompt(self, user_question):
+        """Inject context + user question"""
+        contexts = self.load_all_contexts()
+        return f"{contexts}\n\n---\n\n{user_question}"
+
+# Uso
+injector = ContextInjector()
+full_prompt = injector.prepare_prompt("What should we do about Kafka latency?")
+
+# Pass to Claude API
+response = client.messages.create(
+    model="claude-opus-4-1",
+    max_tokens=2000,
+    messages=[{"role": "user", "content": full_prompt}]
+)
+```
+
+**8. Manutenção (versioning)**
+
+```bash
+# Git track context files
+git add .claude/
+git commit -m "Update projetos.md: latency optimization in progress"
+
+# Team can review changes
+git log .claude/
+git diff .claude/perfil.md
+```
+
+## Stack e requisitos
+
+- 4 .md files (~1-2KB each)
+- Claude API
+- Copy-paste ou programmatic injection
+- Optional: Git for version control
+
+## Armadilhas e limitações
+
+- **Context window cost**: Injecting ~5KB context = ~1300 tokens. Every request
+- **Staleness**: Files must be updated regularly or become misleading
+- **Not a substitute for fine-tuning**: Context is helpful but limited
+- **Token budget**: If using Pro free tier, 5KB context eats quickly
+- **Multi-session coordination**: If 2 people edit .claude/ simultaneously, conflicts
+
+## Conexões
+
+[[contexto-persistente-em-llms]]
+[[CLAUDE-md-template-plan-mode-self-improvement]]
+[[claude-power-user-setup]]
+
+## Histórico
+
+- 2026-04-02: Nota criada
+- 2026-04-02: Reescrita como guia de implementação

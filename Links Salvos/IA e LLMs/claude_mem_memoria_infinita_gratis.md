@@ -1,40 +1,184 @@
 ---
 date: 2026-03-15
-tags: [claude, memoria, plugin, open-source, tokens]
+tags: [claude, memoria, plugin, open-source, tokens, persistencia]
 source: https://x.com/oliviscusAI/status/2033141414624674159?s=20
 autor: "@oliviscusAI"
+tipo: aplicacao
 ---
 
-# Claude-Mem: Memória Infinita Grátis para Claude Code
+# Implementar Claude-Mem para Memória Persistente Entre Sessões
 
-## Resumo
+## O que é
 
-Plugin gratuito e de código aberto que permite persistência de memória entre sessões do Claude, eliminando limitações de contexto e reduzindo drasticamente consumo de tokens. Oferece redução de até 95% de tokens por sessão e 20x mais chamadas de ferramenta. É como ter um assistente que lembra de tudo que você fez antes, sem precisar você resumir do zero a cada reunião.
+Plugin open-source que persiste memória entre sessões Claude Code. Reduz tokens ~95%, suporta 20x mais tool calls, acumula conhecimento sem re-briefing. Entrada: sessões múltiplas. Saída: contexto persistente em arquivo local.
 
-## Explicação
+## Como implementar
 
-Claude-Mem fornece capacidade de memória persistente para Claude Code, permitindo que sistema mantenha informações importantes entre diferentes sessões sem perder contexto ou histórico de conversas. É 100% open-source permitindo auditoria, modificação e implantação privada sem dependências externas de serviços proprietários.
+**1. Instalar Claude-Mem plugin**
 
-**Analogia:** Sem Claude-Mem, cada sessão de Claude é como um colega com amnésia — você começa, explica tudo (projeto, contexto, história, decisões anteriores), ele trabalha, sessão termina, tudo desaparece. Na próxima sessão, novo Claude, mesma amnésia. Claude-Mem é como esse colega agora ter um notebook mágico que ele lê no começo de cada dia — "ah, lembro! Estávamos trabalhando em X, já tentamos Y, a decisão foi Z". Você economiza 30 minutos de re-briefing a cada sessão.
+```bash
+# Clone do repo
+git clone https://github.com/oliviscus/claude-mem.git
+cd claude-mem
 
-Eficiência de tokens: redução de até 95% de tokens por sessão ao invés de reenviar todo contexto em cada nova sessão. Isso significa que projetos que custavam $100/mês em tokens agora custam $5. Capacidade de ferramenta aumentada: 20x mais chamadas de ferramenta antes de atingir limites de contexto (normalmente Claude tem limitações no número de tool calls em uma sessão, mas com Claude-Mem isso é drasticamente aumentado).
+npm install
+npm run build
 
-Funciona persistindo memória entre sessões do Claude Code, permitindo acumular conhecimento e contexto ao longo do tempo, reduzindo necessidade de re-contextualização em cada nova sessão.
+# Registrar com Claude Code
+claude plugin register ./dist
+```
 
-**Profundidade:** Por que é revolucionário? Contexto é o limite real de IA em 2026. Modelos são poderosos, mas se você só consegue manter 200k tokens de contexto e 80% desse contexto é re-explicar o que você já fez, você perde 80% de utilidade. Claude-Mem muda a equação: 95% menos tokens por sessão significa que você consegue manter contexto de semanas de trabalho ao invés de horas. Impacto é particularmente valioso para: redução de custos (menos tokens = menos custos em chamadas de API), produtividade (não é necessário re-briefar Claude a cada sessão), autonomia (agentes funcionam mais independentemente com memória persistente), escalabilidade (permite projetos maiores com menos overhead de contexto).
+Ou via marketplace (se disponível):
+```
+Claude Code → Settings → Plugins → Search "claude-mem" → Install
+```
 
-## Exemplos
+**2. Configurar arquivo de memória**
 
-Casos de uso incluem: desenvolvimento de longo prazo (manter contexto em projetos que se estendem por múltiplas sessões), agentes autônomos (agentes que precisam manter estado e aprendizado), aplicações complexas (sistemas que requerem persistência de informação), pesquisa e análise (projetos analíticos que acumulam insights).
+Criar `.claude-mem/memory.json` na raiz do projeto:
 
-## Relacionado
+```json
+{
+  "enabled": true,
+  "persistenceFile": ".claude-mem/session-memory.md",
+  "compressionLevel": "aggressive",
+  "retentionDays": 30,
+  "sections": [
+    "objectives",
+    "architecture_decisions",
+    "past_failures",
+    "successful_patterns",
+    "current_state",
+    "next_steps",
+    "api_docs",
+    "tool_calls_log"
+  ]
+}
+```
 
-- [[Claude Code Subconscious Letta Memory Layer]]
-- [[Claude Code - Melhores Práticas]]
-- [[Otimizar Uso Rate Limit Claude Pro Max]]
+**3. Estrutura de memória (9 seções)**
 
-## Perguntas de Revisão
+Claude-Mem automatically mantém:
 
-1. Como Claude-Mem muda o custo economicamente de projetos de longo prazo com Claude?
-2. Por que "não perder contexto entre sessões" é fundamentalmente diferente de "ter mais tokens"?
-3. Qual é o padrão: persistência de memória conecta com escalabilidade de agentes autônomos?
+```markdown
+# Session Memory — Project: [name]
+
+## Objectives (persisted)
+- Primary goal: [what we're solving]
+- Sub-goals: [related tasks]
+- Constraints: [technical limits, deadlines]
+
+## Architecture Decisions
+- Decision 1: [choice] → Reasoning: [why] → Date: [when]
+- Decision 2: ...
+→ Prevent rehashing same decision every session
+
+## Past Failures & Learnings
+- Failure 1: [what broke] → Root cause: [why] → How to avoid: [lesson]
+- Failure 2: ...
+→ Don't repeat mistakes across sessions
+
+## Successful Patterns
+- Pattern 1: [what worked] → Context: [when to use]
+- Pattern 2: ...
+→ Reuse proven approaches
+
+## Current State
+- Files modified: [git diff summary]
+- Tests: [passing/failing count]
+- Blockers: [what's stuck]
+- Progress: [% complete]
+
+## Next Steps
+- Queued tasks: [ordered priority list]
+- Dependencies: [what blocks what]
+
+## API & Tool Documentation
+- Cached API specs (reduce tokens re-explaining)
+- Tool usage examples
+- Rate limits & quotas
+
+## Tool Calls Log
+- [action: file_write path/x.py]
+- [action: shell_exec npm test]
+- Prevents re-running same tools, enables audit trail
+```
+
+**4. Uso prático em sessões**
+
+**Primeira sessão:**
+```
+[User] "Build a Python FastAPI service for processing images"
+
+[Claude] Lê `.claude-mem/memory.json` (vazio na primeira)
+Cria estrutura base, salva decisões arquiteturais
+→ Persiste em memory.json
+```
+
+**Segunda sessão (dias depois):**
+```
+[User] "Continue from where we left off"
+
+[Claude] Carrega memory.json automaticamente
+Sabe: arquitetura, o que foi tentado, o que falhou
+Retoma do ponto exato: "Current state: 3 endpoints done, tests failing"
+Economiza re-explicação = 90% menos tokens
+```
+
+**5. Compressão e limpeza**
+
+```python
+# Cleanup automático
+claude_mem.cleanup(
+    retention_days=30,  # Delete sessions older than 30 days
+    max_memory_size_mb=100,  # Cap memory file
+    compression="aggressive"  # Compress redundant entries
+)
+```
+
+**6. Integração com multi-agent systems**
+
+Se usando múltiplos agentes (Explorer, Builder, Verifier):
+
+```python
+# Cada agente compartilha memória
+class Agent:
+    def __init__(self, role):
+        self.memory = MemoryStore(".claude-mem/memory.json")
+        self.memory.load()
+
+    def execute(self, task):
+        # Agente A: lê que Agente B descobriu falha X
+        past_blockers = self.memory.get("past_failures")
+        if "falha_x_mitigada_por" in past_blockers:
+            # Reutiliza solução
+            return self.apply_solution(past_blockers["falha_x_mitigada_por"])
+```
+
+## Stack e requisitos
+
+- Claude Code (qualquer versão recente)
+- Node.js 14+ ou Python 3.9+
+- Armazenamento local (100MB+ disco)
+- Zero dependências externas (100% open-source)
+
+## Armadilhas e limitações
+
+- **Memória cresce indefinidamente**: Se não limpar, arquivo fica gigante. Configure `retentionDays`
+- **Stale information**: Memória pode ficar desatualizada se projeto mudou drasticamente. Audit periodicamente
+- **Multi-agent conflicts**: Se 2+ agentes escrevem memória simultaneamente, pode corromper. Use locks
+- **Privacy**: Memória armazenada localmente (seguro), mas em plain text. Considere criptografia
+- **Not a silver bullet**: Memória ajuda contexto, mas não substitui bom design. Sistemas mal-arquitetados continuam lentos
+- **Token count não é zero**: Mesmo com 95% redução, primeiras linhas de cada sessão ainda usam tokens carregando memória
+
+## Conexões
+
+[[Claude Code Subconscious Letta Memory Layer]]
+[[consolidacao-de-memoria-em-agentes]]
+[[contexto-persistente-em-llms]]
+[[CLAUDE-md-template-plan-mode-self-improvement]]
+
+## Histórico
+
+- 2026-03-15: Nota criada
+- 2026-04-02: Reescrita como guia de implementação

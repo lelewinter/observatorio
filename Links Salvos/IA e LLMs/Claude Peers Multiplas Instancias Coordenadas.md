@@ -3,56 +3,100 @@ date: 2026-03-23
 tags: [ia, claude-code, colaboracao, multi-agent, coordenacao]
 source: https://x.com/NainsiDwiv50980/status/2036012777211559946?s=20
 autor: "@NainsiDwiv50980"
+tipo: aplicacao
 ---
 
-# Claude Peers: Múltiplas Instâncias do Claude Coordenadas Automaticamente
+# Configurar Claude Peers para Coordenação Automática Multi-Instância
 
-## Resumo
+## O que é
 
-Sistema que permite múltiplas instâncias do Claude Code se comunicarem naturalmente como colegas de trabalho. Funciona através de descoberta automática e mensagens instantâneas entre sessões locais, transformando um Claude em times de IA coordenados automaticamente sem frameworks complexos. É como ter 5 colegas especializados (um faz backend, um frontend, um dados, um testes, um DevOps) que conseguem se encontrar no corredor, comparar notas, e sincronizar trabalho — tudo automaticamente, sem gerente no meio.
+Sistema que conecta múltiplas sessões Claude Code em tempo real via descoberta automática em localhost. Instâncias se comunicam, compartilham contexto (repositório, arquivos editados, tarefa atual), sincronizam parallelamente sem conflitos. Transforma desenvolvimento serial em paralelo automático.
 
-## Explicação
+## Como implementar
 
-Claude Peers permite que múltiplas instâncias do Claude Code rodando em diferentes projetos se descubram automaticamente, enviem mensagens instantaneamente, façam perguntas e compartilhem contexto sem APIs, agentes ou orquestradores — apenas sessões nativas do Claude Code se comunicando.
+**1. Inicializar broker daemon local**
 
-**Analogia:** Imagine uma sala com 5 pessoas em mesas diferentes trabalhando em partes diferentes de um projeto. Sem Claude Peers: cada um trabalha isolado, às vezes causam conflitos (dois editam mesmo arquivo), às vezes perdem tempo (um refaz o que outro já fez). Com Claude Peers: eles conseguem se chamar do outro lado da sala ("ei, você está mexendo em auth?"), combinar ("tá, eu deixo auth com você, faço UI"), e depois juntar o trabalho sem conflitos. Tudo automático, zero coordenação manual.
+```bash
+claude-peers start-broker
+```
 
-The infraestrutura é baseada em um broker daemon local em localhost, um registro SQLite de pares conectados, servidores MCP por sessão, sistema de messaging instantâneo por push, descoberta automática de instâncias e comunicação entre projetos. Tudo roda localmente sem cloud, sem latência de rede, sem exigências de framework — funciona com Claude Code nativo e se auto-sincroniza.
+Roda em localhost (padrão: port 9000). Não requer cloud, funciona offline.
 
-**Profundidade:** Por que é revolucionário? Desenvolvimento paralelo sempre foi problema: quanto mais gente trabalhando, mais conflitos. Pessoas precisam coordenador (gerente, scrum master). Claude Peers torna coordenação automática — não é "coordenação organizada por humano", é "IA descobrindo conflitos potenciais antes de acontecerem". Isso significa: times de 10 Claudes trabalham como time de 5 pessoas bem coordenadas.
+**2. Registrar instâncias**
 
-A infraestrutura é baseada em um broker daemon local em localhost, um registro SQLite de pares conectados, servidores MCP por sessão, sistema de messaging instantâneo por push, descoberta automática de instâncias e comunicação entre projetos. Tudo roda localmente sem cloud, sem latência de rede, sem exigências de framework — funciona com Claude Code nativo e se auto-sincroniza.
+Em cada sessão Claude Code, declare:
+```
+set_summary: "backend API — auth.ts, routes/* — integrating OAuth"
+```
 
-Cada instância auto-resume o que está fazendo, permitindo que outros Claudes vejam o diretório de trabalho, repositório Git, tarefa atual e arquivos ativos sendo editados. Eles sabem exatamente no que as outras instâncias estão trabalhando.
+Auto-registra sessão. Broker sincroniza com outras instâncias.
 
-Os comandos disponíveis incluem: `list_peers` (encontra todas as sessões Claude rodando), `send_message` (fala com outro Claude, ex: "message peer 3: what are you working on?"), `set_summary` (descreve sua tarefa para outros), `check_messages` (fallback manual para verificar mensagens). A interação ocorre em linguagem natural — você simplesmente diz "message peer 3: what are you working on?" e recebe resposta instantânea, sem camada de orquestração.
+**3. Descobrir pares**
 
-## Exemplos
+```
+list_peers
+```
 
-Exemplo prático de coordenação:
+Retorna:
+```
+Peer 1: frontend-ui (working on components/Header.tsx)
+Peer 2: database (working on migrations/)
+Peer 3: devops (working on docker-compose.yml)
+```
 
-Claude A (motor de poker): "what files are you editing?"
+**4. Comunicação natural**
 
-Claude B (frontend): "working on auth.ts + UI state"
+```
+message peer 2: "are you handling user schema updates? I'm working on auth"
+```
 
-Claude A: "ok I'll avoid touching auth logic"
+Instância 2 responde instantaneamente via mensagens. Sem API, sem orquestrador — MCP nativo.
 
-Resultado: Sem conflitos, sem coordenação manual, apenas IA se sincronizando automaticamente.
+**5. Sincronização automática de dependências**
 
-Casos de uso incluem: desenvolvimento paralelo (backend e frontend Claude trabalham simultaneamente), debugging colaborativo (um Claude identifica problema, outro refatora código relacionado), pesquisa + implementação (Claude de pesquisa estuda documentação, Claude de construção implementa baseado em findings), e grandes projetos (dividir trabalho entre múltiplas Claudes especializadas em módulos com coordenação automática de dependências).
+Quando Peer 1 (backend) edita `auth.ts`:
+- Broker notifica Peer 3 (frontend): "auth.ts mudou"
+- Peer 3 obtém diffs automaticamente
+- Evita conflitos: "vejo que você está editando auth, deixo para você"
 
-## Relacionado
+**6. Configuração avançada**
 
-- [[Indexacao de Codebase para Agentes IA]]
-- [[ComfyUI Posicionamento Agent Wave]]
-- [[git-worktrees-desenvolvimento-paralelo-claude-code]]
-- [[red_team_ia_autonomo_ciberseguranca]]
-- [[Maestri Orquestrador Agentes IA Canvas 2D]]
-- [[Claude Code Subconscious Letta Memory Layer]]
-- [[mcp-unity-integracao-ia-editor-nativo]]
+Arquivo `~/.claude/peers-config.json`:
+```json
+{
+  "brokerPort": 9000,
+  "autoSync": true,
+  "conflictResolution": "last-write-wins",
+  "messagingProtocol": "mcp",
+  "discoveryMode": "localhost"
+}
+```
 
-## Perguntas de Revisão
+## Stack e requisitos
 
-1. Como múltiplas instâncias Claude se descobrem automaticamente em localhost?
-2. Por que coordenação automática é melhor que orquestração centralizada?
-3. Qual é o impacto de "Claudes sabendo no que outras estão trabalhando" na eficiência de time?
+- Claude Code (local nativo)
+- SQLite (registra pares conectados, incluído)
+- MCP servers por sessão (automático)
+- Daemon Python/Node (incluído no plugin)
+- Zero cloud, funciona offline
+
+## Armadilhas e limitações
+
+- **Escopo localhost**: Requer máquina local. Para remoto, use SSH tunneling
+- **Falhas de comunicação**: Se daemon cai, instâncias perdem contato (restart automático)
+- **Conflitos em git**: Múltiplos Claudes em mesmo repo podem criar merge conflicts (mitigado com worktrees)
+- **Overhead de sincronização**: Cada edit notifica broker; muita atividade = latência
+- **Não é distribuído**: Designed para máquina única com múltiplas sessões, não para múltiplos PCs
+
+## Conexões
+
+[[git-worktrees-desenvolvimento-paralelo-claude-code]]
+[[git-worktrees-para-agentes]]
+[[consolidacao-de-memoria-em-agentes]]
+[[Claude Code Subconscious Letta Memory Layer]]
+[[empresa-virtual-de-agentes-de-ia]]
+
+## Histórico
+
+- 2026-03-23: Nota criada
+- 2026-04-02: Reescrita como guia de configuração

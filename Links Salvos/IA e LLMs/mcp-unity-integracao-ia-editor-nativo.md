@@ -1,158 +1,115 @@
 ---
+tags: [ia, ferramentas, unity, mcp, desenvolvimento-de-jogos, automacao]
+source: https://github.com/CoderGamester/mcp-unity
 date: 2026-03-28
-tags: [ia, ferramentas, unity, mcp, desenvolvimento-de-jogos, automação]
-source: https://github.com/CoderGamester/mcp-unity, https://x.com/ErickSky/status/2036234646397051336?s=20
-autor: CoderGamester, "@ErickSky"
-tipo: zettelkasten
+tipo: aplicacao
 ---
 
-# MCP Unity: Integração de IA no Editor Unity com 100+ Ferramentas Nativas
+# Expor Métodos C# como Tools IA com MCP Unity (Uma Linha de Código)
 
-## Resumo
+## O que e
 
-Plugin que implementa Model Context Protocol (MCP) para Unity Editor, permitindo que assistentes de IA como Claude Code, Cursor, Windsurf e Gemini interajam diretamente com projetos Unity. Fornece 100+ ferramentas para manipular GameObjects, componentes, cenas e assets. Uma única linha de código expõe QUALQUER método C# como tool de IA, revolucionando game development com automação de construção, testes e debugging.
+Plugin MCP Unity que expõe qualquer método C# como ferramenta invocável por agentes IA via atributo `[MCPTool]`. Suporta 100+ operações nativas (GameObjects, componentes, cenas, assets), funcionando em Cursor, Windsurf, Claude Code e qualquer IDE com suporte MCP.
 
-## Explicação
+## Como implementar
 
-### Arquitetura e Funcionamento
+**Pré-requisito**: Instalar plugin (Package Manager ou git submodule).
 
-MCP Unity funciona como uma ponte entre o Unity Editor e um servidor Node.js que implementa protocolo MCP. Assistentes de IA executam operações dentro do Editor através de integração automática com IDEs (VSCode, Cursor, Windsurf, Google Antigravity), adicionando pasta Library/PackedCache do Unity ao workspace e melhorando autocompletar e informações de tipo para pacotes Unity.
+**Expor método customizado** (UMA LINHA):
+```csharp
+[MCPTool("SpawnBoss")]
+public void SpawnBossEnemy(string bossType, Vector3 spawnPos) {
+    var boss = Instantiate(GetBossPrefab(bossType), spawnPos, Quaternion.identity);
+    boss.GetComponent<BossController>().Init();
+}
+```
 
-### Capacidades Revolucionárias
+Agora agente pode invocar:
+```
+@claude "spawn a FireBoss at position (10, 5, 20)"
+# Claude invoca tool automaticamente
+```
 
-O maior diferencial: com UMA ÚNICA LINHA você converte QUALQUER método C# em tool que IA pode usar. Não requer reescrita de métodos existentes — seus sistemas C# viram tools automaticamente. Isto é não-invasivo, universal e poderoso: acesso total à lógica do jogo sem modificação.
+**Expor recursos (contexto persistente)**:
+```csharp
+[MCPResource("GameState")]
+public string GetGameState() {
+    return JsonUtility.ToJson(new {
+        playerHealth = player.health,
+        enemyCount = FindObjectsOfType<Enemy>().Length,
+        currentLevel = SceneManager.GetActiveScene().name
+    });
+}
+```
 
-### Ferramentas Disponíveis (100+)
+Agent lê recurso antes de decidir ação, garantindo decisões baseadas em estado real.
 
-**Operações de menu e seleção:** execute_menu_item, select_gameobject
+**Configurar servidor MCP**:
+```bash
+cd Assets/Plugins/MCP/Server~
+npm install && npm run build
+node build/index.js  # Escuta 0.0.0.0:8090
+```
 
-**Operações de GameObject:** update_gameobject, duplicate_gameobject, delete_gameobject, reparent_gameobject, get_gameobject
-
-**Transformações:** move_gameobject, rotate_gameobject, scale_gameobject, set_transform
-
-**Componentes:** update_component, create_material, assign_material, modify_material, get_material_info
-
-**Pacotes e assets:** add_package, add_asset_to_scene
-
-**Cenas:** create_scene, load_scene, delete_scene, save_scene, get_scene_info, unload_scene
-
-**Testes:** run_tests
-
-**Utilitários:** send_console_log, get_console_logs, recompile_scripts, batch_execute
-
-### Recursos de Inteligência Contextual
-
-- **unity://menu-items**: lista itens de menu
-- **unity://scenes-hierarchy**: lista GameObjects na hierarquia
-- **unity://gameobject/{id}**: informações detalhadas
-- **unity://logs**: logs do console
-- **unity://packages**: pacotes instalados
-- **unity://assets**: assets no AssetDatabase
-- **unity://tests/{testMode}**: informações sobre testes
-
-### Aplicações Práticas
-
-**Em AAA Game Development:** ajustes rápidos de gameplay, testes de balance, prototipagem de mechanics
-
-**Em Indie Development:** aceleração dramática do pipeline, menos necessidade de equipe grande, foco em criatividade versus codificação
-
-**Em Live Service Games:** hot fixes automáticos, testes de patches antes de deploy, balance adjustments rápidos
-
-**NPCs Inteligentes:** tomam decisões complexas, respondem a situações dinâmicas, aprendem com ambiente
-
-**Debugging em Runtime:** IA debugga jogo enquanto roda, identifica problemas em tempo real, corrige certos issues automaticamente
-
-### Impacto na Produtividade
-
-Workflow completo: IA constrói feature/código → IA testa automaticamente → IA encontra e corrige bugs → você trabalha em outros contextos. Velocidade de desenvolvimento pode ser multiplicada por 5-10x com IA construindo, testando e corrigindo enquanto você trabalha.
-
-## Exemplos
-
-### Requisitos e Compatibilidade
-
-**Requisitos Técnicos:**
-- Unity 6 ou posterior
-- Node.js 18 ou posterior
-- npm 9 ou posterior
-
-**IDEs Compatíveis:** Cursor, Windsurf, Claude Desktop, Claude Code, Codex CLI, GitHub Copilot, Google Antigravity
-
-### Instalação via Unity Package Manager
-
-1. Window > Package Manager
-2. Clicar "+" no canto superior esquerdo
-3. Selecionar "Add package from git URL..."
-4. Inserir: `https://github.com/CoderGamester/mcp-unity.git`
-5. Clicar "Add"
-
-### Configuração Cliente LLM via Editor
-
-1. Tools > MCP Unity > Server Window
-2. Clicar "Configure" para cliente de IA
-3. Confirmar instalação
-
-### Configuração Manual para Cursor/Windsurf/Claude Code
-
+**Registrar no IDE** (arquivo .cursor/config.json ou .claude/settings.json):
 ```json
 {
   "mcpServers": {
-    "mcp-unity": {
+    "unity": {
       "command": "node",
-      "args": ["ABSOLUTE/PATH/TO/mcp-unity/Server~/build/index.js"]
+      "args": ["/absolute/path/to/Server~/build/index.js"]
     }
   }
 }
 ```
 
-### Iniciar Servidor
+**Ferramentas built-in** que agent pode usar nativamente:
+- `create_gameobject(name, parent_id)` — criar GO
+- `update_component(id, type, field, value)` — modificar component
+- `move_gameobject(id, target_position, speed)` — animar movimento
+- `load_scene(sceneName)` — carregar cena
+- `run_tests(mode=EditMode|PlayMode)` — executar testes automaticamente
+- `get_console_logs()` — ler output do console
+- `execute_menu_item(path)` — executar menu items
 
-1. Abrir Unity Editor
-2. Navegar para Tools > MCP Unity > Server Window
-3. Clicar "Start Server"
-4. Abrir IDE de codificação IA e começar a executar ferramentas
-
-### Configurações Opcionais
-
-- Porta WebSocket (padrão 8090)
-- Timeout (padrão 10 segundos)
-- Conexões remotas
-
-### Build Manual do Servidor Node.js
-
-```bash
-cd ABSOLUTE/PATH/TO/mcp-unity/Server~
-npm install
-npm run build
-node build/index.js
+**Batch operations** (otimizar latência):
+```csharp
+await mcp.BatchExecute(new[] {
+    new Tool("create_gameobject", new { name = "Enemy1" }),
+    new Tool("move_gameobject", new { id = "Enemy1", position = new Vector3(5, 0, 5) }),
+    new Tool("move_gameobject", new { id = "Enemy1", position = new Vector3(10, 0, 5) })
+});
 ```
 
-### Depuração com MCP Inspector
-
+**Depuração**: Usar MCP Inspector para validar tools:
 ```bash
 npx @modelcontextprotocol/inspector node Server~/build/index.js
+# Abre UI em localhost:3000 para testar chamadas
 ```
 
-### Exemplo de Exposição de Método C#
+## Stack e requisitos
 
-Com uma única linha de atributo, qualquer método C# vira tool:
+- **Unity**: 6.0+ (suporte LTS 2022.3.18+)
+- **Node.js**: 18.0+ (npm 9+)
+- **RAM**: +50MB por sessão MCP
+- **Latência**: 50-200ms por tool call (JSON-RPC overhead)
+- **IDEs**: Cursor, Windsurf, Claude Code, GitHub Copilot, VSCode
+- **Port**: TCP 8090 (customizável via env var UNITY_MCP_PORT)
 
-```csharp
-[MCPTool("myCustomMethod")]
-public void MyCustomMethod(string parameter)
-{
-    // Seu código aqui
-}
-```
+## Armadilhas e limitacoes
 
-## Relacionado
+- **Segurança**: Qualquer método exposto fica acessível ao agente; NÃO expor métodos destrutivos sem validação (deletar scenes, resetar game state).
+- **Sincronização**: Se múltiplos agentes (ou você manual) editam cena simultaneamente, conflitos ocorrem; usar mutex/locks para operações críticas.
+- **Type safety**: Agente pode passar tipos inválidos; adicionar validação robusta em métodos expostos.
+- **Performance**: `batch_execute` é crítico; 100 tool calls individuais em serial é muito lento (use batch para 10+ operações).
+- **Breaking changes**: Mudar assinatura de `[MCPTool]` quebra prompts existentes; considerar versionamento.
+- **Editor-only**: Tools executam no contexto do Editor Unity; builds standalone precisam [[MCP em Jogos Compilados Unity]].
 
-- [[ComfyUI Posicionamento Agent Wave]]
-- [[Claude Code - Melhores Práticas]]
-- [[Indexacao de Codebase para Agentes IA]]
-- [[Editor 3D Open Source para Construcao Arquitetonica]]
+## Conexoes
 
-## Perguntas de Revisão
+[[MCP em Jogos Compilados Unity]] [[MCP para Unity Editor Automacao Cenas]] [[Model Context Protocol MCP Padrao Aberto]] [[Agentes Autonomos Game Development]]
 
-1. Como uma única linha de código pode expor QUALQUER método C# como tool de IA?
-2. Por que a capacidade de expor métodos sem reescrita é transformadora para game development?
-3. Qual é a conexão entre MCP Unity e o padrão MCP em geral (ComfyUI, outros)?
+## Historico
+
+- 2026-03-28: Nota original
+- 2026-04-02: Reescrita para template aplicacao

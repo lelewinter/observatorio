@@ -2,32 +2,29 @@
 tags: [ia-local, geração-de-video, agentes-autonomos, llm, hardware-acessivel]
 source: https://x.com/0xCVYH/status/2036546677943746984?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Geração de Vídeo Local com Agente Autônomo
+# WanGP: Geração de Vídeo Local com Agente LLM Nativo (8GB VRAM)
 
-## Resumo
-WanGP integra um agente LLM nativo (Qwen 3.5VL) capaz de interpretar instruções em linguagem natural, configurar parâmetros automaticamente e gerar vídeos localmente, exigindo apenas 8GB de VRAM.
+## O que e
+WanGP integra agente LLM (Qwen 3.5VL) nativamente em interface de geração de vídeo local, permitindo descrever videos em linguagem natural e o agente orquestra todo pipeline: interpretação de intenção, preenchimento automático de parâmetros, execução de modelo diffusão. Roda 100% local em 8GB VRAM, eliminando dependência de APIs pagas.
 
-## Explicação
-A geração de vídeo por IA deixou de ser exclusividade de plataformas cloud como Sora. O WanGP agora incorpora um agente LLM autônomo baseado no modelo Qwen 3.5VL, que atua como intermediário entre o usuário e o pipeline de inferência. O usuário descreve em texto o que deseja, e o agente interpreta a intenção, preenche os campos da interface Gradio e executa a geração sem intervenção manual. Toda a cadeia — compreensão de linguagem natural, configuração de parâmetros e inferência de vídeo — roda localmente.
+## Como implementar
+**Fluxo**: usuário digita "vídeo de céu ao pôr do sol em floresta, estilo anime, 5 segundos" no interface Gradio → agente LLM analisa prompt, extrai: (duração=5s, estilo=anime, prompt_refinado para diffusion), preenche form UI automaticamente, clica "generate". Backend roda diffusion model localmente (provavelmente ~4-8B parâmetros), output é MP4 pronto. **Agência**: agente não gera vídeo diretamente — orquestra, traduzindo intenção humana em config técnica. Isso é design pattern diferente de "LLM que gera vídeo": aqui LLM é maestro, diffusion é instrumento.
 
-O aspecto crítico desta arquitetura é o requisito de hardware: 8GB de VRAM. Isso coloca a geração de vídeo com agente autônomo ao alcance de GPUs de consumo (RTX 3070, 4060 Ti, etc.), eliminando a dependência de APIs pagas ou servidores remotos. O modelo de agente aqui não é apenas um wrapper de prompt — ele opera sobre a UI programaticamente, demonstrando um padrão de "agente que controla ferramentas via interface gráfica".
+Setup: instalar WanGP, baixar modelo Qwen 3.5VL + video diffusion (ex: Stable Video, AnimateAnything), rodar `python app.py`. Acesso em http://localhost:7860.
 
-A camada de agência adicionada ao WanGP representa uma fusão de dois paradigmas: geração de mídia por difusão e agentes LLM orientados a tarefas. O LLM não gera o vídeo diretamente, mas atua como orquestrador que traduz intenção humana em configuração técnica — separação de responsabilidades que torna o sistema mais robusto e extensível.
+## Stack e requisitos
+GPU 8GB+: RTX 3060, RTX 4060, Apple Silicon M1/M2 Pro suficientes. Qwen 3.5VL (~7B params) + video diffusion (~2B) ≈ 15GB VRAM pico, offload parcial em RAM reduz a 8GB usável. Python 3.10+, Gradio, transformers, diffusers. Tempo: primeira execução ~5 minutos (model download), gerar vídeo 5seg ~2-3 minutos em RTX 3060. Custo: zero (open-source).
 
-Do ponto de vista estratégico, este desenvolvimento sinaliza uma tendência de descentralização da IA generativa pesada: modelos de difusão de vídeo antes restritos a datacenters agora rodam em hardware doméstico, com privacidade total e custo zero de inferência. A narrativa "o futuro não é cloud" ganha evidência técnica concreta.
+## Armadilhas e limitacoes
+Qualidade de vídeo gerado é inferior a APIs cloud (Sora, Runway) — espera degradação em movimento, estilo pode ser genérico. Interpretação de prompt pelo agente pode falhar em intenções muito específicas ("cinematic, 24fps, anamorphic lens") — agente simplifica. Tempo de geração é lento comparado a cloud (3min vs 30seg em Runway Pro) — trade-off é privacidade total. Offloading entre GPU e RAM tem overhead; performance piora com modelo maior. Controlabilidade reduzida — não pode especificar keyframes intermediários ou máscaras de movimento.
 
-## Exemplos
-1. **Criação de conteúdo privado**: Um criador descreve em texto "vídeo cinemático de pôr do sol em floresta, estilo anime, 5 segundos" e o agente gera localmente sem enviar dados a terceiros.
-2. **Automação de pipeline criativo**: Integração do agente WanGP em workflows onde scripts Python enviam prompts programaticamente, gerando lotes de vídeos sem interação humana.
-3. **Prototipagem rápida de conceitos visuais**: Diretores ou designers descrevem cenas em linguagem natural e iteram rapidamente sobre variações, tudo offline.
+## Conexoes
+[[democratizacao-de-modelos-de-ia|IA local e descentralizada]]
+[[geracao-de-cenas-multi-shot-por-ia|Geração cinematográfica]]
+[[empresa-virtual-de-agentes-de-ia|Orquestração de agentes]]
 
-## Relacionado
-*(Nenhuma nota relacionada disponível no vault no momento da criação.)*
-
-## Perguntas de Revisão
-1. Qual é a diferença arquitetural entre um agente LLM que *gera* mídia diretamente e um que *orquestra* um modelo de difusão para gerá-la?
-2. Quais são os trade-offs entre inferência local com 8GB de VRAM e inferência cloud em termos de qualidade, velocidade e privacidade?
-
-## Histórico de Atualizações
-- 2026-04-02: Nota criada a partir de Telegram
+## Historico
+- 2026-04-02: Nota criada
+- 2026-04-02: Reescrita pelo pipeline

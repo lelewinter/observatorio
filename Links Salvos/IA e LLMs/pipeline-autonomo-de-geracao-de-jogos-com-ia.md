@@ -2,32 +2,47 @@
 tags: []
 source: https://x.com/sukh_saroy/status/2036557095273898403?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Pipeline Autônomo de Geração de Jogos com IA
 
-## Resumo
-Um pipeline multi-agente capaz de transformar uma única frase em um projeto de jogo funcional no Godot 4, sem intervenção humana, integrando geração de código, assets e QA visual automatizado.
+# Pipeline Multi-Agente com QA Visual para Projetos Godot 4
 
-## Explicação
-O conceito central é a composição de múltiplos modelos de IA especializados em uma cadeia autônoma de produção de software interativo. Diferente de geradores de snippets ou protótipos descartáveis, o pipeline produz um projeto Godot 4 completo e estruturado — com cenas, scripts GDScript, assets 2D/3D e arquitetura organizada — a partir de uma única sentença descritiva.
+## O que é
 
-O fluxo funciona em etapas especializadas: Claude Code atua como o orquestrador de arquitetura, planejando a estrutura do projeto e escrevendo todo o código; Gemini é utilizado para geração de arte 2D e texturas; Tripo3D converte imagens geradas em modelos 3D para jogos que exigem essa dimensão. Cada agente opera em sua especialidade, e os artefatos são integrados em um projeto coeso.
+Sistema autônomo que transforma uma descrição textual em projeto Godot 4 funcional com código, assets 2D/3D e validação visual. Encadeia Claude Code (orquestração), Gemini Vision (geração de arte), Tripo3D (conversão 2D→3D) e feedback visual contínuo.
 
-O diferencial técnico mais relevante é o loop de QA visual: após o jogo ser compilado e executado no Godot, Gemini Flash captura screenshots do jogo em execução e analisa problemas visuais reais — z-fighting, texturas ausentes, física quebrada — que análise de texto puro do código não conseguiria detectar. Claude Code então corrige automaticamente os problemas identificados, fechando o ciclo sem intervenção humana.
+## Como implementar
 
-Do ponto de vista arquitetural, este pipeline exemplifica o padrão de agentes com feedback multimodal: a saída de um estágio (o jogo rodando) é re-ingerida como entrada sensorial (screenshots) para o estágio de validação. Isso representa uma evolução significativa sobre pipelines puramente textuais, aproximando o processo de desenvolvimento de IA do ciclo iterativo que um desenvolvedor humano executa ao testar e corrigir visualmente um jogo.
+**Etapa 1: Orquestração com Claude Code.** Estruture um prompt que instrua Claude a: receber descrição de mecânica, decompor em arquivos GDScript e estrutura de cenas Godot, gerar código de física e comportamento de NPCs, criar árvore de scenes com nomes padronizados. Claude Code escreve diretamente para o filesystem do projeto — `.gd` scripts, `scene.tscn` files, estrutura de pastas conforme padrão Godot.
 
-## Exemplos
-1. **Prototipagem rápida de game design**: Descrever "um jogo de plataforma 2D com inimigos que patrulham" e obter um projeto Godot jogável em minutos, servindo como base para iteração por um designer humano.
-2. **Geração de assets end-to-end**: Usar a camada Gemini + Tripo3D para produzir automaticamente texturas e meshes 3D coerentes com o tema do jogo, sem pipeline manual de arte.
-3. **QA visual automatizado em CI/CD de jogos**: Aplicar a ideia do loop de screenshot + análise multimodal em pipelines de integração contínua para detectar regressões visuais em projetos de jogos existentes.
+**Etapa 2: Geração de assets via Gemini.** Após o código, instrua Gemini Vision a: gerar imagens 2D baseadas no tema descrito (character sprites, tilesets, UI backgrounds), criar mapa de cores consistente. Salve outputs em `assets/2d/`. Defina resolução (ex: 128x128 pixels para sprites) e formato (PNG com alpha).
 
-## Relacionado
-*(Nenhuma nota existente no vault para conectar no momento.)*
+**Etapa 3: Conversão 3D com Tripo3D.** Passe as imagens geradas para Tripo3D com prompt estruturado: converter sprite 2D em modelo 3D, otimizar topology, exportar em `.gltf` (compatível com Godot). Salve em `assets/3d/`. Se jogo é 2D, pule esta etapa; se é 3D ou 2.5D, use Tripo3D.
 
-## Perguntas de Revisão
-1. Qual é o papel do loop de QA visual neste pipeline e por que ele resolve uma limitação que análise textual de código não consegue superar?
-2. Como o padrão de agentes especializados com feedback multimodal se diferencia de uma abordagem de agente único para geração de software complexo?
+**Etapa 4: Loop de QA Visual.** Compile o projeto no Godot editor via CLI (`godot --headless project.godot`). Capture screenshot do jogo em execução. Passe screenshot para Gemini Flash com checklist: "Identifique (1) z-fighting ou overlaps visuais, (2) texturas faltantes ou ausentes, (3) física quebrada (objetos flutuando/caindo infinito), (4) HUD ilegível. Para cada problema, liste linha de código responsável."
 
-## Histórico de Atualizações
-- 2026-04-02: Nota criada a partir de Telegram
+**Etapa 5: Correção autônoma.** Claude Code recebe relatório de QA, identifica linhas problemáticas, executa edições diretas nos scripts `.gd`, recompila, e re-passa para QA. Loop até zero problemas visuais.
+
+**Integração prática.** Configure como GitHub Actions (se repositório público) ou scheduled script em Windows Task Scheduler (se local). Trigger: nova descrição em comentário de issue ou webhook em webhook.json.
+
+## Stack e requisitos
+
+- Godot 4.x (instalado e em PATH)
+- Claude Code com acesso a filesystem
+- Gemini 2.0 Flash Vision API + Tripo3D API (credenciais)
+- VRAM: 6GB+ (Gemini local) ou cloud APIs
+- Tempo end-to-end: 5-15 minutos por projeto pequeno
+- Custo: ~$0.20-0.50 por ciclo QA (Gemini Vision + Tripo3D)
+
+## Armadilhas e limitações
+
+QA visual não detecta bugs lógicos (ex: colisão não funiona mas visualmente parece OK). Gemini pode gerar assets visualmente coerentes mas com paleta de cores repetitiva. Tripo3D é fraco em detalhe fino — bom para protótipos, não production-ready. Screenshots em baixa resolução prejudicam detecção de problemas pequenos. Timeout em compilação Godot sem headless display requer setup X11/Xvfb em Linux.
+
+## Conexões
+
+[[Vibe Coding para Desenvolvimento de Jogos]], [[Sistemas Multi-Agente para Engenharia de Software]], [[Unity-MCP Integração LLM com Game Engine]]
+
+## Histórico
+
+- 2026-04-02: Nota criada
+- 2026-04-02: Reescrita como guia de implementação

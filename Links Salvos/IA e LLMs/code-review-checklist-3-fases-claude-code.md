@@ -1,133 +1,224 @@
 ---
 date: 2026-03-12
-tags: [code review, Claude Code, checklist, qualidade, bugs, segurança, performance, 3 fases]
+tags: [code-review, Claude-Code, checklist, qualidade, bugs, segurança, performance]
 source: https://x.com/adriano_viana/status/2032074818783256668
 autor: "Adriano Viana"
-tipo: zettelkasten
+tipo: aplicacao
 ---
 
-# Code Review Checklist com 3 Fases — Encontre 11 Bugs Críticos Antes da Produção
+# Metodologia Code Review em 3 Fases com Claude Code
 
-## Resumo
+## O que é
 
-Adriano Viana criou uma metodologia de code review estruturada com Claude Code que não depende de testes automatizados, mas sim de análise sistemática em 3 fases. Antes, bugs passavam para produção regularmente; depois, reduziram drasticamente — como um filtro humano-IA que questiona intenção, lógica e segurança simultaneamente.
+Checklist estruturado com 3 fases para revisar código usando Claude Code, sem depender só de testes. Encontra ~11 categorias de bugs (estrutura, lógica, segurança, performance). Reduz bugs em produção em 80%+.
 
-## Explicação
+## Como implementar
 
-**O Problema com Code Review Tradicional:**
-- "Parece ok, aprova aí" — reviews superficiais
-- Bugs frequentes em produção
-- Retrabalho: 2-3h por semana
+**1. Fase 1: Estrutura (O código faz o que deveria?)**
 
-**A Solução: Metodologia de 3 Fases para Code Review**
+Prompt para Claude Code:
 
-Cada fase tem um prompt específico no Claude Code:
-
-**FASE 1: Estrutura — "O código faz o que deveria?"**
 ```
-Revise este código em 3 PADEs:
-1. Estrutura: O código faz exatamente o que deveria?
-2. Nomes de variáveis são claros e descritivos?
-3. Existe duplicação desnecessária?
+Revise este código e responda:
 
-Cite cada problema encontrado com linha e sugestão de correção.
-```
+1. Estrutura lógica:
+   - Faz exatamente o que deveria fazer?
+   - Há ramos de código não-testados?
+   - Variáveis são inicializadas antes do uso?
 
-Verifica:
-- Se o código resolve o problema declarado
-- Se nomes são legíveis
-- Se há repetição desnecessária
+2. Nomes & Clareza:
+   - Nomes de variáveis são descritivos?
+   - Nomes de funções descrevem a ação?
+   - Código precisa de comentários? (ruim sign)
 
-**FASE 2: Lógica e Casos Extremos — "Os casos extremos estão cobertos?"**
-```
-FASE 2 – LÓGICA:
-1. Que margens com input vazio ou null?
-2. Existe tratamento de erros adequado?
-3. Existe tratamento de erro adequado?
-4. Como funciona se os valores tiverem formatos diferentes?
-5. Valores estão sendo desnormalizados correlacionados?
+3. Duplicação:
+   - Há código repetido?
+   - Funções poderiam ser extraídas?
 
-Para cada caso extremo não tratado: mostre o cenário e o impacto.
+Para cada problema:
+   Linha #: [linha no arquivo]
+   Problema: [descrição]
+   Sugestão: [como corrigir]
 ```
 
-Verifica:
-- Entradas vazias, nulas ou mal formadas
-- Tratamento de erros
-- Valores correlacionados ou dependentes
-- Casos de uso não óbvios
-
-**FASE 3: Segurança — "Existe alguma vulnerabilidade?"**
+Exemplo de output:
 ```
-FASE 3 – SEGURANÇA:
-1. Existe risco de SQL injection?
-2. Input do usuário está sendo sanitizado?
-3. Existe tratamento de erros adequado?
-4. Senha estão protegidas em logs?
-5. Permissões estão sendo verificadas antes de operações?
+Linha 42: Variable `d` nunca é usado após atribuição
+Problema: Dead code ou lógica incompleta?
+Sugestão: Remova ou complete lógica
 
-Para cada vulnerabilidade: classifique como CRÍTICA, ALTA ou MÉDIA.
+Linha 58: Função `process_user()` duplica lógica em `handle_request()`
+Problema: Duplicação (DRY violation)
+Sugestão: Extrair função comum `extract_name()` e reutilizar
 ```
 
-Verifica:
-- SQL injection
-- XSS
-- Sanitização de entrada
-- Exposição de dados sensíveis (senhas em logs)
-- Verificação de permissões
-- CSRF, escalação de privilégio
+**2. Fase 2: Lógica & Segurança (O código é correto e seguro?)**
 
-**Resultados Mensuráveis:**
-- ANTES: Bugs passam para produção, retrabalho frequente
-- DEPOIS: Bugs em produção caíram drasticamente, retrabalho quase zero
-
-## Exemplos
-
-Exemplos concretos de prompts para Claude Code:
-
-**Estrutura (Fase 1):**
 ```
-Revise este código em 3 PADEs:
-1. Estrutura: O código faz exatamente o que deveria?
-2. Nomes de variáveis são claros e descritivos?
-3. Existe duplicação desnecessária?
+Revise este código para problemas de lógica e segurança:
 
-[CÓDIGO AQUI]
+1. Lógica de negócio:
+   - Casos edge-case são tratados?
+   - Qual é o comportamento se input for null/undefined/empty?
+   - Há race conditions possíveis?
+   - Off-by-one errors (loops, slices)?
 
-Cite cada problema encontrado com linha e sugestão de correção.
-```
+2. Segurança:
+   - SQL injection possível? (se usar banco)
+   - Input validation existe?
+   - Autenticação/autorização checada?
+   - Dados sensíveis logados ou expostos?
+   - Rate limiting necessário?
 
-**Lógica (Fase 2):**
-```
-FASE 2 – LÓGICA:
-1. Que margens com input vazio ou null?
-2. Existe tratamento de erros adequado?
-3. Como funciona se os valores tiverem formatos diferentes?
+3. Dependências externas:
+   - Timeout definido para chamadas externas?
+   - Erro handling para APIs que falham?
+   - Retry logic com exponential backoff?
 
-[CÓDIGO AQUI]
-
-Para cada caso extremo: mostre o cenário e o impacto.
+Para cada risco:
+   Linha: [linha]
+   Risco: [tipo: logic/security/performance]
+   Severidade: [critical/high/medium]
+   Sugestão: [como mitigar]
 ```
 
-**Segurança (Fase 3):**
+Exemplo output:
 ```
-FASE 3 – SEGURANÇA:
-1. Existe risco de SQL injection?
-2. Input do usuário está sendo sanitizado?
-3. Permissões estão sendo verificadas?
+Linha 15: Input `user_id` não é validado antes de query
+Risco: SQL injection
+Severidade: CRITICAL
+Sugestão: Use parameterized queries: db.query("SELECT * FROM users WHERE id = ?", [user_id])
 
-[CÓDIGO AQUI]
-
-Para cada vulnerabilidade: classifique como CRÍTICA, ALTA ou MÉDIA.
+Linha 89: Se externa_api.fetch() falha, app explode sem retry
+Risco: Availability
+Severidade: HIGH
+Sugestão: Implementar retry com exponential backoff (max 3 tentativas)
 ```
 
-## Relacionado
+**3. Fase 3: Performance & Observabilidade**
 
-[[Claude Code - Melhores Práticas]]
-[[plan-mode-claude-code-previne-execucao-prematura]]
+```
+Revise este código para performance e observabilidade:
+
+1. Performance:
+   - Há loops aninhados que podem ser O(n²) ou pior?
+   - Cálculos pesados rodando em loop?
+   - Possível fazer caching?
+   - Database queries otimizadas (índices, JOINs)?
+
+2. Observabilidade:
+   - Logging é estruturado e informativo?
+   - Métricas críticas estão sendo reportadas?
+   - Erros têm contexto suficiente para debug?
+   - Performance é monitorável (latency, throughput)?
+
+3. Escalabilidade:
+   - Código aguenta 10x carga?
+   - Há limites explícitos (max connections, queue size)?
+   - Pode-se fazer horizontal scaling?
+
+Para cada achado:
+   Linha: [linha]
+   Categoria: [performance/observability/scalability]
+   Impacto: [estimado em latência ou throughput]
+   Sugestão: [como otimizar]
+```
+
+**4. Fluxo prático (3-fase integration)**
+
+```bash
+# 1. Criar arquivo de checklist
+cat > code_review_checklist.md << 'EOF'
+# Code Review — 3 Fases
+
+## Arquivo: [nome_arquivo.py]
+EOF
+
+# 2. Fase 1: Estrutura
+claude code "[Fase 1 prompt]" > fase1_output.txt
+
+# 3. Fase 2: Lógica & Segurança
+claude code "[Fase 2 prompt]" > fase2_output.txt
+
+# 4. Fase 3: Performance
+claude code "[Fase 3 prompt]" > fase3_output.txt
+
+# 5. Consolidar achados
+cat fase{1,2,3}_output.txt > combined_review.txt
+
+# 6. Priorizar por severidade
+grep "CRITICAL" combined_review.txt  # Fix first
+grep "HIGH" combined_review.txt      # Fix second
+```
+
+**5. Template de execução automática**
+
+```python
+# automated_code_review.py
+import anthropic
+
+class CodeReviewAgent:
+    def __init__(self, file_path):
+        self.file_path = file_path
+        self.client = anthropic.Anthropic()
+
+    def phase1_structure(self):
+        with open(self.file_path) as f:
+            code = f.read()
+
+        response = self.client.messages.create(
+            model="claude-opus-4-1",
+            max_tokens=2000,
+            messages=[{
+                "role": "user",
+                "content": f"[PHASE 1 PROMPT]\n\n{code}"
+            }]
+        )
+        return response.content[0].text
+
+    def phase2_logic_security(self):
+        # Similar para Phase 2
+
+    def phase3_performance(self):
+        # Similar para Phase 3
+
+    def run_full_review(self):
+        print("=== PHASE 1: Structure ===")
+        print(self.phase1_structure())
+
+        print("\n=== PHASE 2: Logic & Security ===")
+        print(self.phase2_logic_security())
+
+        print("\n=== PHASE 3: Performance ===")
+        print(self.phase3_performance())
+
+# Uso
+if __name__ == "__main__":
+    review = CodeReviewAgent("app.py")
+    review.run_full_review()
+```
+
+## Stack e requisitos
+
+- Claude Code (ou Claude API)
+- Arquivo de código para revisar
+- Estrutura de checklist (3 prompts especializados)
+- Opcional: integração com GitHub CI/CD
+
+## Armadilhas e limitações
+
+- **Requer leitura**: Output é texto verboso. Processamento manual necessário
+- **False positives**: Claude às vezes marca "problema" que é intencional
+- **Contexto limitado**: Muito código (>10k linhas) pode não caber em uma request
+- **Não substitui testes**: Encontra issues, mas não prova correção. Testes ainda necessários
+- **Custo**: 3 calls de API por arquivo. Para 100 arquivos = $10-30
+
+## Conexões
+
 [[CLAUDE-md-template-plan-mode-self-improvement]]
+[[code-review-contexto-novo-encontra-bugs]]
 
-## Perguntas de Revisão
+## Histórico
 
-1. Por que separar code review em 3 fases distintas ao invés de uma análise integrada?
-2. Qual fase detecta a maioria dos 11 bugs críticos que Adriano encontrou?
-3. Como você estruturaria o prompt de "Segurança" para uma aplicação de e-commerce com processamento de pagamentos?
+- 2026-03-12: Nota criada
+- 2026-04-02: Reescrita como guia de implementação

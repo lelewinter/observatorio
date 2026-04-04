@@ -1,33 +1,135 @@
 ---
-tags: [3d, web, scroll-animation, landing-page, ai-prompt, frontend]
+tags: [scroll-animation, 3d-web, threejs, gsap, landing-page, ai-code-generation]
 source: https://x.com/viktoroddy/status/2037839395638899136?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Landing Page 3D Scroll-Based
 
-## Resumo
-Uma landing page scroll-based 3D é uma interface web onde elementos tridimensionais se animam e transformam em resposta ao scroll do usuário, criando experiências imersivas. Com prompts de IA, qualquer pessoa pode gerar esse tipo de experiência sem expertise técnica avançada.
+# Construir Landing Page 3D com Scroll-Driven Animation
 
-## Explicação
-Landing pages scroll-based 3D combinam duas técnicas: **scroll-driven animations** (onde o progresso da página controla o estado de animações) e **renderização 3D no browser** (via WebGL, Three.js ou CSS 3D transforms). O resultado é uma narrativa visual progressiva — o usuário "navega" por um espaço tridimensional simplesmente rolando a página.
+## O que é
+Página web onde scroll do usuário controla animações 3D: câmera orbita, objetos giram, partículas deformam. Gerado por prompt IA (Claude, GPT-4, Cursor).
 
-O ponto central do post é a **democratização via prompts de IA**: ferramentas como Claude, GPT-4 ou Cursor permitem que desenvolvedores sem experiência em Three.js ou GSAP gerem código funcional para essas interfaces através de prompts descritivos. Isso reduz a barreira técnica de semanas de desenvolvimento para horas.
+## Como implementar
+**Stack base** (Three.js + GSAP ScrollTrigger):
 
-Do ponto de vista técnico, a implementação típica envolve: uma biblioteca 3D (Three.js, Spline, ou R3F — React Three Fiber), um controlador de scroll (ScrollTrigger do GSAP ou a nativa Scroll-Driven Animations API do CSS), e lógica de interpolação que mapeia `scrollY` para propriedades de câmera, rotação e posição de objetos na cena.
+```javascript
+import * as THREE from 'three';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-A relevância prática é alta em contextos de produto e marketing: páginas com scroll 3D aumentam tempo de engajamento e percepção de sofisticação da marca. Com IA gerando o boilerplate, o custo de produção dessas experiências caiu drasticamente.
+gsap.registerPlugin(ScrollTrigger);
 
-## Exemplos
-1. **Apresentação de produto**: Um smartphone que gira 360° enquanto o usuário rola, revelando features em cada ângulo — gerado via prompt descrevendo câmera orbital + hotspots de texto.
-2. **Portfólio interativo**: Cena 3D de um escritório onde objetos "aparecem" em profundidade conforme o scroll avança, criado com Spline + ScrollTrigger via código gerado por IA.
-3. **Hero section imersiva**: Partículas ou terreno 3D que se deformam em resposta ao scroll, implementado com Three.js + shader GLSL gerado por prompt no Cursor/Copilot.
+// Setup cena
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
 
-## Relacionado
-*(Nenhuma nota existente no vault para conectar no momento.)*
+// Objeto 3D (ex: smartphone)
+const phoneGeometry = new THREE.BoxGeometry(1, 2, 0.1);
+const phoneMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
+const phone = new THREE.Mesh(phoneGeometry, phoneMaterial);
+scene.add(phone);
 
-## Perguntas de Revisão
-1. Quais são as principais bibliotecas para implementar scroll-driven animations com 3D no browser, e quais são os trade-offs entre elas?
-2. Como a geração de código via prompts de IA muda o fluxo de trabalho de um desenvolvedor frontend ao construir experiências 3D complexas?
+// Lighting
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(5, 5, 5);
+scene.add(light);
 
-## Histórico de Atualizações
-- 2026-04-02: Nota criada a partir de Telegram
+// Scroll-driven animation
+gsap.to(phone.rotation, {
+  y: Math.PI * 2,  // 360° rotation
+  duration: 1,
+  scrollTrigger: {
+    trigger: '#section-phone',
+    start: 'top center',
+    end: 'bottom center',
+    scrub: 1,  // "scrub" = bind animation ao scroll
+    markers: true  // debug visual
+  }
+});
+
+// Camera zoom on scroll
+gsap.to(camera.position, {
+  z: 2,
+  duration: 1,
+  scrollTrigger: {
+    trigger: '#section-hero',
+    start: 'top top',
+    end: 'bottom top',
+    scrub: 1
+  }
+});
+
+// Animation loop
+function animate() {
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+}
+animate();
+
+// Handle window resize
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+```
+
+**Prompt IA para gerar (via Cursor/Claude)**:
+
+```
+Create a landing page for a luxury watch brand using Three.js and GSAP.
+
+Requirements:
+- Hero section with 3D rotating watch (use BoxGeometry as placeholder)
+- Scroll down: watch zooms and rotates 360°
+- Second section: watch explodes into parts (position offset), reveals features
+- Third section: 3D particles fly around watch in swirl pattern
+- Final CTA button at bottom
+
+Styling: dark background (black), gold accents (#DAA520), sans-serif font
+Performance: optimize for 60fps, use LOD or visibility culling
+
+Include responsive design for mobile (reduce particle count, simplify geometry).
+```
+
+**Resultado gerado** (exemplo saída Claude):
+- HTML boilerplate + Three.js setup
+- GSAP ScrollTrigger configurations
+- Responsive canvas resize logic
+- Mobile performance fallbacks
+
+## Stack e requisitos
+- **Frontend libs**: Three.js (175 KB), GSAP (45 KB), R3F optional (React)
+- **API generation**: Claude 3.5, GPT-4, Cursor (integrated IDE)
+- **Browser support**: Chrome 90+, Firefox 88+, Safari 14+ (WebGL 2)
+- **Performance targets**: 60 FPS desktop, 30+ FPS mobile
+- **Entrada**: descrição textual (200-500 palavras)
+- **Output**: vanilla JS (ou React/Next.js flavor)
+- **Deploy**: Vercel, Netlify, ou servidor customizado
+- **Tempo desenvolvimento**: 2-4 horas (prompt writing + iteration) vs 40-80 horas manual
+- **Custo infra**: $0-20/mês (Vercel free tier até 100GB bandwidth)
+
+## Armadilhas e limitações
+- **Performance quebra em mobile**: > 50k vertices + particulas = 10-15 FPS. Usar vertex culling ou switch para 2D fallback
+- **Scroll binding é frame-locked**: qualquer frame drop = animação "salta". Use GSAP `scrub: true` vs `scrub: 1` para smoothing
+- **Shader compilation stutter**: primeira vez que shader roda = 100-500ms lag. Pre-compile ou usar simpler materials
+- **GPU memory leak**: não cleanup objects em scroll heavy pages. Sempre `.dispose()` geometries/textures
+- **SEO prejudicado**: canvas não é indexável. Colocar fallback `<img>` + "noscript" para bots
+- **Touch events finicky**: scroll em tablet é diferente de mouse wheel. Testar extensivamente em múltiplos devices
+- **Code generation é 70-80% pronto**: 20-30% de tweaks manuais (cor errada, tamanho fora) sempre necessário
+- **Vendor lock-in**: código gerado por Cursor = acoplado ao IDE (hard copypaste sem setup)
+- **Accessibility negligenciada**: canvas é cego para screen readers. Adicionar ARIA labels manualmente
+
+## Conexões
+- [[three-js-para-desenvolvimento-de-jogos]]
+- [[scroll-driven-animation-gsap]]
+- [[webgl-performance-mobile]]
+- [[ia-code-generation-web]]
+
+## Histórico
+- 2026-04-02: Nota criada
+- 2026-04-02: Reescrita com exemplo código + prompt IA

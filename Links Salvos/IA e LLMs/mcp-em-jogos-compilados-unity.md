@@ -2,32 +2,112 @@
 tags: [unity, mcp, ai, game-dev, plugins]
 source: https://x.com/tom_doerr/status/2036191401524801831?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# MCP em Jogos Compilados Unity
 
-## Resumo
-Unity-MCP é um plugin que integra o protocolo MCP (Model Context Protocol) ao Unity, permitindo que IAs externas interajam e controlem jogos em tempo real, mesmo após compilação.
+# Integrar MCP em Builds Compilados Unity para NPCs e QA Autômatos
 
-## Explicação
-O **Model Context Protocol (MCP)** é um padrão aberto que permite que modelos de linguagem (LLMs) se conectem a ferramentas e ambientes externos de forma estruturada. O plugin **Unity-MCP** implementa esse protocolo dentro do ecossistema Unity, criando uma ponte entre um agente de IA e o runtime do jogo — incluindo versões já compiladas (builds), não apenas o editor.
+## O que e
 
-O diferencial crítico aqui é a palavra "compiled games": tradicionalmente, integrar IA generativa em jogos exige acesso ao editor Unity ou a hooks de desenvolvimento. Este plugin expõe uma interface MCP que persiste no build final, permitindo que um LLM externo (como Claude ou GPT) leia o estado do jogo, manipule objetos, execute lógicas e responda a eventos em tempo real durante o gameplay de verdade.
+Plugin que implementa Model Context Protocol em jogos Unity compilados, permitindo agentes de IA (Claude, GPT) ler estado de jogo, controlar NPCs e executar ações em tempo real via tool calls padronizados. Diferencia-se de integrações editor-only ao persistir interface MCP mesmo após build/compilação.
 
-Do ponto de vista arquitetural, o plugin age como um **servidor MCP local**, recebendo chamadas de ferramentas (tool calls) do modelo de IA e traduzindo-as em comandos Unity via scripting API. Isso transforma o jogo em um "ambiente" controlável por agentes — padrão central em pesquisas de RL (Reinforcement Learning) e em sistemas de agentes autônomos.
+## Como implementar
 
-A relevância prática é ampla: NPCs com comportamento gerado dinamicamente, assistentes in-game que entendem o estado atual do mundo, pipelines de QA automatizados onde uma IA joga e reporta bugs, e experiências interativas onde o jogador conversa com o jogo em linguagem natural.
+**Arquitetura fundamentação**: Plugin funciona como servidor MCP local que expõe uma API via WebSocket ou stdio ao agente de IA. Quando compilado, o jogo inclui binário MCP server que aguarda conexões de clientes (IDE com agentes, processos CLI).
 
-## Exemplos
-1. **NPC Autônomo**: Um agente MCP observa a posição do jogador e o estado do inventário para gerar diálogo e ações de NPC contextualmente relevantes em tempo real.
-2. **QA Automatizado**: Um LLM conectado via MCP navega autonomamente pelo jogo compilado, testa fluxos de gameplay e reporta anomalias sem intervenção humana.
-3. **Assistente de Gameplay**: O jogador digita "me ajuda a vencer este boss" e o agente lê o estado atual da cena Unity, sugere estratégias ou até executa ações de suporte diretamente no jogo.
+**Instalação e setup básico**:
+```bash
+# Opção 1: via git submodule (recomendado)
+cd Assets
+git submodule add https://github.com/CoderGamester/mcp-unity.git Plugins/MCP
+```
 
-## Relacionado
-*(Nenhuma nota existente no vault para conectar neste momento.)*
+**Configuração C# mínima** (script no projeto):
+```csharp
+[MCPTool("AgressiveNPC")]
+public void AttackPlayer() {
+    // Lógica de combate do NPC
+    playerTarget.TakeDamage(20);
+}
 
-## Perguntas de Revisão
-1. Qual é a diferença arquitetural entre integrar IA no Unity Editor versus em um build compilado, e por que isso importa para produção?
-2. Como o protocolo MCP padroniza a comunicação entre LLMs e ambientes externos, e quais vantagens isso traz sobre integrações ad hoc via API REST?
+[MCPResource("WorldState")]
+public string GetWorldState() {
+    return JsonUtility.ToJson(new {
+        playerPos = player.transform.position,
+        npcs = FindObjectsOfType<NPC>().Length,
+        time = Time.time
+    });
+}
+```
 
-## Histórico de Atualizações
-- 2026-04-02: Nota criada a partir de Telegram
+O atributo `[MCPTool]` transforma qualquer método C# em ferramenta invocável por IA, sem reescrita. `[MCPResource]` expõe estado legível.
+
+**Configuração de cliente** (arquivo mcpConfig em projeto IDE):
+```json
+{
+  "mcpServers": {
+    "game-mcp": {
+      "command": "node",
+      "args": ["/path/to/mcp-unity/server/build/index.js"],
+      "env": {
+        "GAME_PID": "12345",
+        "GAME_PORT": "8090"
+      }
+    }
+  }
+}
+```
+
+**Exposição de ferramentas complexas** (100+ built-in):
+- Movimento: `move_gameobject(id, position, speed)`
+- Componentes: `update_component(id, componentType, property, value)`
+- Cenas: `load_scene(sceneName)`, `save_scene()`
+- Testes: `run_tests(testMode=EditMode)`
+- Debug: `get_console_logs()`, `set_breakpoint()`
+
+**QA automatizado**: Criar agente que testa fluxos de gameplay:
+```csharp
+// Agent script
+public async Task<bool> TestMainMenuFlow() {
+    var mcp = new MCPClient("localhost:8090");
+    await mcp.Call("execute_menu_item", "File > New Game");
+    await Task.Delay(3000);
+    var gameState = await mcp.Call("get_worldstate");
+    return gameState.playerHP > 0;
+}
+```
+
+**NPC dinâmico**: Agente recebe observação do mundo e decide ações:
+```csharp
+// No jogo
+public void ProcessAIDecision(string claudeResponse) {
+    var action = JsonUtility.FromJson<NPCAction>(claudeResponse);
+    StartCoroutine(ExecuteAction(action));
+}
+```
+
+## Stack e requisitos
+
+- **Unity**: 6.0+ (ou 2022.3.18 LTS)
+- **Node.js**: 18.0+
+- **Plataformas build**: Standalone (Win/Mac/Linux), WebGL parcialmente suportado
+- **Latência esperada**: 50-200ms por tool call (depende de complexidade)
+- **VRAM**: +10-30MB por instância de servidor MCP
+- **Network**: Localhost (recomendado) ou TCP aberto para IA cloud
+
+## Armadilhas e limitacoes
+
+- **Segurança**: MCP server expõe TODA a lógica do jogo; restringir em produção (apenas ferramentas whitelisted).
+- **Serialização**: Dados Unity (Vector3, Quaternion) requerem conversão JSON explícita; LLM pode produzir formato inválido.
+- **Determinismo**: Se IA modifica estado de jogo em tempo real, multiplayer sincronizado pode desincronizar.
+- **WebGL**: Limited tool exposure (sem acesso full scripting); preferir standalone builds.
+- **Versionamento**: Mudar assinatura de `[MCPTool]` quebra backward compatibility com prompts existentes.
+
+## Conexoes
+
+[[MCP Unity Editor Ferramentas 100+]] [[Model Context Protocol MCP Padrao Aberto]] [[Agentes Autonomos em Game Development]]
+
+## Historico
+
+- 2026-04-02: Nota criada
+- 2026-04-02: Reescrita para template aplicacao

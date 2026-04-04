@@ -2,8 +2,10 @@
 tags: [agentes-ia, orquestracao, visualizacao, claude, ferramentas-dev]
 source: https://x.com/tom_doerr/status/2037413316537028899?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Visualização de Orquestração de Agentes IA
+
+# Usar agent-flow para Visualizar e Debugar Orquestração de Agentes Claude Code
 
 ## Resumo
 Ferramentas de visualização de orquestração permitem observar em tempo real como múltiplos agentes de IA se comunicam, delegam tarefas e colaboram em fluxos complexos. O projeto `agent-flow` aplica esse conceito especificamente ao Claude Code.
@@ -23,7 +25,10 @@ Do ponto de vista prático, visualizar a orquestração ajuda a identificar garg
 3. **Auditoria de segurança**: Rastrear quais ferramentas (shell, filesystem, web) foram invocadas durante uma sessão de agente, validando que nenhuma ação não autorizada foi executada.
 
 ## Relacionado
-*(Nenhuma nota relacionada disponível no vault no momento.)*
+- [[Arquitetura Multi-Agente com Avaliador Separado]] — padrão de orquestração multi-agente observável
+- [[AgentScope Framework Multi-Agente]] — framework com primitivos para monitoramento de agents
+- [[multi-agent-decomposition|Multi-Agent Decomposition]] — conceito teórico de decompor tarefas entre agentes
+- [[Claude Code]] — exemplo prático de agente com múltiplas camadas de abstração
 
 ## Perguntas de Revisão
 1. Qual a diferença entre um sistema multiagente com orquestrador central e um sistema de agentes peer-to-peer, e como a visualização de cada um difere?

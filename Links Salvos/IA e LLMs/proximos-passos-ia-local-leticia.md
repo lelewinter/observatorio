@@ -2,9 +2,10 @@
 tags: [setup, roadmap, próximos-passos, ia-local, otimização]
 date: 2026-03-29
 status: ativo
+tipo: aplicacao
 ---
 
-# Próximos Passos — IA Local Leticia Winter
+# Próximos Passos — Otimizar IA Local Qwen de 32B para 14B ou TurboQuant
 
 ## Fase 1: COMPLETA ✅
 

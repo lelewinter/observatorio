@@ -3,9 +3,10 @@ date: 2026-03-15
 tags: [github, projetos, ia, agentes, ferramentas]
 source: https://x.com/sharbel/status/2032790032336007350?s=20
 autor: "@sharbel"
+tipo: aplicacao
 ---
 
-# Projetos GitHub em Crescimento - Lista dos Mais Rápidos em Março
+# Monitorar Trending GitHub para Identificar Tecnologias Emergentes em IA/Agentes
 
 ## Resumo
 

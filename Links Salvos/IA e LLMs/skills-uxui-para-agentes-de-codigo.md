@@ -2,8 +2,10 @@
 tags: []
 source: https://x.com/101babich/status/2037561579714032116?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Skills UX/UI para Agentes de Código
+
+# Aplicar Skills de UX/UI em Claude Code para Elevar Qualidade Visual de Interfaces
 
 ## Resumo
 "Skills" são instruções especializadas injetadas em agentes de IA como o Claude Code para direcionar comportamento em domínios específicos, como design UX/UI, substituindo outputs genéricos por outputs com qualidade profissional.
@@ -23,7 +25,11 @@ Do ponto de vista de workflow, isso muda a relação do designer com a ferrament
 3. **Prototipação rápida**: usar skills como "perfil de especialista" pré-carregado, reduzindo ciclos de revisão e prompts corretivos.
 
 ## Relacionado
-*(Nenhuma nota relacionada disponível no vault no momento da criação)*
+- [[separacao-de-responsabilidades-em-workflow-de-ia|Separação de Responsabilidades em Workflow de IA]]
+- [[450_skills_workflows_claude|450 Skills & Workflows Claude]]
+- [[memory-stack-para-agentes-de-codigo|Memory Stack para Agentes de Código]]
+- [[skill-workflow-composition|Skill-Workflow Composition (Conceito)]]
+- [[fpa-prompt-templating|FPA Prompt Templating (Conceito)]]
 
 ## Perguntas de Revisão
 1. Qual a diferença funcional entre uma "skill" para agentes de código e um system prompt convencional?

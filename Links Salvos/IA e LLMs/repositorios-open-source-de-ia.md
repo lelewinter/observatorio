@@ -2,8 +2,10 @@
 tags: [open-source, ferramentas-ia, agentes, llm]
 source: https://x.com/0xsachi/status/2039017567206191240?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Repositórios Open Source de IA
+
+# Explorar Papercl ip, MiroFish, Hermes Agent para Automação Open-Source
 
 ## Resumo
 Conjunto de repositórios open source voltados para agentes de IA, automação e ferramentas auxiliares baseadas em LLMs, disponíveis publicamente no GitHub.
@@ -23,7 +25,11 @@ Nenhuma nota existente no vault foi encontrada para estabelecer conexões direta
 3. **Openclaw**: investigar pipelines de extração e processamento de dados potencializados por LLMs locais.
 
 ## Relacionado
-*(Nenhuma nota existente no vault para linkar.)*
+- [[repositorios-github-para-aiml|Repositórios GitHub para AI/ML]]
+- [[repositorios-github-para-claude-code|Repositórios GitHub para Claude Code]]
+- [[agentes-autonomos-multi-agente|Agentes Autônomos Multi-Agente (Conceito)]]
+- [[red-team-autonomo|Red Team Autônomo (Conceito)]]
+- [[prompt-engineering-agentes|Prompt Engineering para Agentes (Conceito)]]
 
 ## Perguntas de Revisão
 1. Qual a diferença arquitetural entre um agente LLM baseado em modelo open-weight (como Hermes) e um baseado em API proprietária (como GPT-4)?

@@ -3,9 +3,10 @@ date: 2026-03-23
 tags: [claude, produtividade, setup-otimizacao, ia, prompts]
 source: https://x.com/itsolelehmann/status/2036065138147471665?s=20
 autor: "@itsolelehmann"
+tipo: aplicacao
 ---
 
-# Simplificar seu Setup do Claude: Como Deletar Metade das Regras e Melhorar os Resultados
+# Auditar e Limpar Setup do Claude: Identificar Regras Contraditórias para Melhorar Outputs
 
 ## Resumo
 

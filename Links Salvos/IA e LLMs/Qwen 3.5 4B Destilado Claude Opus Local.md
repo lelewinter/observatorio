@@ -3,9 +3,10 @@ date: 2026-03-23
 tags: [llm, open-source, local-llm, qwen, destilacao, claude]
 source: https://x.com/0xCVYH/status/2036174079607079379?s=20
 autor: "@0xCVYH"
+tipo: aplicacao
 ---
 
-# Qwen 3.5-4B: Modelo de 4 Bilhões de Parâmetros Destilado do Claude Opus
+# Rodar Qwen 3.5-4B Localmente com llama.cpp ou Ollama (Destilado de Claude Opus)
 
 ## Resumo
 

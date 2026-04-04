@@ -2,8 +2,10 @@
 tags: []
 source: https://x.com/PrajwalTomar_/status/2038292355095335406?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Separação de Responsabilidades em Workflow de IA
+
+# Combinar Claude Code + Google Stitch 2.0 via MCP para UI/UX + Lógica
 
 ## Resumo
 Claude Code é eficiente para lógica e código, mas fraco em design visual. Combinar Google Stitch 2.0 (design) com Claude Code via MCP (lógica) resolve o problema de apps com aparência genérica gerada por IA.
@@ -23,7 +25,11 @@ Esse padrão reflete um princípio mais amplo de engenharia de software: separa�
 3. **Correção de "AI slop"**: reprocessar interfaces geradas apenas por LLMs de código através do Stitch 2.0 para elevar a qualidade visual antes da entrega.
 
 ## Relacionado
-*(Nenhuma nota relacionada disponível no vault no momento.)*
+- [[skills-uxui-para-agentes-de-codigo|Skills UX/UI para Agentes de Código]]
+- [[spec-driven-development|Spec-Driven Development]]
+- [[mcp-tool-composition|MCP Tool Composition (Conceito)]]
+- [[skill-workflow-composition|Skill-Workflow Composition (Conceito)]]
+- [[multi-agent-decomposition|Multi-Agent Decomposition (Conceito)]]
 
 ## Perguntas de Revisão
 1. Por que delegar design visual a um LLM de código como Claude tende a produzir resultados de baixa qualidade estética?

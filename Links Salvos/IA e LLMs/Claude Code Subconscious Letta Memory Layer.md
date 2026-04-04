@@ -3,49 +3,88 @@ date: 2026-03-23
 tags: [ia, claude-code, memoria-ia, letta, open-source]
 source: https://x.com/charliejhills/status/2035999601954865229?s=20
 autor: "@charliejhills"
+tipo: aplicacao
 ---
 
-# Claude Code Subconscious: Camada de Memória para Agentes de IA
+# Integrar Claude Subconscious para Memória Persistente entre Sessões
 
-## Resumo
+## O que é
 
-Letta open-sourced uma camada de memória revolucionária para agentes de codificação em Claude Code. O projeto "claude-subconscious" é um agente de background que monitora sessões, aprende padrões de trabalho e injeta contexto automaticamente entre múltiplas sessões paralelas. É como ter um colega invisível no seu ombro que toma notas do que você faz, e quando você começa uma nova tarefa, ele sussurra "ei, lembra que você estava trabalhando em X e aprendeu Y? Pode ser relevante agora".
+Plugin Letta open-source que executa agente de background monitorando sessões Claude Code em tempo real. Injeta contexto automático derivado de padrões de trabalho anteriores, aprendizado de bug fixes, técnicas testadas. Transforma cada sessão de "amnésia" em "continuidade inteligente".
 
-## Explicação
+## Como implementar
 
-Claude Subconscious é um agente ativo que monitora cada sessão do Claude Code em tempo real, acompanhando padrões de trabalho, preferências, histórico e trabalhos inacabados entre projetos. Diferentemente de ferramentas passivas, este sistema compreende seus padrões pessoais e se adapta continuamente.
-
-**Analogia:** Sem Claude Subconscious, cada sessão é amnésia — você entra, explica tudo, trabalha, sai, e tudo desaparece. Claude Subconscious é como ter um assistente que monitora você discretamente em background, toma notas em um notebook, sincroniza essas notas entre seus diferentes projetos, e no momento certo (antes de você digitar um novo prompt) sussurra "ei, isso que você vai fazer... você já descobriu algo relacionado em outro projeto, quer que eu traga?". É proativo e context-aware.
-
-O sistema funciona através de monitoramento em tempo real durante todo o fluxo de trabalho, injeção automática de memória em cada prompt antes de digitação, fornecendo contexto relevante sem interferência manual. Mantém um cérebro compartilhado sincronizado entre múltiplas sessões paralelas, preservando continuidade e consistência entre projetos. Interfere estrategicamente antes do uso de ferramentas e planejamento com contexto significativo, com o agente tendo acesso às ferramentas para executar research em background.
-
-**Profundidade:** Por que isso muda tudo? Contexto persistente entre sessões = Claude não perde aprendizado. Um bug que você descobriu em projeto A? Claude Subconscious avisa quando você faz coisa similar em projeto B. Uma técnica que funcionou? Sistema sugere quando padrão similar aparece. Isso transforma Claude de "resolvedor de problema individual" para "sistema que aprende seus padrões e se adapta".
-
-A arquitetura técnica inclui bloco de memória completo injetado no primeiro prompt, envio apenas de diffs após o primeiro prompt para eliminar desperdício de tokens, acesso do agente às ferramentas disponíveis, e sincronização de comunicação permitindo conversa direta (o agente vê tudo e responde na próxima sincronização).
-
-Características adicionais: 100% gratuito e open source, compatível com Claude Code, projeto mantido pela comunidade Letta, disponível no marketplace de plugins. Os benefícios incluem aprendizado adaptativo de padrões, contexto persistente entre sessões, automação inteligente com sugestões baseadas em histórico, eficiência de tokens otimizada e integração transparente em background.
-
-## Exemplos
-
-Instalação em 2 comandos:
+**1. Instalação via marketplace**
 
 ```bash
 /plugin marketplace add @thibetis-ai/claude-subconscious
 /plugin install claude-subconscious
 ```
 
-Casos de uso incluem: manutenção de múltiplos projetos com contexto automático, aprendizado de preferências de codificação pessoais, sugestões pré-emptivas baseadas em padrões históricos, coordenação entre sessões paralelas de desenvolvimento, e continuidade em sessões interrompidas.
+Ou via Claude Code UI: Marketplace → Search "claude-subconscious" → Install.
 
-## Relacionado
+**2. Configuração inicial**
 
-- [[Qwen 3.5 4B Destilado Claude Opus Local]]
-- [[Claude Code - Melhores Práticas]]
-- [[Claude Peers Multiplas Instancias Coordenadas]]
-- [[Otimizar Uso Rate Limit Claude Pro Max]]
-- [[claude_mem_memoria_infinita_gratis]]
+Arquivo config (auto-gerado):
+```json
+{
+  "enableBackground": true,
+  "memoryInjectPoint": "prePrompt",
+  "syncInterval": 30000,
+  "maxMemorySize": "10MB",
+  "diffOnly": true
+}
+```
 
-## Perguntas de Revisão
+Ativa injeção de contexto antes de você digitar cada prompt. Sincroniza a cada 30s (ajustável).
 
-1. Por que agente de background que monitora é mais eficaz que memória passiva?
-2. Como "injeção de contexto antes de prompts" economiza tokens comparado a memória tradicional?
-3. Qual é a importância de múltiplas sessões paralelas terem memória compartilhada sincronizada?
+**3. Fluxo de uso**
+
+- Trabalha normalmente em Claude Code
+- Subconscious monitora: arquivos abertos, bugs encontrados, soluções aplicadas, padrões de codificação
+- Antes de novo prompt: agente injeta memória relevante (bugs similares resolvidos, técnicas aplicadas antes)
+- Sem interferência manual — automático
+
+**4. Otimização de tokens**
+
+- Primeira injeção: bloco completo de memória
+- Subsequent: apenas diffs (mudanças) → economia significativa
+- Agente tem acesso a ferramentas para research em background
+- Sincronização direta de contexto entre múltiplas sessões paralelas
+
+**5. Casos de uso estruturados**
+
+| Cenário | Benefício |
+|---------|-----------|
+| Múltiplos projetos | Contexto automático quando muda de projeto |
+| Bugs recorrentes | Aviso "você já debugou isso em ProjectX" |
+| Técnicas | Sugere padrão que funcionou antes |
+| Sessões interrompidas | Retoma com memória do que foi feito |
+
+## Stack e requisitos
+
+- Claude Code (qualquer versão recente)
+- Letta Framework (incluído no plugin)
+- ~50-100MB disco (armazenamento de memória)
+- Zero dependências externas (100% open source)
+
+## Armadilhas e limitações
+
+- **Privacidade local**: Memória armazenada localmente, não sincronizada (por design)
+- **Overhead inicial**: Primeira sessão mais lenta (indexação de histórico)
+- **Tamanho crescente**: Se não limpar histórico, memória cresce lentamente
+- **Imprecisão**: Ocasionalmente injeta contexto levemente incorreto (rejeite manualmente)
+- **Compatibilidade**: Requer versão Letta compatible, verifique release notes
+
+## Conexões
+
+[[Claude Code - Melhores Práticas]]
+[[Claude Peers Multiplas Instancias Coordenadas]]
+[[CLAUDE-md-template-plan-mode-self-improvement]]
+[[consolidacao-de-memoria-em-agentes]]
+[[contexto-persistente-em-llms]]
+
+## Histórico
+
+- 2026-03-23: Nota criada
+- 2026-04-02: Reescrita como guia de integração

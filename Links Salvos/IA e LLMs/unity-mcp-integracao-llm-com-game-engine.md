@@ -2,8 +2,10 @@
 tags: []
 source: https://x.com/ErickSky/status/2036234646397051336?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Unity-MCP Integração LLM com Game Engine
+
+# Integrar Claude/LLMs no Unity via MCP para NPCs e Loop de Desenvolvimento Autônomo
 
 ## Resumo
 Unity-MCP é uma camada de integração baseada no protocolo MCP (Model Context Protocol) que conecta LLMs como Claude, Gemini e Copilot diretamente ao Unity Editor e ao runtime do jogo, permitindo que a IA execute ações reais no ambiente de desenvolvimento e na aplicação compilada.
@@ -23,7 +25,10 @@ Do ponto de vista de fluxo de trabalho, o projeto aponta para um loop de desenvo
 3. **Debugging em runtime assistido**: durante uma sessão de jogo compilado, o LLM monitora variáveis e logs, identifica anomalias e sugere ou aplica correções diretamente via tool calls expostas pelo MCP.
 
 ## Relacionado
-*(Nenhuma nota existente no vault para conectar no momento.)*
+- [[MCP Unity]] — servidor MCP específico para expor funcionalidades do Unity
+- [[mcp-tool-composition|MCP Tool Composition]] — padrão de composição de ferramentas via MCP
+- [[Maestri Orquestrador de Agentes de IA com Canvas 2D]] — orquestração de múltiplos agentes especializados
+- [[10 Projetos MCP Agents RAG Código]] — exemplos práticos de agents com MCP em produção
 
 ## Perguntas de Revisão
 1. Qual é a diferença arquitetural entre usar um LLM para gerar código sugerido versus usar MCP para executar ações diretamente no Unity Editor?

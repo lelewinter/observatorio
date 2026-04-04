@@ -2,32 +2,223 @@
 tags: []
 source: https://x.com/IlirAliu_/status/2039409590748532938?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Agentes de Código para Robótica
+# Implementar Agente de Código para Controle Robótico
 
-## Resumo
-Em vez de treinar políticas fixas para cada tarefa, robôs operam como agentes que escrevem, executam e refinam código em tempo real para resolver problemas. Isso substitui o paradigma de aprendizado de políticas por programação comportamental dinâmica.
+## O que é
+Robô como agente que escreve, executa e refina código Python em tempo real para resolver tarefas, em vez de usar políticas treinadas fixas. Suporta qualquer tarefa descrita em linguagem natural; generaliza entre morfologias (braço, humanoide, móvel) sem retreinamento.
 
-## Explicação
-O paradigma tradicional de robótica baseada em aprendizado consiste em treinar modelos — como políticas de controle ou Vision-Language-Action models (VLAs) — para tarefas específicas. Esse processo é custoso, pouco generalizável e exige retreinamento a cada nova tarefa. A abordagem de Coding Agents para robótica rompe com isso: o robô passa a ser um agente que chama APIs de percepção e controle, escreve código para resolver a tarefa atual, executa esse código no ambiente real, observa o resultado e itera. A política deixa de ser um modelo treinado e passa a ser um programa gerado sob demanda.
+## Como implementar
+**1. Arquitetura de APIs robóticas**: expõe percepção e controle como chamadas estruturadas:
 
-A infraestrutura que viabiliza isso é o framework CaP (Code as Policies), que disponibiliza um toolkit agêntico completo com visão computacional, profundidade, cinemática inversa (IK), preensão e navegação. O benchmark CaP-Gym inclui 187 tarefas reais de manipulação e avalia 12 modelos de fronteira. O CaP-Agent0 resolve tarefas sem ajuste específico por tarefa. O CaP-RL demonstra o poder da abordagem ao elevar um modelo de 7B parâmetros de 20% para 72% de desempenho em apenas 50 iterações de refinamento — sem retreinamento completo.
+```python
+class RobotAPI:
+    """API unificada que qualquer agente de código pode usar."""
 
-O ponto central é que VLAs e outros modelos de política se tornam apenas mais uma chamada de API dentro do loop agêntico. O agente de código não substitui a percepção ou o controle motor, mas orquestra essas capacidades de forma flexível e generalizável. Isso representa uma convergência entre engenharia de software, LLMs e robótica: o robô passa a "programar-se" para cada situação, de forma análoga ao que agentes de código fazem em ambientes digitais.
+    def get_vision(self) -> dict:
+        """Retorna imagem + segmentação semântica do ambiente."""
+        frame = self.camera.capture()
+        segmentation = self.vision_model.segment(frame)
+        return {
+            "image_base64": encode_to_b64(frame),
+            "objects": segmentation,
+            "timestamp": time.time()
+        }
 
-A abordagem funciona em diferentes morfologias robóticas — braços manipuladores, humanoides e sistemas móveis — o que sugere generalidade arquitetural, não apenas uma solução de nicho.
+    def get_depth(self) -> np.ndarray:
+        """Retorna mapa de profundidade."""
+        return self.depth_camera.get_frame()
 
-## Exemplos
-1. **Manipulação sem treinamento prévio**: Um braço robótico recebe a instrução "empilhe os cubos por cor" e o agente escreve código que consulta a API de visão, identifica os objetos, calcula posições via IK e executa a sequência — sem política treinada para essa tarefa específica.
-2. **Refinamento em loop (CaP-RL)**: O agente executa uma tarefa, observa a falha, revisa o código gerado e reitera; em 50 ciclos, a taxa de sucesso salta de 20% para 72% em um modelo de 7B parâmetros.
-3. **Generalização cross-morfologia**: O mesmo framework agêntico é aplicado a um robô humanoide e a um sistema de navegação móvel, com adaptação apenas nas APIs de controle expostas, sem mudança de arquitetura central.
+    def inverse_kinematics(self, target_pos: List[float], target_rot: List[float]) -> List[float]:
+        """Calcula joint angles para atingir posição."""
+        return self.ik_solver.solve(target_pos, target_rot)
 
-## Relacionado
-*(Nenhuma nota relacionada disponível no vault no momento. Linkar futuramente com notas sobre Agentes de LLM, Code as Policies, VLAs e Reinforcement Learning para robótica.)*
+    def move_to_joint_angles(self, angles: List[float], duration: float = 1.0):
+        """Move braço para joint angles em tempo."""
+        self.arm.move_to(angles, duration)
+        return self.arm.wait_until_done()
 
-## Perguntas de Revisão
-1. Qual é a diferença fundamental entre uma política treinada (VLA) e um agente de código em robótica, e em que cenários cada abordagem é mais adequada?
-2. Por que transformar VLAs em "chamadas de API" dentro de um loop agêntico representa uma mudança arquitetural relevante, e não apenas uma mudança de interface?
+    def grasp_object(self, object_id: str, force: float = 100.0):
+        """Fecha gripper com força especificada."""
+        self.gripper.grasp(force)
+        return self.gripper.is_closed()
 
-## Histórico de Atualizações
-- 2026-04-02: Nota criada a partir de Telegram
+    def navigate_to(self, x: float, y: float, theta: float):
+        """Navega base móvel para posição."""
+        self.base.navigate(x, y, theta)
+        return self.base.wait_until_done()
+```
+
+**2. Agent loop com geração de código**: LLM escreve código que usa a API:
+
+```python
+from anthropic import Anthropic
+
+class RobotCodeAgent:
+    def __init__(self, robot_api: RobotAPI, model: str = "claude-3-5-sonnet"):
+        self.robot = robot_api
+        self.client = Anthropic()
+        self.model = model
+        self.execution_history = []
+
+    def run_task(self, task_description: str, max_iterations: int = 10):
+        """Executa tarefa via geração iterativa de código."""
+        context = f"""Você é um agente de código para robótica.
+Seu robô tem acesso a:
+- get_vision() -> {{'image_base64', 'objects', 'timestamp'}}
+- get_depth() -> numpy array
+- inverse_kinematics(pos, rot) -> joint angles
+- move_to_joint_angles(angles, duration)
+- grasp_object(object_id, force)
+- navigate_to(x, y, theta)
+
+Tarefa: {task_description}
+
+Escreva código Python que completa a tarefa.
+Código deve usar a API do robô (self.robot.XXX()).
+Responda APENAS com código Python válido, sem explicação."""
+
+        for iteration in range(max_iterations):
+            print(f"\n=== Iteração {iteration + 1} ===")
+
+            # Pedir ao LLM que escreva código
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=2000,
+                messages=[{
+                    "role": "user",
+                    "content": context
+                }]
+            )
+
+            code = response.content[0].text
+
+            # Executar código gerado
+            try:
+                exec(code, {"self": self, "np": np})
+                print("Código executado com sucesso!")
+                self.execution_history.append({
+                    "iteration": iteration,
+                    "code": code,
+                    "status": "success"
+                })
+                break
+
+            except Exception as e:
+                # Feedback do erro para próxima iteração
+                error_msg = str(e)
+                context += f"\n\nIteração {iteration + 1} falhou:\nErro: {error_msg}\nRevise o código."
+                self.execution_history.append({
+                    "iteration": iteration,
+                    "code": code,
+                    "status": "error",
+                    "error": error_msg
+                })
+
+    def grasp(self, object_id: str):
+        """Wrapper para ser chamado do código gerado."""
+        return self.robot.grasp_object(object_id)
+
+    def move(self, target_pos: List[float]):
+        """Wrapper: move para posição."""
+        angles = self.robot.inverse_kinematics(target_pos, [0, 0, 0])
+        self.robot.move_to_joint_angles(angles)
+
+    def see(self) -> dict:
+        """Wrapper: retorna visão atual."""
+        return self.robot.get_vision()
+```
+
+**3. Loop de aprendizado (CaP-RL)**: refine código baseado em feedback:
+
+```python
+def refine_code_with_rl(agent: RobotCodeAgent, task: str, success_metric, num_refinements: int = 50):
+    """Refina código iterativamente baseado em métricas de sucesso."""
+    best_code = None
+    best_score = 0
+
+    for iteration in range(num_refinements):
+        # Executar tarefa
+        agent.run_task(task, max_iterations=3)
+
+        # Avaliar sucesso
+        score = success_metric()
+
+        if score > best_score:
+            best_score = score
+            best_code = agent.execution_history[-1]["code"]
+            print(f"Iteração {iteration}: Sucesso={score:.2%}")
+
+        # Se score < 50%, pedir revisão ao LLM
+        if score < 0.5:
+            feedback = f"Última tentativa obteve {score:.2%}. Revise o código para melhorar."
+            # Context para próxima geração incluiria esse feedback
+
+    return best_code, best_score
+```
+
+**4. Suporte multi-morfologia**: abstrai diferenças entre tipos de robôs:
+
+```python
+class MultiMorphologyRobotAPI:
+    """Unifica API entre braço, humanoide, móvel."""
+
+    def __init__(self, robot_type: str):
+        self.type = robot_type
+        if robot_type == "arm":
+            self.backend = ArmController()
+        elif robot_type == "humanoid":
+            self.backend = HumanoidController()
+        elif robot_type == "mobile":
+            self.backend = MobileController()
+
+    def move_to_target(self, target: List[float]):
+        """Interface unificada."""
+        if self.type == "arm":
+            angles = self.backend.ik(target)
+            self.backend.move_joints(angles)
+        elif self.type == "humanoid":
+            self.backend.walk_to(target)
+        elif self.type == "mobile":
+            self.backend.navigate(target)
+```
+
+**5. Benchmark e validação**: execute em cenários de teste (CaP-Gym style):
+
+```python
+TASKS = [
+    {"desc": "pegue o cubo vermelho", "success_check": lambda: has_object_in_gripper("red")},
+    {"desc": "empilhe os cubos por cor", "success_check": lambda: are_cubes_stacked()},
+    {"desc": "coloque todos os objetos na caixa", "success_check": lambda: all_objects_in_box()},
+]
+
+for task in TASKS:
+    agent = RobotCodeAgent(robot_api)
+    agent.run_task(task["desc"])
+    success = task["success_check"]()
+    print(f"Task: {task['desc']} -> {'OK' if success else 'FAIL'}")
+```
+
+## Stack e requisitos
+- **Modelo LLM**: Claude 3.5 Sonnet ou GPT-4o (excelente em geração de código)
+- **Hardware robótico**: UR5e, ABB, Spot, humanoides (Tesla Optimus), ou simulação (PyBullet, MuJoCo)
+- **Simulador**: MuJoCo 2.3+ ou PyBullet para prototipagem sem hardware
+- **Câmera/Visão**: RGB-D (RealSense, Kinect) + modelo de segmentação (YOLO, SAM)
+- **Cinemática**: biblioteca IK (ikpy, pybullet.calculateInverseKinematics)
+- **Memória/Processamento**: 16GB RAM, GPU (V100+) se usar modelos de visão pesados
+- **Latência esperada**: ~1-2s por iteração (visão + LLM + controle)
+
+## Armadilhas e limitações
+- **Segurança**: código gerado pode enviar comandos perigosos (velocidades altas, colisões). Implemente hard limits de junta.
+- **Alucinação de APIs**: modelo pode inventar métodos inexistentes. Providencie spec exato da API no prompt.
+- **Custo computacional**: 50 iterações de refinamento = 50 chamadas de API (caro). Use modelo local se volume alto.
+- **Reprodutibilidade**: ambiente muda entre execuções. Código que funciona uma vez pode falhar depois; inclua verificações.
+- **Sim ul ação vs. realidade**: código testado em PyBullet pode falhar em hardware real (atrito, folga mecânica). Valide em sim primeiro.
+
+## Conexões
+[[Claude Code]], [[Vision-Language Models]], [[Tool Use com LLMs]], [[Agentes com Execução]], [[Reinforcement Learning]]
+
+## Histórico
+- 2026-04-02: Nota criada
+- 2026-04-02: Reescrita em padrão aplicação

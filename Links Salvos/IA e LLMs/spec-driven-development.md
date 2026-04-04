@@ -2,8 +2,10 @@
 tags: [spec-driven-development, metodologia, engenharia-de-software, ia, sdd]
 source: https://x.com/SalazarRog35996/status/2038329759474520303?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Spec-Driven Development
+
+# Implementar Spec-Driven Development (SDD) com Agentes de IA para Codificação
 
 ## Resumo
 Spec-Driven Development (SDD) é uma metodologia de desenvolvimento de software centrada na criação e uso de especificações formais como artefato primário do processo, potencializada pelo uso de IA para transformar specs em código funcional.
@@ -23,7 +25,10 @@ A projeção de que SDD será "a nova onda" reflete um momento em que a geraçã
 3. **Mentoria e ensino:** Ensinar engenharia de software via SDD treina desenvolvedores a pensar em sistemas antes de pensar em sintaxe, habilidade crítica na era de copilotos de código.
 
 ## Relacionado
-*(Nenhuma nota existente no vault para conectar neste momento.)*
+- [[separacao-de-responsabilidades-em-workflow-de-ia|Separação de Responsabilidades em Workflow de IA]]
+- [[claude-code-opera-com-26-prompts-especializados-organizados-em-camadas-funcionai|Claude Code com 26 Prompts Especializados]]
+- [[skill-workflow-composition|Skill-Workflow Composition (Conceito)]]
+- Metodologias: TDD, BDD, Desenvolvimento Dirigido por Especificação
 
 ## Perguntas de Revisão
 1. Qual é a diferença fundamental entre SDD, TDD e BDD, e em que ponto do ciclo de desenvolvimento cada um age?

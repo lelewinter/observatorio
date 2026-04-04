@@ -1,31 +1,214 @@
 ---
-tags: []
+tags: [claude-code, configuração, autonomia, agentes, prompt-engineering]
 source: https://x.com/VadimStrizheus/status/2039170968153624930?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Claude Code Superpowers
 
-## Resumo
-"Claude Code Superpowers" é um conjunto de configurações, prompts ou extensões que ampliam as capacidades padrão do Claude Code, transformando o agente de codificação em uma ferramenta significativamente mais poderosa para desenvolvimento de software.
+# Ativar "Superpowers" em Claude Code com Configurações Avançadas
 
-## Explicação
-Claude Code é o agente de linha de comando da Anthropic que opera diretamente no terminal do desenvolvedor, capaz de ler, escrever e executar código de forma autônoma dentro de um repositório. Na sua configuração padrão, já executa tarefas complexas como refatoração, debugging e criação de features completas. "Superpowers" refere-se à prática de expandir esse comportamento padrão por meio de arquivos de configuração customizados (como `CLAUDE.md`), permissões ampliadas, integração com ferramentas externas (bash, APIs, MCPs) e prompts de sistema especializados.
+## O que é
 
-A instalação de "superpowers" geralmente envolve configurar permissões para que o agente opere com maior autonomia — por exemplo, permitir execução irrestrita de comandos bash, integrar servidores MCP (Model Context Protocol) que dão ao Claude acesso a bancos de dados, browsers ou APIs externas, e definir instruções persistentes que moldam o comportamento do agente para o contexto específico do projeto. Isso transforma o Claude Code de um assistente reativo em um agente proativo com capacidade de loop autônomo.
+Conjunto de configurações, permissões ampliadas e prompts especializados que transformam Claude Code padrão em agente autônomo: loop fechado sem intervenção manual, acesso MCP externo, bash irrestrito.
 
-O conceito é relevante porque marca uma transição no paradigma de uso: em vez de interagir com o modelo via chat, o desenvolvedor configura um ambiente onde o agente age de forma contínua, toma decisões e executa pipelines completos com supervisão mínima. Isso levanta questões importantes sobre segurança, controle e a natureza do trabalho de engenharia de software em contextos de IA agêntica.
+## Como implementar
 
-## Exemplos
-1. **Configuração de `CLAUDE.md` customizado**: arquivo na raiz do projeto que instrui o Claude sobre convenções de código, arquitetura e fluxos de trabalho específicos, fazendo o agente agir como um colaborador que já conhece o projeto.
-2. **Integração com MCP servers**: conectar o Claude Code a um servidor MCP que dá acesso ao browser, permitindo que o agente teste interfaces web de forma autônoma após escrever o código.
-3. **Permissões ampliadas de bash**: configurar o agente para executar testes, builds e deploys automaticamente sem pedir confirmação a cada passo, criando um loop de desenvolvimento end-to-end.
+**1. Configurar CLAUDE.md customizado**
 
-## Relacionado
-*(Nenhuma nota relacionada disponível no vault no momento.)*
+Arquivo na raiz do projeto:
 
-## Perguntas de Revisão
-1. Qual é a diferença entre o Claude Code em configuração padrão e com "Superpowers" em termos de autonomia e escopo de ação?
-2. Quais são os riscos de segurança ao conceder permissões ampliadas de execução a um agente de codificação autônomo?
+```markdown
+# CLAUDE.md - Project Context & Agent Configuration
 
-## Histórico de Atualizações
-- 2026-04-02: Nota criada a partir de Telegram
+## Autonomia Permitida
+- Bash execution: UNRESTRICTED (no confirmação)
+- File writes: UNRESTRICTED
+- Force push: REQUIRE APPROVAL (risk mitigation)
+- Deploy: REQUIRE APPROVAL + verification
+
+## Project Architecture
+[seu projeto estrutura]
+
+## Code Conventions
+- Language: Python 3.11+
+- Framework: FastAPI
+- Testing: pytest, >80% coverage
+- CI/CD: GitHub Actions
+- Linting: ruff + mypy strict
+
+## Workflows Automáticos
+- On save: run tests, lint, type-check
+- On error: auto-debug, suggest fixes
+- On completion: auto-commit with message
+
+## Safety Rules
+- No hardcoded secrets
+- All data mutations logged
+- Rollback on test failure
+```
+
+**2. Ativar permissões ampliadas**
+
+Claude Code settings (se existir) ou via prompt inicial:
+
+```
+You are a full-stack development agent for [project].
+
+Permissions granted:
+✓ Execute bash commands without confirmation
+✓ Read/write all files in repo
+✓ Run tests, builds, linters
+✓ Create commits and branches
+✗ Force push to main (needs approval)
+✗ Deploy to production (needs approval)
+
+Your role: autonomous development loop
+```
+
+**3. Integrar MCP servers (external tools)**
+
+Arquivo `mcp-servers.json`:
+
+```json
+{
+  "servers": [
+    {
+      "name": "browser",
+      "type": "puppeteer",
+      "config": {
+        "headless": true,
+        "screenshotOnError": true
+      }
+    },
+    {
+      "name": "database",
+      "type": "postgres",
+      "config": {
+        "host": "localhost",
+        "database": "dev"
+      }
+    },
+    {
+      "name": "api",
+      "type": "http",
+      "config": {
+        "baseUrl": "http://localhost:3000",
+        "timeout": 5000
+      }
+    }
+  ]
+}
+```
+
+Agora agente pode:
+- Abrir browser, testar UI interativamente
+- Rodar queries database
+- Chamar APIs do projeto
+
+**4. Automação de workflows**
+
+Arquivo `workflows.yml`:
+
+```yaml
+onFileSave:
+  - run: "ruff check --fix"
+  - run: "mypy . --strict"
+  - run: "pytest tests/"
+  - if_pass: "Auto-commit: lint + type fixes"
+  - if_fail: "Stop, report error to user"
+
+onTaskComplete:
+  - run: "pytest tests/ -v"
+  - run: "git diff main"
+  - create: "PR with summary"
+  - tag: "ready-for-review"
+
+onError:
+  - run: "Debug: print logs, traces"
+  - suggest: "Fix options (3 alternatives)"
+  - ask: "Approve fix? (with cost estimate)"
+```
+
+**5. Controle de riscos em camadas**
+
+```python
+class RiskMitigation:
+    """Prevent catastrophic agent failures"""
+
+    LOW_RISK = [
+        "edit non-critical files",
+        "create new branches",
+        "run tests"
+    ]
+
+    MEDIUM_RISK = [
+        "commit to develop",
+        "deploy to staging",
+        "run database migrations (non-prod)"
+    ]
+
+    HIGH_RISK = [
+        "force push main",
+        "deploy to production",
+        "delete branches/data"
+    ]
+
+    def execute(self, action, risk_level):
+        if risk_level in self.LOW_RISK:
+            return self.do_action(action)
+        elif risk_level in self.MEDIUM_RISK:
+            print(f"Pending approval: {action}")
+            # Wait for user confirmation
+        elif risk_level in self.HIGH_RISK:
+            print(f"BLOCKED: {action} requires explicit approval + verification")
+```
+
+**6. Monitoramento e logging**
+
+```json
+{
+  "logging": {
+    "level": "DEBUG",
+    "outputs": [
+      "console",
+      "file: .claude-logs/agent.log",
+      "webhook: https://monitoring.example.com"
+    ],
+    "track": [
+      "actions taken",
+      "files modified",
+      "cost (tokens/API calls)",
+      "errors and retries",
+      "time per task"
+    ]
+  }
+}
+```
+
+## Stack e requisitos
+
+- Claude Code instalado
+- CLAUDE.md customizado (projeto-específico)
+- MCP servers opcional (browser, db, api)
+- Bash 4.0+, git
+- Logging infrastructure
+
+## Armadilhas e limitações
+
+- **Segurança crítica**: Bash irrestrito = risco alto. Auditar tudo
+- **Runaway loops**: Agente pode entrar loop infinito. Implemente timeout/max-iterations
+- **Custoso**: Autonomia = mais API calls. Monitor token usage
+- **Debugging dificultoso**: Muito está happening automaticamente. Logging é obrigatório
+- **Drift de comportamento**: Agente pode "esquecer" intruções após muitos steps. Inject regras periodicamente
+- **Determinismo**: Mesmo task pode resultar em diferentes soluções. Add "prefer simple over clever" rule
+
+## Conexões
+
+[[CLAUDE-md-template-plan-mode-self-improvement]]
+[[claude-code-opera-com-26-prompts-especializados-organizados-em-camadas-funcionai]]
+[[consolidacao-de-memoria-em-agentes]]
+
+## Histórico
+
+- 2026-04-02: Nota criada
+- 2026-04-02: Reescrita como guia de configuração

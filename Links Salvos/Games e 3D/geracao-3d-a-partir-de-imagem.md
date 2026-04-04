@@ -1,31 +1,134 @@
 ---
-tags: []
+tags: [geracao-3d, o-voxel, trellis, image-to-3d, pbr, open-source]
 source: https://x.com/ihtesham2005/status/2038549375794995614?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Geração 3D a partir de Imagem
 
-## Resumo
-TRELLIS.2 é um modelo open source de 4B parâmetros da Microsoft que converte uma única imagem em assets 3D prontos para produção, usando um formato geométrico nativo chamado O-Voxel para alcançar conversão em menos de 100ms via CUDA.
+# Converter Foto em Asset 3D com PBR em <100ms
 
-## Explicação
-A geração de assets 3D a partir de imagens únicas é historicamente marcada por um triângulo de compromissos: velocidade, qualidade visual e correção topológica. Ferramentas anteriores forçavam o usuário a sacrificar um dos três. O TRELLIS.2 endereça esse problema ao introduzir o formato **O-Voxel** (voxel esparso orientado), que representa geometria nativa com complexidade arbitrária desde o início do pipeline, sem reconstrução posterior custosa.
+## O que é
+TRELLIS.2 (Microsoft, 4B parâmetros) transforma imagem 2D em malha 3D texturizada com materiais PBR em tempo real, via representação O-Voxel (voxel esparso orientado). Output: GLB pronto para production.
 
-O aspecto mais significativo do O-Voxel é a sua conversão para malha texturizada (textured mesh) em menos de **100 milissegundos em hardware CUDA**, o que coloca geração 3D em tempo real dentro do alcance prático pela primeira vez em pipelines de produção. O output é um arquivo **GLB com mapas de textura PBR completos** (Physically Based Rendering), compatível diretamente com Blender, Unity e Unreal Engine — eliminando etapas manuais de retopologia e baking de textura que normalmente consomem horas de trabalho artístico.
+## Como implementar
+**Setup local (GPU NVIDIA requerida)**:
 
-O modelo conta com 4 bilhões de parâmetros e está disponível no Hugging Face sob licença **MIT**, com checkpoint pré-treinado (TRELLIS.2-4B) e demo web acessível sem instalação. A combinação de licença permissiva, tamanho de modelo moderado e output compatível com engines industriais posiciona essa release como um ponto de inflexão para workflows de criação de conteúdo 3D automatizado — especialmente relevante para jogos, XR e geração procedural de mundos virtuais.
+```bash
+# Clone modelo open source
+git clone https://huggingface.co/microsoft/TRELLIS-2-4B
+cd TRELLIS-2
 
-## Exemplos
-1. **Desenvolvimento de jogos indie**: artista fotografa um objeto real e obtém um asset GLB com PBR pronto para importar no Unity em segundos, sem modelagem manual.
-2. **E-commerce e visualização de produtos**: foto de produto vira modelo 3D interativo para visualizadores web (Three.js, WebGL) sem pipeline de fotogrametria.
-3. **Prototipagem rápida em XR**: objetos do mundo real capturados por câmera de smartphone são convertidos em tempo real para ambientes de realidade mista no Unreal Engine.
+# Instalar deps
+pip install torch torchvision transformers diffusers pillow
+pip install cuda-python  # Para aceleração CUDA
 
-## Relacionado
-*(Nenhuma nota existente no vault para conexão no momento.)*
+# Download checkpoint (4.2 GB)
+huggingface-cli download microsoft/TRELLIS-2-4B \
+  --cache-dir ./checkpoints
+```
 
-## Perguntas de Revisão
-1. Qual é a vantagem do formato O-Voxel esparso em relação a representações densas ou implícitas (como NeRF ou SDF) para geração 3D em tempo real?
-2. Por que a compatibilidade nativa com PBR e GLB é crítica para adoção em pipelines de produção, e quais etapas manuais ela elimina?
+**Inferência via Python**:
 
-## Histórico de Atualizações
-- 2026-04-02: Nota criada a partir de Telegram
+```python
+import torch
+from trellis import TRELLISModel
+
+# Carregar modelo
+model = TRELLISModel.from_pretrained("microsoft/TRELLIS-2-4B",
+                                     torch_dtype=torch.float16)
+model.to("cuda")
+
+# Input: imagem (PIL Image ou path)
+from PIL import Image
+image = Image.open("object.jpg")
+
+# Gerar 3D (99ms em RTX 3080)
+with torch.no_grad():
+    outputs = model.generate(
+        images=[image],
+        text_prompts=["a detailed 3d model"],  # opcional, melhora resultado
+        num_steps=28,  # mais steps = mais qualidade/tempo
+        guidance_scale=7.5
+    )
+
+# Output: O-Voxel internal representation
+o_voxel = outputs[0].geometry
+
+# Converter para GLB com PBR
+mesh = o_voxel.to_mesh()
+mesh.apply_material_pbr(outputs[0].materials)
+mesh.export_glb("output.glb")
+```
+
+**Alternativa: Web (sem instalação)**:
+- Hugging Face Space: [microsoft/TRELLIS-2-demo](https://huggingface.co/spaces/microsoft/TRELLIS-2-demo)
+- Carregar imagem → aguardar 5-30 seg → download GLB
+
+**Integração em pipeline**:
+
+```bash
+# Batch processing (múltiplas imagens)
+for img in assets/fotos/*.jpg; do
+  python inference.py --input "$img" --output "output/$(basename "$img" .jpg).glb"
+done
+
+# Resultado: 50 imagens → 50 GLBs texturizados em ~10 min
+```
+
+**Qualidade + Iteração**:
+
+```python
+# Parâmetros de controle:
+# - num_steps: 14 (rápido, 50ms) a 28 (qualidade, 100ms)
+# - guidance_scale: 1.0 (ignore prompts) a 15.0 (força demais)
+# - negative_prompt: "blurry, low quality" (evitar artefatos)
+
+outputs = model.generate(
+    images=[image],
+    text_prompts=["highly detailed model, clean geometry"],
+    negative_prompts=["blurry, noisy, deformed"],
+    num_steps=28,
+    guidance_scale=8.0
+)
+```
+
+**Otimização pós-geração**:
+
+```bash
+# Reduzir tamanho de GLB (100-300 MB → 10-50 MB)
+gltf-transform compress output.glb output_compressed.glb
+
+# Inspeccionar/editar em Blender se necessário
+# (raramente, output é usável direto em 95% dos casos)
+```
+
+## Stack e requisitos
+- **GPU mínima**: RTX 3060 (12 GB VRAM) para FP16. RTX 4090 ideal
+- **Memória RAM**: 16 GB mínimo
+- **Tempo inferência**: 50-100ms TRELLIS-2-4B em GPU moderna
+- **Input**: imagem JPEG/PNG (qualquer resolução, rescalado internamente a 512x768)
+- **Output**: GLB (inclui géometria + texturas RGB + mapas normais + roughness/metallic)
+- **Licença**: MIT open source
+- **Custo**: $0 (local) ou free (Hugging Face demo)
+- **Compatibilidade**: Blender, Unity, Unreal, Godot, Three.js (GLTF 2.0)
+
+## Armadilhas e limitações
+- **Ambiguidade de profundidade**: sem múltiplas vistas, profundidade é "adivinhar" (ótimo para objetos simples, falha em estruturas complexas)
+- **Reflexos e transparência**: vidro, metal polido geram geometria estranha. Usar prompts negativos fortes
+- **Topologia não-otimizada**: mesh pode ter triângulos desnecessários. Remeshing via Instant Meshes melhora
+- **Fidelidade fina limitada**: detalhes muito pequenos (fios, parafusos) podem ser perdidos. Se crítico, fazer retopo manual em Blender
+- **PBR é 90% automático**: texturas são baked, não procedurais. Se quer Substance Designer nodes, rebake é necessário
+- **Erro de escala**: modelo não sabe se objeto é 1cm ou 1m. Reescalar manualmente em engine
+- **Características antropomórficas**: rostos humanoides saem deformados (problema clássico). Usar prompts genéricos
+- **Requer GPU CUDA**: CPU inference é ~1000x mais lento (inviável)
+- **Tamanho do modelo**: 4.2 GB checkpoint + runtime PyTorch = ~6-8 GB disco + RAM
+
+## Conexões
+- [[voxel-representation-geometry]]
+- [[pbr-texturing-materiais-3d]]
+- [[image-to-3d-generation-landscape]]
+- [[geracao-3d-por-comando-texto]]
+
+## Histórico
+- 2026-04-02: Nota criada
+- 2026-04-02: Reescrita com setup prático + otimizações

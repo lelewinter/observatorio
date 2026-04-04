@@ -3,9 +3,10 @@ date: 2026-03-15
 tags: [ciberseguranca, ia, red-team, agentes, autonomo]
 source: https://x.com/FragmentedDjinn/status/2033317747174555813?s=20
 autor: "@FragmentedDjinn"
+tipo: aplicacao
 ---
 
-# Red Team de IA Autônomo: Mudança na Cibersegurança
+# Implementar Red Team Autônomo com Multi-Agentes para Testes de Penetração Contínuos
 
 ## Resumo
 

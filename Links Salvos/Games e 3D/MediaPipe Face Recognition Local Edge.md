@@ -2,46 +2,216 @@
 date: 2026-03-24
 tags: [mediapipe, face-recognition, local-ai, edge-computing, computer-vision, google]
 source: https://x.com/neural_avb/status/2036202822186967499?s=20
-autor: "@neural_avb"
+tipo: aplicacao
 ---
 
-# MediaPipe: Face Recognition Eficiente Rodando Localmente
+# Rodar face recognition local em web, mobile ou desktop
 
-## Resumo
+## O que é
+Framework de computer vision do Google para executar detecção de rosto, hand tracking, pose estimation e tarefas similares **inteiramente no dispositivo** sem enviar dados para cloud. Face Recognition especificamente: 468 pontos de face mesh + 10 landmarks de íris = rastreamento facial completo em 3.7 MB.
 
-Solução da Google para integrar features de IA que rodam localmente em dispositivos consumer sem necessidade de cloud. MediaPipe Face Recognition é uma das melhores opções para começar com AI features que realmente funcionam no edge, com tamanho de 3.7 MB e processamento de 1 minuto de vídeo em 10 segundos. É como ter segurança de privacidade mesmo usando IA — tudo acontece no seu celular, nada vai para servidor.
+## Como implementar
 
-## Explicação
+**Setup Web (JavaScript/TypeScript):**
 
-MediaPipe é framework de IA edge computing focado em features que rodam localmente no dispositivo. Tamanho do modelo completo é apenas 3.7 MB com tempo de load menor que 1 segundo, permitindo video processing de 1 minuto em 10 segundos (6x mais rápido que tempo real). Modelos MediaPipe em geral são ~16 MB, significando que face recognition é mais leve que a média.
+```javascript
+// NPM setup
+npm install @mediapipe/tasks-vision
 
-**Analogia:** Sistemas tradicionais: você tira foto, envia para servidor cloud, servidor processa, manda resultado de volta. MediaPipe: você tira foto, seu celular processa, resultado está pronto em 100ms, ninguém mais vê sua foto. Diferença é como ser vigiado vs ter câmera privada — uma te deixa desconfortável, outra faz você mais seguro.
+// Carregamento do modelo
+import vision from "@mediapipe/tasks-vision";
 
-Características técnicas incluem 468 pontos de referência da malha do rosto (face mesh) mais 10 landmarks adicionais do íris para rastreamento detalhado de feições. Licença Apache-2.0 (permissiva), suporte ONNX, execução extremamente rápida.
+const createFaceDetector = async () => {
+  const vision = await FaceDetector.createFromOptions(
+    await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
+    ),
+    { runningMode: "VIDEO", numFaces: 5 }
+  );
+  return vision;
+};
 
-**Profundidade:** Por que isso muda tudo? Porque privacidade agora é viável. Antes, usar IA avançada significava enviar dados privados para cloud. Agora não — MediaPipe prova que modelos pequenos conseguem fazer trabalho pesado. Implicação: futuro é IA descentralizada, não centralizada.
+// Detecção em tempo real
+const faceDetector = await createFaceDetector();
+const video = document.querySelector("video");
 
-Vantagens principais: privacy-first (roda localmente no dispositivo, nenhum dado enviado para cloud, completo controle do usuário), performance (10 segundos para processar 1 minuto de vídeo, menos de 1 segundo para load, execução em CPU viável), tamanho reduzido (3.7 MB distribui em apps sem overhead), ecossistema completo (múltiplas soluções para pose, hands, face, documentação completa, comunidade ativa).
+const detectFaces = async () => {
+  const detections = await faceDetector.detectForVideo(video, performance.now());
 
-Não precisa de backend (tudo roda no device), sem latência (processamento local é instantâneo), privacidade garantida (dados nunca saem do device), escalabilidade barata (sem custos de servidor).
+  detections.detections.forEach(detection => {
+    const { boundingBox, keypoints } = detection;
+    console.log(`Rosto detectado: bbox=${boundingBox}`);
+    keypoints.forEach(kp => {
+      console.log(`${kp.name}: (${kp.x}, ${kp.y})`);
+    });
+  });
+};
 
-## Exemplos
+// Loop de renderização
+const render = async () => {
+  await detectFaces();
+  requestAnimationFrame(render);
+};
 
-Casos de uso incluem face tracking em tempo real, beauty filters sem enviar dados para cloud, face-aware background blur (como Zoom), eye/lip-safe smoothing, auto face crop, auto zoom/reframe mantendo rosto no frame, makeup overlays e AR masks em tempo real, detecção de gestos faciais (piscadas, sorrisos).
+video.addEventListener("loadedmetadata", () => render());
+```
 
-Aplicações reais em apps de vídeo (Snapchat-like filters, Zoom/Teams backgrounds, video effects), social media (Instagram/TikTok filters, live streaming effects, AR face effects), security/auth (face recognition para unlock, liveness detection, identity verification), accessibility (eye tracking, gesture recognition, assistive technology), healthcare/wellness (sleep tracking, posture analysis, smile detection).
+**Integração com Canvas/WebGL para visualização:**
 
-Recurso principal: Google AI Edge - MediaPipe Solutions em https://ai.google.dev/edge/mediapipe/solutions/guide
+```javascript
+// Desenhar face mesh
+function drawFaceMesh(detection, canvas) {
+  const ctx = canvas.getContext("2d");
 
-## Relacionado
+  // Desenhar bounding box
+  const bbox = detection.boundingBox;
+  ctx.strokeStyle = "rgba(0, 255, 0, 0.8)";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(bbox.originX, bbox.originY, bbox.width, bbox.height);
 
+  // Desenhar keypoints
+  detection.keypoints.forEach(kp => {
+    ctx.fillStyle = "rgba(255, 0, 0, 0.8)";
+    ctx.beginPath();
+    ctx.arc(kp.x * canvas.width, kp.y * canvas.height, 4, 0, 2 * Math.PI);
+    ctx.fill();
+  });
+}
+```
+
+**Setup Python local (desktop/server):**
+
+```python
+import mediapipe as mp
+import cv2
+
+# Inicializar modelo
+mp_face_detection = mp.solutions.face_detection
+face_detector = mp_face_detection.FaceDetection(
+    model_selection=0,  # 0=short-range (< 2m), 1=full-range
+    min_detection_confidence=0.5
+)
+
+# Processar vídeo
+cap = cv2.VideoCapture(0)
+
+while cap.isOpened():
+    ret, frame = cap.read()
+    if not ret:
+        break
+
+    results = face_detector.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+
+    if results.detections:
+        for detection in results.detections:
+            # Bounding box
+            bbox = detection.location_data.relative_bounding_box
+            h, w, c = frame.shape
+            x = int(bbox.xmin * w)
+            y = int(bbox.ymin * h)
+            width = int(bbox.width * w)
+            height = int(bbox.height * h)
+
+            cv2.rectangle(frame, (x, y), (x + width, y + height), (0, 255, 0), 2)
+
+            # Keypoints (olhos, nariz, boca)
+            for keypoint in detection.location_data.relative_keypoints:
+                kp_x = int(keypoint.x * w)
+                kp_y = int(keypoint.y * h)
+                cv2.circle(frame, (kp_x, kp_y), 5, (255, 0, 0), -1)
+
+    cv2.imshow("Face Detection", frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
+```
+
+**Casos de uso avançados:**
+
+```python
+# Face liveness detection (detectar se é rosto real vs foto)
+def liveness_check(detections, consecutive_frames=5):
+    """
+    Verificar movimento de rosto em N frames consecutivos
+    Rosto estático por muito tempo = suspeito (foto/vídeo)
+    """
+    face_positions = []
+    for detection in detections:
+        bbox = detection.location_data.relative_bounding_box
+        center = (bbox.xmin + bbox.width/2, bbox.ymin + bbox.height/2)
+        face_positions.append(center)
+
+    # Calcular variância de movimento
+    if len(face_positions) >= consecutive_frames:
+        variance = sum([
+            abs(face_positions[i][0] - face_positions[i-1][0]) +
+            abs(face_positions[i][1] - face_positions[i-1][1])
+            for i in range(1, len(face_positions))
+        ]) / (len(face_positions) - 1)
+
+        return variance > 0.01  # Threshold de movimento
+
+# Detecção de expresión (piscada, sorriso)
+def detect_blink(keypoints_history):
+    """
+    Usar posição dos landmarks dos olhos para detectar piscadas
+    Eye aspect ratio: distância vertical / distância horizontal
+    """
+    for kp in keypoints_history[-1]:
+        if "eye" in kp.name:
+            # Implementar EAR (Eye Aspect Ratio)
+            pass
+```
+
+## Stack e requisitos
+
+**Web/Browser:**
+- Node.js 14+ (para build)
+- Browser com suporte WebGL/WebAssembly (Chrome, Firefox, Safari 15+)
+- Webcam ou arquivo de vídeo
+- ~3.7 MB download (modelo comprimido)
+
+**Desktop/Python:**
+- Python 3.8+
+- `pip install mediapipe opencv-python`
+- GPU opcional (CUDA 11+ para aceleração, CPU viable)
+- ~50-100 MB RAM durante execução
+
+**Performance:**
+- Latência: 50-100ms em CPU, 10-20ms em GPU
+- Throughput: 1 minuto de vídeo processado em ~10 segundos (6x tempo real)
+- Sem custos de API (roda localmente 100%)
+
+## Armadilhas e limitações
+
+**Limitações de detecção:**
+- Não funciona bem com rosto de lado > 90 graus (precisa frontal)
+- Distância mínima ~0.5m, máxima ~3-4m (depende resolução câmera)
+- Óculos escuros, máscaras reduzem acurácia
+- Requer boa iluminação (faces muito escuras falham)
+
+**Performance:**
+- Model selection 0 = rápido mas menos robusto (~30ms), model 1 = mais preciso (~80ms)
+- Em mobile baixo fim, frame rate pode cair abaixo de 15 FPS
+- WebAssembly em Safari é 2-3x mais lento que em Chrome
+
+**Quando não usar MediaPipe:**
+- Reconhecimento facial (comparar dois rostos) = não é designed para isso, usar [[Face Recognition API]] ou face_recognition library
+- Múltiplos rostos muitíssimo próximos = bounding boxes se sobrepõem
+- Análise forense/precisão judicial = modelos de face detection não são validados legalmente
+
+**Dados e privacidade:**
+- Garantia local é real (nenhum upload), mas ainda captura vídeo cru localmente
+- Se armazenar frames em disco, aplicar criptografia
+- GDPR/CCPA: documentar processamento local, ainda é "processamento de dados biométricos"
+
+## Conexões
 - [[Micro-Handpose WebGPU Hand Tracking Browser]]
-- [[Mistral TTS - Text-to-Speech Local Gratuito]]
-- [[Qwen 3.5 4B Destilado Claude Opus Local]]
-- [[Gemini Embedding 2 Multimodal Vetores]]
+- [[github-fun-with-cv-tutorials-collidingscopes]]
+- [[tony-stark-jarvis-visualizacao-3d-mediapipe]]
 
-## Perguntas de Revisão
-
-1. Por que um modelo de face recognition com 3.7MB é viável quando tradicional requer cloud?
-2. Como "privacy-first" muda o valor de proposição de computer vision?
-3. Qual é a implicação de modelos locais para aplicações que precisam de acessos frequentes?
+## Histórico
+- 2026-03-24: Nota original criada
+- 2026-04-02: Reescrita como guia de implementação prática

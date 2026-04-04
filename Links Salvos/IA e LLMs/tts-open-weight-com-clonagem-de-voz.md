@@ -2,8 +2,10 @@
 tags: [tts, voice-ai, open-weights, mistral, modelos-de-linguagem]
 source: https://x.com/itsPaulAi/status/2037246635525496834?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# TTS Open-Weight com Clonagem de Voz
+
+# Usar Voxtral TTS (Mistral) para Síntese de Voz com Clonagem Zero-Shot
 
 ## Resumo
 Voxtral TTS é um modelo de síntese de voz da Mistral com pesos abertos, capaz de clonar vozes a partir de poucos segundos de áudio e gerar fala expressiva e multilíngue com apenas 4B parâmetros.
@@ -23,7 +25,10 @@ A combinação de baixa latência (tempo até o primeiro áudio), expressividade
 3. **Acessibilidade personalizada**: criar leitores de tela que soam como a própria voz do usuário, clonada a partir de uma gravação curta.
 
 ## Relacionado
-*(Nenhuma nota existente no vault para conectar no momento.)*
+- [[text-to-speech-apis|Text-to-Speech APIs]] — conceito de síntese de voz e implementações práticas
+- [[Mistral TTS Text-to-Speech Local Gratuito]] — alternativa open-source para TTS de qualidade
+- [[Pipelines Multimodais de IA Permitem Produção Automatizada de Vídeo a Custo Marginal Próximo de Zero|Pipelines Multimodais de IA]] — integração de TTS em workflows de produção de conteúdo
+- [[sintese-de-video-com-avatares|Síntese de Vídeo com Avatares]] — sincronizar TTS com avatares 3D
 
 ## Perguntas de Revisão
 1. O que diferencia a adaptação de voz *cross-lingual* de uma simples tradução com síntese de voz padrão?

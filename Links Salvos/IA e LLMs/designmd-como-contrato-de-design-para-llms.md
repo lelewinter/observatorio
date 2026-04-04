@@ -2,32 +2,29 @@
 tags: []
 source: https://x.com/GithubProjects/status/2039274093657325783?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# DESIGN.md como Contrato de Design para LLMs
+# DESIGN.md: Contrato Explícito de Sistema de Design para Agentes de Código
 
-## Resumo
-`DESIGN.md` é um arquivo Markdown colocado na raiz de um projeto para descrever o sistema de design em linguagem natural, funcionando como instrução estrutural que agentes de IA leem para gerar interfaces consistentes.
+## O que e
+Arquivo Markdown na raiz do projeto que documenta design system em linguagem natural (paleta de cores, tipografia, spacing, componentes, tom de voz). Funciona como contrato que LLMs leem antes de gerar UI, reduzindo inconsistências visuais e alucinações de design. Estende convenção de README.md para domínio de design.
 
-## Explicação
-O conceito surge do Google Stitch e estende a convenção do `README.md` — arquivo de documentação técnica amplamente adotado em repositórios — para o domínio de sistemas de design. Enquanto o `README.md` descreve *o que o projeto faz e como rodar*, o `DESIGN.md` descreve *como o projeto deve parecer e se comportar visualmente*: paleta de cores, tipografia, espaçamento, tom de voz, componentes recorrentes e princípios de UI.
+## Como implementar
+Estrutura típica de DESIGN.md: **Colors** (lista hex com semântica: primary=#007AFF, success=#34C759), **Typography** (fonte base, tamanhos: H1=32px, body=16px, mono=12px), **Spacing** (escala: 4px, 8px, 16px, 24px), **Components** (buttons: primary/secondary/tertiary estilos, inputs com estados), **Tone & Voice** (padrões de escrita, quando usar "por favor" vs imperativo), **Princípios** (acessibilidade WCAG, dark mode support, mobile-first). Formato Markdown mantém arquivo leve, versionável via Git, legível por humanos e facilmente ingerido por LLMs. Tamanho ideal: 2-5KB. Injectar em contexto de agente de código via prompt ou upload no Claude/Cursor/Copilot, permitindo que modelo gere UI coerente sem needing clonar styles do repositório inteiro.
 
-A relevância prática está na relação com LLMs e agentes de codificação. Modelos de linguagem como GPT-4, Claude ou Gemini não têm acesso implícito ao design system de um projeto — eles inferem padrões a partir do código existente, o que gera inconsistências. O `DESIGN.md` funciona como um **contrato explícito de contexto de design** injetado no prompt ou no contexto do agente, reduzindo alucinações visuais e garantindo coerência entre componentes gerados automaticamente.
+Padrão emergente: coleções de DESIGN.md inspirados em empresas (Stripe, Vercel, Linear, Figma patterns) publicados open-source como referência. Criar seu próprio: copiar template, adaptar para brand, versionar, atualizar a cada mudança de design system.
 
-Do ponto de vista técnico, por ser plain Markdown, o arquivo é leve, versionável via Git, legível por humanos e facilmente consumível por ferramentas como Cursor, GitHub Copilot Workspace ou qualquer pipeline RAG sobre o repositório. A iniciativa de criar coleções de `DESIGN.md` inspiradas em empresas como Stripe, Vercel, Linear e Figma transforma o conceito em um padrão emergente de comunidade, análogo aos *dotfiles* ou *boilerplates* de configuração.
+## Stack e requisitos
+Editor de texto puro (vscode, vim, github.com editor). Git para versionamento. Nenhuma dependência técnica. Requer effort inicial de documentação (1-2h para sistema de design existente), depois manutenção incremental. Validação manual: comparar UI gerada por agente contra DESIGN.md, verificar aderência.
 
-O ponto de tensão relevante é que o arquivo depende de manutenção manual: se o design system evoluir e o `DESIGN.md` não for atualizado, o agente passa a gerar UI baseada em especificações desatualizadas. Isso cria uma nova categoria de débito técnico — o **débito de contexto de IA**.
+## Armadilhas e limitacoes
+Maior risco: DESIGN.md desatualizado — se design system evolve e arquivo não é atualizado, agente gera UI baseado em spec velha. Cria novo tipo de "débito de contexto de IA" que não existia antes. Mitigar: code review de UI gerada, integração contínua que valida conformidade com DESIGN.md. Arquivo muito genérico ("seja bonito") não adiciona valor; especificidade é crítica. Mudanças frequentes em design requerem atualizações frequentes do DESIGN.md.
 
-## Exemplos
-1. **Agente de codificação gerando formulários**: com um `DESIGN.md` descrevendo border-radius de 8px, fonte Inter e paleta de cores específica, o agente gera inputs e botões visualmente consistentes sem precisar inspecionar o CSS existente.
-2. **Onboarding de novos devs com IA**: um desenvolvedor novo usa o Cursor com o `DESIGN.md` do projeto e recebe sugestões de componentes já alinhadas ao design system da empresa, sem precisar ler documentação extensa.
-3. **Prototipagem rápida**: ao iniciar um projeto do zero, copiar um `DESIGN.md` inspirado no design system da Linear ou Vercel permite que o agente construa o MVP com identidade visual coerente desde o primeiro componente.
+## Conexoes
+[[estrutura-claude-md-menos-200-linhas|Documentação concisa]]
+[[falhas-criticas-em-apps-vibe-coded|Qualidade em vibe coding]]
+[[geracao-automatizada-de-prompts|Prompts estruturados]]
 
-## Relacionado
-*(Nenhuma nota existente no vault para conectar neste momento.)*
-
-## Perguntas de Revisão
-1. Qual a diferença fundamental entre `README.md` e `DESIGN.md` em termos de audiência e propósito?
-2. Como o conceito de **débito de contexto de IA** se distingue do débito técnico tradicional, e quais estratégias mitigam esse problema?
-
-## Histórico de Atualizações
-- 2026-04-02: Nota criada a partir de Telegram
+## Historico
+- 2026-04-02: Nota criada
+- 2026-04-02: Reescrita pelo pipeline

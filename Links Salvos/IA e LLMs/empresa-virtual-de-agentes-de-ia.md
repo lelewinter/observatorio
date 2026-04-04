@@ -2,32 +2,30 @@
 tags: []
 source: https://x.com/ihtesham2005/status/2038934452538319205?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Empresa Virtual de Agentes de IA
+# Claw-Empire: Empresa Virtual Simulada com Múltiplos Agentes IA
 
-## Resumo
-Claw-Empire é um framework open-source que simula uma empresa de software completa rodando localmente, onde múltiplos agentes de IA (Claude Code, Codex CLI, Gemini CLI) operam como funcionários em departamentos, recebem tarefas e colaboram com supervisão humana.
+## O que e
+Framework open-source que simula empresa de software completa onde agentes de IA (Claude Code, Gemini, etc.) operam como funcionários em departamentos especializados. CEO humano envia diretivas via Telegram/Slack, sistema distribui trabalho entre agentes, cada agente trabalha isolado em git worktree, merge requer aprovação humana. Roda 100% localmente com SQLite.
 
-## Explicação
-O conceito central é a **organização hierárquica de agentes de IA em estruturas corporativas simuladas**, onde cada agente possui papel definido, departamento, conjunto de habilidades (600+ skills configuráveis) e progressão via sistema de XP. O humano ocupa o papel de CEO, enviando diretivas via Telegram, Discord ou Slack, enquanto o sistema distribui trabalho entre agentes especializados de forma autônoma.
+## Como implementar
+**Arquitetura**: agentes multifuncionais com ~600 skills configuráveis (cada skill é função que agente pode invocar: "gerar relatório", "escrever código", "revisar PR"). Cada agente tem departamento (frontend, backend, QA, DevOps), nível de experiência (XP system), e vê a "empresa" via dashboard. **Setup**: inicializar com `claw-empire init`, definir agentes por departamento, mapear skills, estruturar empresa em organigrama JSON. **Fluxo**: CEO posta diretiva ("implementar autenticação OAuth") no canal Telegram → sistema quebra em subtarefas → agentes recebem tarefas paralelas em worktrees isoladas → cada agente trabalha, testa localmente → resultado mergea em branch staging → CEO aprova merge → integra em main. **Observabilidade**: dashboard visual em pixel-art mostra agentes se movendo pelo escritório, atas de reunião são geradas automaticamente, trilha de auditoria completa de quem fez o quê.
 
-Do ponto de vista técnico, a arquitetura resolve um problema crítico de sistemas multi-agente: **isolamento e controle de mudanças**. Cada agente trabalha em um git worktree separado, garantindo que trabalho paralelo não corrompa a base de código principal. Nenhum merge ocorre sem aprovação humana — o que representa um modelo de autonomia controlada, não autonomia total.
+Diferencial: isolamento via git worktree garante que múltiplos agentes nunca corrompem base de código; controle humano sobre merge previne mudanças indesejadas. Sistema é extensível — adicionar agente novo = registrar na config + mapear skills.
 
-O sistema roda inteiramente local com SQLite, sem dependência de cloud ou assinatura. Isso posiciona o Claw-Empire como uma implementação prática do princípio de **soberania computacional em sistemas de agentes**: capacidade de orquestrar IA complexa sem ceder dados ou depender de infraestrutura externa. A geração automática de atas de reunião e trilhas de auditoria introduz rastreabilidade — um requisito emergente em governança de IA.
+## Stack e requisitos
+Python 3.10+, Git 2.40+, Docker (opcional para containers isolados por agente). SQLite para estado/auditoria. LLM providers: Anthropic (Claude), Google (Gemini), OpenAI (GPT). Requer local machine com suficiente CPU para múltiplos agentes paralelos (recomendado 8+ cores). Armazenamento: ~500MB para projeto typical (código + estado SQLite). Custo: zero infrastructure (roda localmente) + tokens LLM por agente (estimado USD 5-50/dia para 5 agentes contínuos).
 
-A camada de visualização em pixel-art com agentes se movendo pelo escritório não é apenas estética: é uma interface de observabilidade que torna o comportamento do sistema legível para humanos, abordando o problema de opacidade comum em pipelines multi-agente.
+## Armadilhas e limitacoes
+Agentes não têm memória de longo prazo entre sessões — reiniciam do zero (use SQLite para persistir estado crítico). Git worktree merge conflicts não são auto-resolvidos — conflitos reais de código persistem. Agentes podem gerar código errado confidentemente; sempre revisar antes de merge. Alucinação de skills: agente pode chamar skill que não existe se mal configurado. Sincronização entre agentes é eventual (não transacional); race conditions possíveis em paralelo não sincronizado.
 
-## Exemplos
-1. **Desenvolvimento de feature**: CEO envia diretiva via Slack → departamento de planejamento quebra em subtarefas → agente frontend e agente backend trabalham em branches isoladas → revisão multi-round → merge aprovado pelo CEO.
-2. **Geração de relatório técnico**: agente analisa codebase, gera relatório, exporta como PowerPoint com ata de reunião automática e auditoria completa do processo.
-3. **Onboarding de novo projeto**: CEO configura skills específicos por agente conforme stack do projeto (ex.: agente especializado em Rust vs. agente especializado em Python), criando equipes virtuais customizadas.
+## Conexoes
+[[estudio-de-games-com-multi-agentes-ia|Multi-agentes paralelos]]
+[[git-worktrees-para-agentes|Git worktrees isolamento]]
+[[git-worktrees-desenvolvimento-paralelo-claude-code|Desenvolvimento paralelo]]
+[[falhas-criticas-em-apps-vibe-coded|Code quality control]]
 
-## Relacionado
-*(Nenhuma nota existente no vault para linkar no momento.)*
-
-## Perguntas de Revisão
-1. Quais são os trade-offs entre agentes trabalhando em git worktrees isolados versus um único contexto compartilhado de código?
-2. Como o modelo de "CEO humano com aprovação obrigatória antes do merge" se diferencia de sistemas de agentes com autonomia total, e quais riscos cada abordagem endereça?
-
-## Histórico de Atualizações
-- 2026-04-02: Nota criada a partir de Telegram
+## Historico
+- 2026-04-02: Nota criada
+- 2026-04-02: Reescrita pelo pipeline

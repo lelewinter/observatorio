@@ -2,42 +2,46 @@
 tags: [game-dev, youtube, recursos, aprendizado, solo-dev, design]
 source: https://www.linkedin.com/feed/update/urn:li:activity:7392516229577592832/
 date: 2026-03-28
-autor: "Sergei Vasiuk"
+tipo: aplicacao
 ---
 
-# 10 Canais do YouTube São o Melhor Recurso Gratuito para Devs Solo de Games
+# Montar Fundação de Design com YouTube Curado
 
-## Resumo
-Sergei Vasiuk compilou 10 canais do YouTube específicos para desenvolvadores solo de games, cobrindo loop central, monetização, progressão e design de sistemas — tópicos que cursos tradicionais raramente abordam de forma prática.
+## O que é
+Uma curadoria de 10 canais do YouTube focados em game design conceitual, retração de jogadores e estrutura de sistemas. Substitui cursos genéricos que ensinam tooling, não pensamento criativo.
 
-## Explicação
-O problema de quem estuda game dev por conta própria é que a maioria dos recursos ensina *como usar uma engine*, não *como pensar sobre design*. Os canais dessa lista cobrem a camada conceitual: por que jogadores continuam jogando, como construir loops de progressão que geram retenção, como estruturar sistemas sem se perder em complexidade.
+## Como implementar
+Comece com a **fase zero: core loop**. Antes de prototipar qualquer coisa, assista sequencialmente a playlists sobre "The Real Core Loop" (ação repetida que sustenta o jogo). Essa é a espinha dorsal de todo jogo — sem ela, não há retenção.
 
-**Analogia:** É a diferença entre aprender a empilhar tijolos e aprender a projetar uma casa. A engine é o tijolo — os conceitos de design são a planta.
+Após entender core loop, mova para **progression systems**. Consulte vídeos sobre como piramides de progressão funcionam: como cada vitória pequena leva a metas maiores. Use [[core-loop-game-design]] como referência conceitual.
 
-Tópicos cobertos pelos canais:
-1. The Real Core Loop
-2. Basic Progression Systems
-3. Monetization Fundamentals
-4. Level Design Principles
-5. Juice & Game Feel
-6. Solo Dev Workflow
-7. Retention Mechanics
-8. Balancing Difficulty Curve
-9. Post-Launch Updates Strategy
-10. Marketing for Solo Devs
+Prossiga para **juiciness e game feel**. Estes vídeos mostram a diferença sensorial entre um clique sem feedback e um clique que faz o player se sentir poderoso. Cole pequenas animações, sons e partículas. Isso não é costura — é o que mantém players viciados.
 
-Links originais disponíveis no post (encurtados via lnkd.in).
+Estude **monetization fundamentals** do ponto de vista player experience, não de extração. Os melhores jogos indie monetizam através de confiança, não predação. Entenda battles passes, cosmetics e early acesso sem alienar sua audiência.
 
-## Exemplos
-- Canais como GMTK (Game Maker's Toolkit) já têm presença estabelecida nesse espaço — esta lista complementa com canais menores e mais especializados
-- Útil especialmente para devs que trabalham sem equipe e precisam pensar produto + design ao mesmo tempo
+Termine com **marketing solo dev**. Você é produto + criador. Documente seu desenvolvimento em threads do Twitter, crie GIFs curtos de gameplay, participe de comunidades indie (itch.io, IndieDB). Algoritmo de crescimento indie é comunidade, não mídia paga.
 
-## Relacionado
+**Curva de tempo realista**: assista 2-3 vídeos por semana, total 10-12 semanas. Implemente aprendizado no seu protótipo corrente em paralelo.
+
+## Stack e requisitos
+- YouTube (acesso gratuito)
+- Acesso a engine: Godot 4, Unreal 5 Free ou Unity (cada um com curvas diferentes, escolha uma)
+- Papel + caneta para mapear core loops (diagramas são melhores que texto)
+- Comunidade: Discord/Twitter para receber feedback real
+
+## Armadilhas e limitações
+- Consumir vídeo sem implementar = ilusão de conhecimento. Depois de cada 2-3 vídeos, faça um prototipo testável mesmo que trivial
+- Canais no YouTube raramente cobrem a parte financeira/legal de publicação (itch.io, Steam)
+- Solo dev ainda precisa lidar com arte, código e design — esses vídeos cobrem design mas você segue precisando dos outros skills
+- Hype ciclos tecnológicos no YouTube podem desviar seu foco de fundações (não assista "o melhor engine 2026")
+
+## Conexões
 - [[ferramentas-prototipagem-game-designers-sem-codigo]]
 - [[12-principios-animacao-disney-funcionam-diferente-em-games]]
+- [[core-loop-game-design]]
+- [[retention-mechanics-players]]
+- [[monetizacao-indie-games]]
 
-## Perguntas de Revisão
-1. Qual a diferença entre aprender a usar uma engine e aprender design de games?
-2. O que é um "core loop" e por que ele é o ponto de partida de qualquer game?
-3. Por que o marketing é especialmente crítico para devs solo?
+## Histórico
+- 2026-03-28: Nota criada (Sergei Vasiuk LinkedIn)
+- 2026-04-02: Reescrita para aplicação prática

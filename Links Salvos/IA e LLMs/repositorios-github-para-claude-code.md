@@ -2,8 +2,10 @@
 tags: []
 source: https://x.com/DAIEvolutionHub/status/2037907310136484036?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Repositórios GitHub para Claude Code
+
+# Integrar Ecossistema Open-Source de Skills e Extensions para Claude Code
 
 ## Resumo
 Ecossistema crescente de repositórios open-source que estendem as capacidades do Claude Code com memória persistente, integrações, skills e automações prontas para uso em projetos de desenvolvimento.
@@ -23,7 +25,11 @@ Por não haver notas relacionadas no vault, esta nota serve como ponto de entrad
 3. **RAG com grafos**: usar `LightRAG` para indexar documentação extensa e permitir queries relacionais que RAG vetorial puro não resolveria bem.
 
 ## Relacionado
-*(Nenhuma nota existente no vault para linkar no momento.)*
+- [[repositorios-github-para-aiml|Repositórios GitHub para AI/ML]]
+- [[repositorios-open-source-de-ia|Repositórios Open-Source de IA]]
+- [[450_skills_workflows_claude|450 Skills & Workflows Claude]]
+- [[mcp-tool-composition|MCP Tool Composition (Conceito)]]
+- [[skill-workflow-composition|Skill-Workflow Composition (Conceito)]]
 
 ## Perguntas de Revisão
 1. Qual a diferença funcional entre adicionar memória via `claude-mem` e usar um system prompt longo com contexto manual?

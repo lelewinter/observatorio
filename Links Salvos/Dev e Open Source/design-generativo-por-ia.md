@@ -1,33 +1,91 @@
 ---
-tags: []
+tags: [design, ia, generativo, ui-ux, prototipagem, stitch]
 source: https://x.com/namcios/status/2034354088922558713?s=20
 date: 2026-04-02
+tipo: aplicacao
 ---
-# Design Generativo por IA
 
-## Resumo
-Ferramentas de design com IA generativa, como o Google Stitch, são capazes de produzir interfaces completas, protótipos navegáveis e sistemas de design exportáveis a partir de inputs em linguagem natural — incluindo voz — eliminando a necessidade de designers humanos em grande parte do pipeline de produto.
+# Gerar Interfaces e Design Systems Completos com IA (Google Stitch)
 
-## Explicação
-O Google Stitch representa uma nova categoria de ferramenta: o agente de design com IA. Diferente de assistentes que apenas sugerem ou corrigem, um agente de design compreende o contexto integral do projeto e executa tarefas de ponta a ponta — do conceito visual ao código frontend — com mínima intervenção humana. A aquisição da Galileo AI pelo Google foi o vetor técnico que permitiu esse salto, combinando modelos treinados especificamente para UI/UX com infraestrutura de produto escalável.
+## O que é
 
-As capacidades centrais do Stitch atualizado incluem: canvas infinito multimodal (aceita imagem, texto e código como input), agente contextual persistente, design por voz em tempo real, geração instantânea de protótipos navegáveis e o sistema DESIGN.md — um formato exportável de design system que garante consistência entre componentes. Esse conjunto técnico colapsa um pipeline que antes exigia múltiplos profissionais (designer júnior, designer pleno, dev frontend) em uma única sessão de trabalho individual.
+Google Stitch (potenciado pela Galileo AI) é um agente de design que gera interfaces navegáveis, protótipos e design systems completos a partir de input em linguagem natural ou voz. Elimina design júnior/pleno e comprime o pipeline designer → dev em uma sessão.
 
-O impacto econômico mais imediato é a democratização da prototipação: empreendedores e desenvolvedores solo passam a ter acesso a entregáveis de qualidade profissional sem contratação especializada. Isso não elimina o design como disciplina intelectual, mas comprime drasticamente a demanda por execução operacional de nível júnior/pleno. O valor humano se desloca para direção criativa, julgamento estético estratégico e curadoria de outputs da IA — funções que ainda exigem senioridade e visão de produto.
+## Como implementar
 
-Esse movimento segue o padrão observado em outras áreas criativas com a ascensão de modelos generativos: a IA absorve o trabalho de execução repetível enquanto eleva o piso de qualidade acessível a não-especialistas. O conceito de "vibe design" — termo usado pelo próprio Google — sinaliza uma interface de intenção, não de instrução técnica: o usuário comunica a direção e a IA resolve a implementação.
+**Prompt no Stitch:**
+```
+Criar interface de dashboard financeiro com:
+- Header com logo e menu
+- Cards mostrando saldo, receita, despesa
+- Gráfico de tendências últimos 30 dias
+- Tema escuro, fonte Poppins
+- Paleta: azul (#3B82F6), verde (#10B981)
+```
 
-## Exemplos
-1. **Validação de startup em um dia**: Um fundador descreve por voz o fluxo de onboarding do seu app, o Stitch gera telas completas e um protótipo navegável, que é testado com usuários reais no mesmo dia — sem nenhum designer contratado.
-2. **Design system gerado automaticamente**: Uma equipe pequena exporta um DESIGN.md consistente com tokens de cor, tipografia e componentes reutilizáveis, diretamente do prompt, reduzindo semanas de trabalho de design system para horas.
-3. **Iteração por voz em reunião ao vivo**: Durante uma reunião de produto, um PM descreve ajustes de layout verbalmente e vê as alterações aplicadas em tempo real no canvas, encurtando ciclos de feedback de dias para minutos.
+**Output esperado:**
+- Componentes React editáveis
+- Estilos Tailwind
+- Prototipo navegável
+- DESIGN.md (design system exportável)
 
-## Relacionado
-*(Nenhuma nota existente no vault para conectar no momento.)*
+**Voz:**
+```
+"Design uma tela de login minimalista em tom azul,
+com email, senha e botão de login. Fundo gradiente azul-branco"
+```
 
-## Perguntas de Revisão
-1. Qual é a diferença funcional entre um assistente de design com IA e um agente de design com IA? Por que essa distinção importa para o mercado de trabalho?
-2. O conceito de "vibe design" — interface de intenção em vez de instrução técnica — representa uma ruptura de paradigma de interação ou é uma evolução incremental das interfaces de linguagem natural?
+**Export DESIGN.md:**
+```yaml
+---
+name: "Financial Dashboard"
+colors:
+  primary: "#3B82F6"
+  success: "#10B981"
+  dark: "#1F2937"
+components:
+  Card:
+    padding: 1rem
+    borderRadius: 8px
+  Button:
+    bgColor: primary
+    padding: "8px 16px"
+---
+```
 
-## Histórico de Atualizações
-- 2026-04-02: Nota criada a partir de Telegram
+**Integração com React:**
+```jsx
+// components/DashboardCard.jsx (gerado por Stitch)
+export default function Card({ title, value, icon }) {
+  return (
+    <div className="p-4 bg-gray-900 rounded-lg border border-gray-800">
+      <p className="text-gray-400">{title}</p>
+      <p className="text-2xl font-bold text-white">{value}</p>
+      {icon && <div className="mt-2">{icon}</div>}
+    </div>
+  );
+}
+```
+
+## Stack e requisitos
+
+- **Google Stitch**: web-based (acesso via Google)
+- **React/Next.js**: para usar outputs
+- **Tailwind**: padrão nos exports
+- **Design tokens**: importar DESIGN.md automaticamente
+
+## Armadilhas
+
+1. **Lógica complexa**: Stitch gera UI, não business logic. Conectar funcionalidade manualmente.
+2. **Brand guidelines**: Passar paleta/tipografia no prompt inicial.
+3. **Revisão humana**: Sempre revisar antes de produção (estética subjective).
+
+## Conexões
+
+- [[conversao-html-para-react-com-vibe-coding]] - Converter designs em código
+- [[design-vetorial-com-agentes-ia]] - Ícones/vetores com IA
+
+## Histórico
+
+- 2026-04-02: Nota original
+- 2026-04-02: Reescrita com implementação

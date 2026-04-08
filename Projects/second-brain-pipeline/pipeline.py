@@ -2077,13 +2077,13 @@ def run_pipeline(cfg: dict, mode: str = "all", dry_run: bool = False):
         tg_items, new_update_id = fetch_telegram_items(cfg, state)
         all_items += tg_items
 
-    # ── Canal 2: RSS (passivo) — roda apenas com --mode rss ou --digest ──
-    if mode == "rss":
+    # ── Canal 2: RSS (passivo) — roda apenas com --digest (semanal) ──────
+    if mode in ("rss", "digest"):
         log.info("--- RSS Feeds ---")
         rss_items = collect_rss_items(cfg)
         log.info(f"RSS total: {len(rss_items)} itens coletados")
 
-        threshold = cfg.get("relevance_threshold", 7)
+        threshold = cfg.get("relevance_threshold", 5)
         max_rss = cfg.get("max_items_per_run", 15)
         scored_items = []
 
@@ -2103,7 +2103,7 @@ def run_pipeline(cfg: dict, mode: str = "all", dry_run: bool = False):
                 scored_items.append(item)
                 log.info(f"  ✨ [{score}/10] {item['title'][:60]}")
             else:
-                log.debug(f"  -  [{score}/10] {item['title'][:50]}")
+                log.info(f"  -  [{score}/10] {item['title'][:50]}")
 
             state["processed"].append(item_id)
             time.sleep(0.3)

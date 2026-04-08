@@ -1,6 +1,6 @@
 # agendar.ps1 — Second Brain Pipeline v2
 # Telegram Daemon: processo continuo polling a cada 2min
-# RSS: 1x/dia as 6h | Daily: todo dia 22h | Digest: domingos 20h
+# Daily: todo dia 22h | Digest: domingos 20h (inclui RSS)
 # Execute com: powershell -ExecutionPolicy Bypass -File agendar.ps1
 
 $scriptDir  = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -32,20 +32,6 @@ $settingsTelegram = New-ScheduledTaskSettingsSet `
     -DontStopIfGoingOnBatteries `
     -RestartCount 3 `
     -RestartInterval (New-TimeSpan -Minutes 1)
-
-# ── RSS: 1x por dia as 6h da manha ──────────────────────────────────────────
-$actionRSS = New-ScheduledTaskAction `
-    -Execute $pythonPath `
-    -Argument "`"$scriptPath`" --mode rss" `
-    -WorkingDirectory $scriptDir
-
-$triggerRSS = New-ScheduledTaskTrigger -Daily -At "06:00"
-
-$settingsRSS = New-ScheduledTaskSettingsSet `
-    -ExecutionTimeLimit (New-TimeSpan -Minutes 25) `
-    -StartWhenAvailable `
-    -AllowStartIfOnBatteries `
-    -DontStopIfGoingOnBatteries
 
 # ── Daily Review: todo dia as 22h ───────────────────────────────────────────
 $actionDaily = New-ScheduledTaskAction `
@@ -97,14 +83,6 @@ Register-ScheduledTask `
     -RunLevel    Highest
 
 Register-ScheduledTask `
-    -TaskName    "SecondBrainRSS" `
-    -Action      $actionRSS `
-    -Trigger     $triggerRSS `
-    -Settings    $settingsRSS `
-    -Description "Second Brain: coleta RSS diaria (6h)" `
-    -RunLevel    Highest
-
-Register-ScheduledTask `
     -TaskName    "SecondBrainDaily" `
     -Action      $actionDaily `
     -Trigger     $triggerDaily `
@@ -135,9 +113,8 @@ if (Test-Path $syncPath) {
 Write-Host ""
 Write-Host "Tarefas agendadas:" -ForegroundColor Green
 Write-Host "   SecondBrainTelegram  -> daemon continuo (polling 2min, inicia no login)"
-Write-Host "   SecondBrainRSS       -> diario as 6h"
 Write-Host "   SecondBrainDaily     -> todo dia as 22h"
-Write-Host "   SecondBrainDigest    -> domingos as 20h"
+Write-Host "   SecondBrainDigest    -> domingos as 20h (inclui RSS)"
 Write-Host ""
 Write-Host "Para verificar:  Get-ScheduledTask -TaskName 'SecondBrain*'"
 Write-Host "Testar Telegram: python `"$scriptPath`" --mode telegram"

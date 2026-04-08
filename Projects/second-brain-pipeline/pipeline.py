@@ -1354,7 +1354,7 @@ def update_moc(cfg: dict, client: Anthropic, note_content: str,
     )
 
     try:
-        resp = api_call_with_retry(client, "claude-sonnet-4-6", 4000,
+        resp = api_call_with_retry(client, "claude-haiku-4-5-20251001", 4000,
             [{"role": "user", "content": prompt}])
         updated_moc = extract_text_from_response(resp)
 
@@ -1526,7 +1526,7 @@ def extract_concepts(client: Anthropic, title: str, content: str,
     )
 
     try:
-        resp = api_call_with_retry(client, "claude-sonnet-4-6", 1500,
+        resp = api_call_with_retry(client, "claude-haiku-4-5-20251001", 1500,
             [{"role": "user", "content": prompt}])
         raw = extract_text_from_response(resp)
 
@@ -1545,6 +1545,23 @@ def extract_concepts(client: Anthropic, title: str, content: str,
         return []
 
 
+CONCEPT_BATCH_PROMPT = """\
+IDIOMA OBRIGATORIO: toda a nota deve ser escrita em portugues brasileiro (PT-BR).
+Termos tecnicos consolidados em ingles podem ser mantidos.
+Crie notas de conceito tecnico para estudo. Cada nota deve funcionar como um
+verbete de enciclopedia tecnica que permite aprender o conceito de forma independente.
+
+Conteudo fonte (de onde os conceitos foram extraidos):
+{source_content}
+
+Crie as seguintes notas de conceito, CADA UMA separada por uma linha contendo apenas
+===SEPARATOR===
+
+{concepts_spec}
+
+Responda SOMENTE com as notas completas separadas por ===SEPARATOR===, sem explicacoes."""
+
+
 def save_concept_notes(cfg: dict, client: Anthropic, concepts: list[dict],
                        source_content: str, source_note_filename: str,
                        tags: list[str]) -> int:
@@ -1559,79 +1576,127 @@ def save_concept_notes(cfg: dict, client: Anthropic, concepts: list[dict],
     existing = get_existing_concepts(vault)
     saved = 0
 
+    concept_tags = ", ".join(t.replace("@", "") for t in tags[:5])
+    source_note_ref = source_note_filename.replace(".md", "")
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    # Separar conceitos novos dos existentes
+    new_concepts = []
+    update_concepts = []
+
     for concept in concepts:
         name = concept.get("name", "")
         filename = concept.get("filename", "")
         if not name or not filename:
             continue
-
-        # Sanitizar filename
         filename = re.sub(r'[<>:"/\\|?*]', '', filename)
         if not filename.endswith(".md"):
             filename += ".md"
-
-        # Limpar @ de tags
-        concept_tags = ", ".join(t.replace("@", "") for t in tags[:5])
-        source_note_ref = source_note_filename.replace(".md", "")
-
+        concept["_filename"] = filename
         filepath = concepts_dir / filename
-
         if filepath.exists():
-            # Atualizar conceito existente
-            try:
-                existing_note = filepath.read_text(encoding="utf-8")
-                prompt = CONCEPT_UPDATE_PROMPT.format(
-                    existing_note=existing_note,
-                    source_note=source_note_ref,
-                    relevance=concept.get("relevance", ""),
-                    source_content=source_content[:3000],
-                    date=datetime.now().strftime("%Y-%m-%d"),
-                )
-                resp = api_call_with_retry(client, "claude-sonnet-4-6", 3000,
-                    [{"role": "user", "content": prompt}])
-                updated = extract_text_from_response(resp)
-
-                if updated.startswith("---") and "# " in updated:
-                    filepath.write_text(updated, encoding="utf-8")
-                    log.info(f"  Conceito atualizado: {filename}")
-                    git_auto_commit(cfg, f"Conceitos/{filename}",
-                                   message=f"conceito: atualizar {name}")
-                    saved += 1
-            except Exception as ex:
-                log.warning(f"  Conceito update falhou ({filename}): {ex}")
+            update_concepts.append(concept)
         else:
-            # Criar conceito novo
-            try:
-                related = concept.get("related_concepts", [])
-                related_text = "\n".join(
-                    f"  - [[{r.lower().replace(' ', '-')}|{r}]]" for r in related
-                ) or "(nenhum ainda)"
+            new_concepts.append(concept)
 
-                # Gerar aliases (nome em ingles e portugues)
-                aliases = name
-                prompt = CONCEPT_NOTE_PROMPT.format(
-                    concept_name=name,
-                    definition=concept.get("definition", ""),
-                    relevance=concept.get("relevance", ""),
-                    source_content=source_content[:3000],
-                    related_concepts=related_text,
-                    tags=concept_tags,
-                    date=datetime.now().strftime("%Y-%m-%d"),
-                    aliases=aliases,
-                    source_note=source_note_ref,
-                )
-                resp = api_call_with_retry(client, "claude-sonnet-4-6", 2500,
-                    [{"role": "user", "content": prompt}])
-                note = extract_text_from_response(resp)
+    # ── Batch: criar todos os conceitos novos numa unica chamada Sonnet ──
+    if new_concepts:
+        specs = []
+        for i, concept in enumerate(new_concepts):
+            related = concept.get("related_concepts", [])
+            related_text = "\n".join(
+                f"  - [[{r.lower().replace(' ', '-')}|{r}]]" for r in related
+            ) or "(nenhum ainda)"
+            spec = f"""CONCEITO {i+1}: {concept.get('name', '')}
+Filename: {concept['_filename']}
+Definicao: {concept.get('definition', '')}
+Contexto: {concept.get('relevance', '')}
+Relacionados: {related_text}
+
+Formato da nota:
+---
+tags: [conceito, {concept_tags}]
+date: {today}
+tipo: conceito
+aliases: [{concept.get('name', '')}]
+---
+# {concept.get('name', '')}
+
+## O que e
+[Definicao tecnica clara e precisa. 2-3 frases.]
+
+## Como funciona
+[Explicacao tecnica do mecanismo. 2-4 paragrafos. Seja especifico.]
+
+## Pra que serve
+[Aplicacoes praticas. Trade-offs. Conecte com [[wikilinks]].]
+
+## Exemplo pratico
+[Exemplo concreto: codigo, config, workflow ou caso real.]
+
+## Aparece em
+- [[{source_note_ref}]] - {concept.get('relevance', '')}
+
+---
+*Conceito extraido automaticamente em {today}*"""
+            specs.append(spec)
+
+        prompt = CONCEPT_BATCH_PROMPT.format(
+            source_content=source_content[:4000],
+            concepts_spec="\n\n".join(specs),
+        )
+
+        try:
+            max_tokens = min(2500 * len(new_concepts), 8000)
+            resp = api_call_with_retry(client, "claude-sonnet-4-6", max_tokens,
+                [{"role": "user", "content": prompt}])
+            raw = extract_text_from_response(resp)
+
+            # Separar notas pelo separador
+            notes = [n.strip() for n in raw.split("===SEPARATOR===") if n.strip()]
+
+            for i, note in enumerate(notes):
+                if i >= len(new_concepts):
+                    break
+                concept = new_concepts[i]
+                filepath = concepts_dir / concept["_filename"]
 
                 if note.startswith("---") and "# " in note:
                     filepath.write_text(note, encoding="utf-8")
-                    log.info(f"  Conceito criado: {filename}")
-                    git_auto_commit(cfg, f"Conceitos/{filename}",
-                                   message=f"conceito: criar {name}")
+                    log.info(f"  Conceito criado: {concept['_filename']}")
+                    git_auto_commit(cfg, f"Conceitos/{concept['_filename']}",
+                                   message=f"conceito: criar {concept.get('name', '')}")
                     saved += 1
-            except Exception as ex:
-                log.warning(f"  Conceito criacao falhou ({filename}): {ex}")
+                else:
+                    log.warning(f"  Conceito batch: nota {i+1} invalida (sem frontmatter)")
+
+        except Exception as ex:
+            log.warning(f"  Conceitos batch criacao falhou: {ex}")
+
+    # ── Updates individuais via Haiku (mais barato, so adiciona info) ────
+    for concept in update_concepts:
+        filepath = concepts_dir / concept["_filename"]
+        try:
+            existing_note = filepath.read_text(encoding="utf-8")
+            prompt = CONCEPT_UPDATE_PROMPT.format(
+                existing_note=existing_note,
+                source_note=source_note_ref,
+                relevance=concept.get("relevance", ""),
+                source_content=source_content[:3000],
+                date=today,
+            )
+            resp = api_call_with_retry(client, "claude-haiku-4-5-20251001", 3000,
+                [{"role": "user", "content": prompt}])
+            updated = extract_text_from_response(resp)
+
+            if updated.startswith("---") and "# " in updated:
+                filepath.write_text(updated, encoding="utf-8")
+                log.info(f"  Conceito atualizado: {concept['_filename']}")
+                git_auto_commit(cfg, f"Conceitos/{concept['_filename']}",
+                               message=f"conceito: atualizar {concept.get('name', '')}")
+                saved += 1
+        except Exception as ex:
+            log.warning(f"  Conceito update falhou ({concept['_filename']}): {ex}")
 
         time.sleep(0.3)  # Rate limit gentil
 

@@ -17,6 +17,8 @@ Estratégias e recursos para dominar engenharia de software via curadoria de có
 
 [[leetcode-e-50-porcento-entrevistas-engenharia-recursos-faltantes|LeetCode é necessário mas insuficiente]] — 200-300 problemas cobrem estructura e algorithms. Faltam 50%: system design (trade-offs de arquitetura, scaling, CAP theorem) e behavioral (communication, conflict resolution). Solução: LeetCode → System Design Interviews (Alex Xu) → behavioral prep (STAR method). Timeline: 3-4 meses, 15h/semana.
 
+[[system-design-notes-guia-completo-entrevistas|System Design Notes]] — guia completo para entrevistas de design, cobrindo trade-offs arquiteturais e padrões em escala.
+
 ## Padrões Arquiteturais e Orquestração
 
 [[arquitetura-holonomica-de-software|Holos (Holons) em Microsserviços]] — cada serviço é "holon": autônomo internamente (banco de dados próprio, lógica encapsulada) + parte de sistema maior (eventos assíncronos, contratos bem-definidos). Princípios: (1) autonomia (serviço não chama outro serviço síncronamente), (2) integração via eventos (Kafka, RabbitMQ), (3) desacoplamento em níveis (holarchy). Implementação: definir change-philosophy.md (modo de pensar sobre mudanças), problem-space.md (o quê está quebrado), solution-space.md (arquitetura). Armadilhas: confundir "evento" com RPC disfarçado (esperando resposta síncrona), eventual consistency exigindo retry/reconciliação.
@@ -45,7 +47,7 @@ Estratégias e recursos para dominar engenharia de software via curadoria de có
 
 ## Arquitetura Holística e Filosofia de Design
 
-[[braco-robotico-open-source|Robotic arm open-source]] — arquivos CAD completos (fabricação CNC/3D print), BOM (bill of materials), códigos de controle (Python/ROS). Demonstra filosofia: hardware + software juntos, open design reduz custo de replicação de 50k para ~500.
+[[braco-robotico-open-source|Robotic arm open-source]] — arquivos CAD completos (fabricação CNC/3D print), BOM (bill of materials), códigos de controle (Python/ROS). Demonstra filosofia: hardware + software juntos, open design reduz custo de replicação de 50k para ~500. [[velxio-emulador-arduino-esp32-raspberry-pi-no-browser|Velxio]] — emulador de Arduino/ESP32/Raspberry Pi no browser, prototipagem rápida sem hardware. [[astorino-robo-6-eixos-educacional-3d-printed|Astorino Robô 6 Eixos]] — robô educacional open-source, 3D printed, controlável via web.
 
 [[framework-opinado-para-jogos-threejs|Three.js framework opinado para games]] — abstração sobre Three.js que oferece convenções (scene structure, event handling, asset loading), reduzindo boilerplate de 3.000 linhas para 300.
 
@@ -59,7 +61,7 @@ Estratégias e recursos para dominar engenharia de software via curadoria de có
 
 [[world-model-interativo-em-tempo-real|World model interativo]] — simulação 2D física em tempo real no browser (webgl), treina modelos de predição visual.
 
-[[spec-driven-ai-coding|Spec-driven AI coding]] — workflow onde Claude gera código a partir de especificação formal (OpenAPI, JSON Schema), resultando em acurácia 90%+ (vs. prompt genérico 60%).
+[[spec-driven-ai-coding|Spec-driven AI coding]] — workflow onde Claude gera código a partir de especificação formal (OpenAPI, JSON Schema), resultando em acurácia 90%+ (vs. prompt genérico 60%). [[developer-icons-biblioteca-icones-tech-react-svg|Developer Icons]] — biblioteca curada de ícones tech para React/SVG. [[reddit-vibecoding-discussao-comunidade|Reddit: Vibecoding]] — discussão ativa da comunidade sobre geração de código via vibe/intent.
 
 ## Síntese de Voz e Media
 
@@ -72,6 +74,13 @@ Estratégias e recursos para dominar engenharia de software via curadoria de có
 [[medicao-de-texto-sem-dom|Medir texto sem DOM]] — JavaScript que calcula width/height de texto sem renderizar (via metricas de font). Útil para layout dinâmico pré-computado.
 
 [[layout-de-texto-sem-dom|Pretext: layout de texto sem CSS]] — biblioteca TypeScript de Cheng Lou (criador React, ex-Messenger, ex-Midjourney) que faz layout de texto via algoritmo puro (sem DOM). Relevante para renderização de texto em canvas/WebGL/PDF.
+
+## Atualizacoes Abril 2026
+
+- **Vibecoding named MIT Tech Review "10 Breakthrough Technologies 2026"**: reconhecimento formal de geração de código via intent/vibe como breakthrough, market projetado $4.7B→$12.3B by 2027
+- **Cursor at $2B ARR**: editor de código com AI integrada atinge avaliação unicorn, adoptado por 30%+ de devs ativos
+- **Windsurf SWE-1.5 at 40% SWE-Bench**: assistente de engenharia atinge benchmark de resolução de issues reais, 2x improvement vs. anterior
+- **OLMo 2 fully transparent open-source models** (Allen AI): modelos open-source com pesos, dados e código completamente auditáveis, alternativa viável a closed models
 
 ## Estado Atual e Tendências
 

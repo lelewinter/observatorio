@@ -965,8 +965,8 @@ Termos tecnicos consolidados em ingles (ex: API, pipeline, framework) podem ser 
 
 Crie um GUIA DE APLICACAO PRATICA em PT-BR. Esta nota e o nivel intermediario:
 mais profunda que um resumo, focada em COMO IMPLEMENTAR o que o link propoe.
-Pesquise alem do conteudo do link. Pense como um tutorial denso para alguem que
-quer replicar e aplicar isso HOJE.
+Pesquise alem do conteudo do link. Complemente com seu conhecimento tecnico.
+Pense como um tutorial denso para alguem que quer replicar e aplicar isso HOJE.
 
 Fonte: {source}
 URL: {url}
@@ -986,6 +986,23 @@ REGRA CRITICA PARA O TITULO (#):
 - RUIM: "MCP Servers" (muito vago, isso e conceito)
 - RUIM: "Thread interessante sobre IA" (descritivo sem acao)
 
+REGRA CRITICA DE QUALIDADE MINIMA:
+A nota DEVE ter no minimo 80 linhas de conteudo. Se o conteudo do link for curto
+(ex: um tweet), voce DEVE compensar pesquisando alem: explicar a ferramenta/conceito
+em profundidade, dar exemplos de codigo funcionais, detalhar arquitetura, listar
+alternativas, custos reais e armadilhas especificas. Um tweet de 280 chars sobre
+uma ferramenta deve gerar a mesma profundidade de nota que um artigo de 5000 palavras.
+
+EXEMPLOS DE PROFUNDIDADE ESPERADA:
+- "Como implementar" DEVE ter blocos de codigo copiavel com contexto (nao apenas
+  `pip install X`), explicacao de cada passo, decisoes tecnicas, e pelo menos
+  2 exemplos de uso real.
+- "Stack e requisitos" DEVE incluir versoes especificas, VRAM/RAM necessaria,
+  custos estimados em USD, tempo de setup, e alternativas quando relevante.
+- "Armadilhas" DEVE ter pelo menos 3 items especificos e tecnicos, nao genericos.
+  RUIM: "Pode ser lento". BOM: "Inferencia em int4 degrada qualidade 5-10% vs
+  float16; validar com benchmark antes de produção."
+
 Template EXATO:
 
 ---
@@ -998,32 +1015,38 @@ tipo: aplicacao
 
 ## O que e
 
-[2-3 frases. O que este link propoe/mostra e por que importa pra voce.]
+[2-3 frases densas. O que este link propoe/mostra, como funciona por dentro,
+e por que e relevante agora. Nao seja vago.]
 
 ## Como implementar
 
-[A parte principal da nota. 4-8 paragrafos densos e tecnicos.
+[A parte principal da nota. MINIMO 4 paragrafos densos e tecnicos com codigo.
 Passo a passo de como replicar: ferramentas necessarias, configuracao,
 comandos, arquitetura, decisoes tecnicas.
-Se o link menciona uma ferramenta, explique como instalar e configurar.
-Se menciona um conceito, explique como aplicar na pratica.
-Inclua [[wikilinks]] para conceitos do vault quando relevante.]
+Se o link menciona uma ferramenta, explique como instalar, configurar E usar.
+Se menciona um conceito, explique como aplicar na pratica com exemplo funcional.
+Inclua [[wikilinks]] para conceitos do vault quando relevante.
+OBRIGATORIO: pelo menos 1 bloco de codigo funcional e contextualizado.]
 
 ## Stack e requisitos
 
-[Lista tecnica: linguagem, libs, hardware, APIs, custos estimados.
-Seja especifico: versoes, tamanho de modelo, VRAM necessaria, etc.]
+[Lista tecnica DETALHADA: linguagem + versao, libs + versao, hardware minimo
+e recomendado (CPU/GPU/RAM/VRAM/disco), APIs necessarias + custo estimado
+por mes/uso, tempo de setup, alternativas se existirem.]
 
 ## Armadilhas e limitacoes
 
-[O que pode dar errado. Limitacoes tecnicas, custos escondidos,
-casos onde NAO usar esta abordagem. Baseie-se no conteudo do link
-e no seu conhecimento tecnico.]
+[MINIMO 3 armadilhas especificas e tecnicas. Para cada uma:
+qual o problema, quando acontece, e como mitigar.
+Inclua: limitacoes de escala, custos escondidos, casos onde NAO usar,
+e trade-offs vs alternativas.]
 
 ## Conexoes
 
 [Como isso se conecta com outras notas do vault. Use [[filename|Titulo]].
-Explique a relacao: complementa, substitui, depende de, etc.]
+Explique a relacao em 1 frase: complementa, substitui, depende de, etc.
+Se nao houver notas relacionadas no vault, sugira 2-3 conceitos que
+deveriam existir como notas futuras.]
 
 ## Historico
 - {date}: Nota criada a partir de {source}"""
@@ -1072,7 +1095,7 @@ def generate_note(client: Anthropic, title: str, url: str, content: str,
         date=datetime.now().strftime("%Y-%m-%d"),
     )
 
-    resp = api_call_with_retry(client, "claude-sonnet-4-6", 2500,
+    resp = api_call_with_retry(client, "claude-sonnet-4-6", 4000,
         [{"role": "user", "content": prompt}])
     return extract_text_from_response(resp)
 

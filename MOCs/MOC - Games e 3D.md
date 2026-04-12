@@ -11,6 +11,8 @@ Panorama completo de game development moderno, geração 3D por IA, renderizaç�
 
 A captura e síntese 3D atravessou transição crítica em 2024-2025. [[geracao-3d-a-partir-de-imagem|TRELLIS-2 (Microsoft, 4B parâmetros) converte foto 2D em malha 3D texturizada com PBR em <100ms via representação O-Voxel]]. O fluxo prático: carregar imagem, rodar inferência em GPU (RTX 3060+ requer 50-100ms), exportar GLB pronto para Unreal/Unity. Limitações conhecidas incluem ambiguidade de profundidade (sem múltiplas vistas, o modelo "adivinha") e reflexos/transparência (vidro e metal geram geometria estranha). Workaround: usar prompts negativos fortes e remeshing via Instant Meshes se detalhes finos forem críticos.
 
+[[nvidia-kimodo-geracao-de-animacao-3d-com-ia|NVIDIA Kimodo]] — gerador de animações 3D nativas via IA, acelerando produção de cinemáticas e cinematics em engines. [[tripo-p10-topologia-quad-limpa-para-engines|Tripo P1.0]] — síntese 3D rápida com topologia quad limpa, otimizada para game engines.
+
 Paralelo a síntese de malha está [[3d-gaussian-splatting|Gaussian Splatting para reconstrução fotométrica de cenas reais]]. OpenSplat (C++ open-source) transforma 100-200 fotografias de uma cena em representação volumétrica renderizável em tempo real (60-120 FPS). Pipeline: Structure-from-Motion via COLMAP, otimização iterativa de gaussianas (5-10 min em RTX 3080 para cena média), export como `.splat` comprimido (~20-50MB). Integração em game engines via NVIDIA Kaolin Wisp (Unreal 5) ou Three.js loaders para web. Trade-offs: cenas maiores que 100m² exigem RAM excessiva (~32GB), dinâmica é limitada (gaussianas estáticas), edição pós-reconstrução é manual.
 
 Tecnologias emergentes como [[geracao-procedural-de-personagens-e-mapas-isometricos|geração procedural de sprites isométricos]] e [[geracao-de-sites-3d-com-ia|síntese de sites 3D via IA]] expandem para domínios específicos. O denominador comum: todos exploram representações compactas (voxels, splats, sprites procedurais) que podem ser renderizadas eficientemente em hardware consumer.
@@ -37,7 +39,7 @@ Antes de engine real (Unity/Unreal), prototipagem rápida economiza semanas. [[f
 
 ## Assets de Jogo via IA: Avaliação Crítica
 
-Mercado de ferramentas IA para geração de game assets explodiu em 2024-2025. [[saturacao-de-ferramentas-ia-para-game-assets-exige-criterio-para-distinguir-solu|Critério para avaliar: obra real do criador vs. vibecoding superficial]]. Red flags: demo com assets genéricos/feios, prompts não exportáveis, sem casos reais documentados. Green flags: criadores com portfólio games, exemplos antes/depois do seu tool, integração com pipelines reais (Blender, engine). [[vibe-coding-para-desenvolvimento-de-jogos|Vibe Coding]] demonstra que LLMs podem gerar integralmente código, assets e design de fases em ciclos iterativos, transformando desenvolvedor solo em diretor criativo.
+Mercado de ferramentas IA para geração de game assets explodiu em 2024-2025. [[saturacao-de-ferramentas-ia-para-game-assets-exige-criterio-para-distinguir-solu|Critério para avaliar: obra real do criador vs. vibecoding superficial]]. Red flags: demo com assets genéricos/feios, prompts não exportáveis, sem casos reais documentados. Green flags: criadores com portfólio games, exemplos antes/depois do seu tool, integração com pipelines reais (Blender, engine). [[vibe-coding-para-desenvolvimento-de-jogos|Vibe Coding]] demonstra que LLMs podem gerar integralmente código, assets e design de fases em ciclos iterativos, transformando desenvolvedor solo em diretor criativo. [[rl-agent-hollow-knight-reinforcement-learning|RL Agent Hollow Knight]] — agente treinado via reinforcement learning para jogar Hollow Knight, demonstrando aplicabilidade prática de RL em game design e QA.
 
 [[geracao-de-assets-3d-com-ia|Geração 3D com IA]] (TRELLIS, Meshy, Kaedim) funciona bem para objetos simples (cadeiras, mesas, armas). Falha em: (1) humanoides (rostos deformados, proporções erradas), (2) topologia otimizada (mesh tem triângulos desnecessários), (3) PBR fino (texturas são baked, não procedurais). Mitigação: usar para rough blockout, depois artista faz retopo/textura em Blender.
 
@@ -78,6 +80,17 @@ Gargalo atual: custo computacional em hardware consumer (GPU 8GB+ requerida para
 **Asset Creation**: Blender (open-source 3D art), Krita (digital painting), Aseprite (pixel art, $20).
 
 **Curadorias**: GameDev-Resources (GitHub), 10-youtube-gems (curado por devs).
+
+## Atualizacoes Abril 2026
+
+- **Gaussian Splatting standardized**: KHR_gaussian_splatting glTF extension (Khronos, backed by Google/NVIDIA/Apple) torna 3GS compatível com qualquer game engine via standard aberto
+- **FastGS**: Treina 3DGS em 100 segundos (CVPR 2026), reduzindo barreira de entrada para fotogrametria em tempo real
+- **WebGPU now in 95% of browsers**: Safari 26 completou rollout global, viabilizando shader-intensive 3D apps sem fallback WebGL
+- **Three.js WebGPU integration seamless since r171+**: integração nativa simplifica porting de código WebGL existente
+- **Unity 6.4 released with AI Beta tools**: ferramentas de geração de assets e code generation integradas ao editor
+- **GTA 6 launch Nov 19 2026**, Project ROME modding engine com official mod marketplace — padrão novo para monetização de user-generated content
+- **Tripo P1.0**: Fast 3D com topologia quad limpa, pronto para game engines (vs. Meshy/Kaedim com geometria suja)
+- **ComfyUI Cloud exited beta**, Qwen diffusion model support — acesso fácil a custom diffusion models sem setup local
 
 ## Conexões com Outros Temas
 

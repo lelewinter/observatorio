@@ -25,6 +25,7 @@ import shutil
 import hashlib
 import argparse
 import logging
+import unicodedata
 from datetime import datetime, timezone, timedelta
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -92,6 +93,7 @@ def log_failed_link(url: str, title: str, source: str, reason: str):
         try:
             entries = json.loads(FAILED_LINKS_FILE.read_text(encoding="utf-8"))
         except Exception:
+            log.debug("failed_links.json ilegivel, recriando")
             entries = []
 
     entries.append({
@@ -119,15 +121,7 @@ def make_id(url: str, title: str = "") -> str:
 
 
 def to_kebab(text: str) -> str:
-    text = text.lower()
-    for a, b in [
-        ('a\u0301','a'),('a\u0303','a'),('a\u0302','a'),('a\u0300','a'),
-        ('\u00e1','a'),('\u00e3','a'),('\u00e2','a'),('\u00e0','a'),
-        ('\u00e9','e'),('\u00ea','e'),('\u00e8','e'),
-        ('\u00ed','i'),('\u00ee','i'),('\u00f3','o'),('\u00f5','o'),('\u00f4','o'),
-        ('\u00fa','u'),('\u00fb','u'),('\u00fc','u'),('\u00e7','c'),('\u00f1','n'),
-    ]:
-        text = text.replace(a, b)
+    text = unicodedata.normalize('NFD', text.lower()).encode('ascii', 'ignore').decode()
     text = re.sub(r'[^a-z0-9\s-]', '', text)
     text = re.sub(r'\s+', '-', text.strip())
     return text[:80]
@@ -168,7 +162,7 @@ def api_call_with_retry(client: Anthropic, model: str, max_tokens: int,
         except Exception as ex:
             err_str = str(ex)
             is_retryable = any(k in err_str.lower() for k in
-                ["rate_limit", "overloaded", "timeout", "529", "529", "500", "503"])
+                ["rate_limit", "overloaded", "timeout", "529", "500", "503"])
 
             if is_retryable and attempt < max_retries - 1:
                 wait = (2 ** attempt) * 2  # 2s, 4s, 8s
@@ -450,6 +444,7 @@ def fetch_nitter(accounts: list[str], instances: list[str]) -> list[dict]:
                     })
                 break
             except Exception:
+                log.debug(f"  Nitter {instance} sem resposta")
                 continue
     if not working and accounts:
         log.warning("  Nitter: nenhuma instancia respondeu (provavelmente bloqueadas)")
@@ -724,6 +719,7 @@ def get_existing_notes(vault_path: str) -> list[dict]:
                 "resumo": resumo[:300],
             })
         except Exception:
+            log.debug(f"  Nota ilegivel: {f.name}")
             continue
 
     return notes
@@ -756,9 +752,9 @@ def find_notes_by_tags(existing_notes: list[dict], new_tags: list[str],
                      "is", "are", "from", "how", "to", "in", "of", "on", "at"}
         keywords = {w for w in re.findall(r'[a-z0-9]{3,}', text) if w not in stopwords}
 
-        already_found = {id(n) for _, n in scored}
+        already_found = {n.get("filepath") for _, n in scored}
         for note in existing_notes:
-            if id(note) in already_found:
+            if note.get("filepath") in already_found:
                 continue
             note_title = note.get("title", "").lower()
             note_tags_str = " ".join(note.get("tags", [])).lower()
@@ -1220,7 +1216,7 @@ def save_note_to_vault(cfg: dict, note: str, filename: str,
             git_auto_commit(cfg, f"{subfolder}/{filename}")
             return True
     except Exception:
-        pass
+        log.debug("  Obsidian API indisponivel, tentando filesystem")
 
     # Tentativa 2: escrita direta no filesystem
     vault = cfg.get("vault_path")
@@ -1913,6 +1909,7 @@ def process_item(cfg: dict, client: Anthropic, item: dict,
             }, cfg.get("topics", []), cfg=cfg)
             tags = ev.get("tags", [])
         except Exception:
+            log.debug("  Eval de tags falhou, usando fallback")
             tags = ["pensamento", "telegram"]
 
         # Matching
@@ -1925,6 +1922,7 @@ def process_item(cfg: dict, client: Anthropic, item: dict,
             log.info(f"  [dry-run] TEXTO: {text[:60]}")
             return True
 
+        is_update = False
         if match:
             filename = match["filename"]
             existing_content = read_note_from_vault(cfg, filename)
@@ -1932,18 +1930,8 @@ def process_item(cfg: dict, client: Anthropic, item: dict,
                 log.info(f"  Merge texto com: {filename}")
                 note = merge_note(client, existing_content, text, context, "", source)
                 is_update = True
-            else:
-                prompt = TEXT_NOTE_PROMPT.format(
-                    text=text[:2000], vault_context=context[:2000],
-                    tags=", ".join(tags),
-                    date=datetime.now().strftime("%Y-%m-%d"),
-                )
-                resp = api_call_with_retry(client, "claude-sonnet-4-6", 1500,
-                    [{"role": "user", "content": prompt}])
-                note = extract_text_from_response(resp)
-                filename = extract_filename(note)
-                is_update = False
-        else:
+
+        if not is_update:
             prompt = TEXT_NOTE_PROMPT.format(
                 text=text[:2000], vault_context=context[:2000],
                 tags=", ".join(tags),
@@ -1953,7 +1941,6 @@ def process_item(cfg: dict, client: Anthropic, item: dict,
                 [{"role": "user", "content": prompt}])
             note = extract_text_from_response(resp)
             filename = extract_filename(note)
-            is_update = False
 
         subfolder = classify_subfolder(tags, cfg)
         ok = save_note_to_vault(cfg, note, filename, subfolder=subfolder)
